@@ -14,29 +14,13 @@
 
 #define WIDTH   320
 #define HEIGHT  180
+#define EPSILON 1e-8
+#define MAX_DEPTH 5
 
 typedef struct vec3
 {
     double x, y, z;
 } vec3_t;
-
-double dot(const vec3_t v1, const vec3_t v2) { return v1.x * v2.x + v1.y * v2.y + v1.z * v2.z; }
-double length2(const vec3_t v1) { return v1.x * v1.x + v1.y * v1.y + v1.z * v1.z; }
-double length(const vec3_t v1) { return sqrt(length2(v1)); }
-vec3_t multiply(const vec3_t v1, const vec3_t v2) { return (vec3_t){v1.x * v2.x, v1.y * v2.y, v1.z * v2.z}; }
-vec3_t divide(const vec3_t v1, const vec3_t v2) { return (vec3_t){v1.x / v2.x, v1.y / v2.y, v1.z / v2.z}; }
-vec3_t minus(const vec3_t v1, const vec3_t v2) { return (vec3_t){v1.x - v2.x, v1.y - v2.y, v1.z - v2.z}; }
-vec3_t plus(const vec3_t v1, const vec3_t v2) { return (vec3_t){v1.x + v2.x, v1.y + v2.y, v1.z + v2.z}; }
-vec3_t scalar_multiply(const vec3_t v1, const double s) { return (vec3_t){v1.x * s, v1.y * s, v1.z * s}; }
-vec3_t scalar_divide(const vec3_t v1, const double s) { return (vec3_t){v1.x / s, v1.y / s, v1.z / s}; }
-bool scalar_equals(const vec3_t v1, const double s) { return v1.x == s && v1.y == s && v1.z == s; }
-vec3_t normalize(const vec3_t v1)
-{
-    double m = length(v1);
-    return (vec3_t){v1.x / m, v1.y / m, v1.z / m};
-}
-
-double max(double a, double b) { return a > b ? a : b; }
 
 typedef struct ray
 {
@@ -67,6 +51,31 @@ typedef struct camera
     vec3_t origin, horizontal, vertical, lower_left_corner;
 } camera_t;
 
+double max(double a, double b) { return a > b ? a : b; }
+double dot(const vec3_t v1, const vec3_t v2) { return v1.x * v2.x + v1.y * v2.y + v1.z * v2.z; }
+double length2(const vec3_t v1) { return v1.x * v1.x + v1.y * v1.y + v1.z * v1.z; }
+double length(const vec3_t v1) { return sqrt(length2(v1)); }
+vec3_t multiply(const vec3_t v1, const vec3_t v2) { return (vec3_t){v1.x * v2.x, v1.y * v2.y, v1.z * v2.z}; }
+vec3_t divide(const vec3_t v1, const vec3_t v2) { return (vec3_t){v1.x / v2.x, v1.y / v2.y, v1.z / v2.z}; }
+vec3_t minus(const vec3_t v1, const vec3_t v2) { return (vec3_t){v1.x - v2.x, v1.y - v2.y, v1.z - v2.z}; }
+vec3_t plus(const vec3_t v1, const vec3_t v2) { return (vec3_t){v1.x + v2.x, v1.y + v2.y, v1.z + v2.z}; }
+vec3_t scalar_multiply(const vec3_t v1, const double s) { return (vec3_t){v1.x * s, v1.y * s, v1.z * s}; }
+vec3_t scalar_divide(const vec3_t v1, const double s) { return (vec3_t){v1.x / s, v1.y / s, v1.z / s}; }
+bool scalar_equals(const vec3_t v1, const double s) { return v1.x == s && v1.y == s && v1.z == s; }
+bool vector_equals(const vec3_t v1, const vec3_t v2) { return v1.x == v2.x && v1.y == v2.y && v1.z == v2.z; }
+vec3_t point_at(const ray_t *ray, double t) { return plus(ray->origin, scalar_multiply(ray->direction, t)); }
+bool equal_d(double a, double b) { return fabs(a - b) < EPSILON; }
+vec3_t normalize(const vec3_t v1)
+{
+    double m = length(v1);
+    assert(m > 0);
+    return  (vec3_t) { v1.x / m, v1.y / m, v1.z / m };
+}
+void print_vec(const vec3_t v)
+{
+    printf("vec3_t { %f, %f, %f }\n", v.x, v.y, v.z);
+}
+
 void init_camera(camera_t *camera)
 {
     double viewport_height = 2.0;
@@ -89,10 +98,35 @@ ray_t get_camera_ray(const camera_t *camera, double u, double v)
             plus(scalar_multiply(camera->horizontal, u), scalar_multiply(camera->vertical, v))),
         camera->origin);
 
-    return (ray_t){camera->origin, normalize(direction)};
+    direction = normalize(direction);
+    assert(equal_d(length(direction), 1.0));
+    return (ray_t){camera->origin, direction};
 }
 
-bool intersect_v1(const ray_t *ray, const sphere_t *sphere, double t_min, double t_max, double *tr)
+bool solve_quadratic(double a, double b, double c, double *x0, double* x1)
+{
+    double discr = b * b - 4 * a * c;
+
+    if (discr < 0) {
+      return false;
+    } else if (discr == 0) {
+        *x1 = -0.5 * (b + sqrt(discr));
+        *x0 = *x1;
+    } else {
+       double q  =(b > 0)  ? -0.5 * (b + sqrt(discr)) : -0.5 * (b - sqrt(discr));
+       *x0 = q / a;
+       *x1 = c / q;
+    }
+
+    if (x0 > x1){
+        double tmp = *x0;
+        *x0 = *x1;
+        *x1 = tmp;
+    }
+    return true;
+}
+
+bool intersect_sphere_v1(const ray_t *ray, const sphere_t *sphere, double t_min, double t_max, double *tr)
 {
 #if 0
     vec3_t oc = minus(ray->origin, sphere->center);
@@ -112,12 +146,12 @@ bool intersect_v1(const ray_t *ray, const sphere_t *sphere, double t_min, double
     if (discriminant < 0)
         return false;
 
-    double sqrtd = sqrt(discriminant);
+    double sqrt_d = sqrt(discriminant);
 
-    double t = (-half_b - sqrtd) / a;
+    double t = (-half_b - sqrt_d) / a;
     if ((t < t_min) || (t_max < t))
     {
-        t = (-half_b + sqrtd) / a;
+        t = (-half_b + sqrt_d) / a;
 
         //if (t < t_min)
             //return false;
@@ -131,27 +165,39 @@ bool intersect_v1(const ray_t *ray, const sphere_t *sphere, double t_min, double
 #endif
 }
 
-bool intersect_v2(const ray_t *ray, const sphere_t *sphere, double t_min, double t_max, double *t)
+// this is somehow broken
+bool intersect_sphere_v2(const ray_t *ray, const sphere_t *sphere, double t_min, double t_max, double *t)
 {
     double t0, t1; // solutions for t if the ray intersects
+
+    //printf("intersect_sphere() { \n");
+
     vec3_t L = minus(sphere->center, ray->origin);
+    //print_vec(L);
+
     double tca = dot(L, ray->direction);
-    // if (tca < 0) return false;
+    //printf("tca=%f\n", tca);
+    if (tca < 0) return false;
+
     double d2 = dot(L, L) - tca * tca;
+    //printf("d2=%f\n", d2);
+
     double radius2 = sphere->radius * sphere->radius;
+    //printf("radius2=%f\n", radius2);
 
     if (d2 > radius2)
         return false;
 
     double thc = sqrt(radius2 - d2);
+    //printf("thc=%f\n", thc);
     t0 = tca - thc;
     t1 = tca + thc;
 
-    if (t1 > t1)
+    if (t0 > t1)
     {
         double tmp = t0;
         t0 = t1;
-        t1 = t0;
+        t1 = tmp;
     }
 
     if (t0 < 0)
@@ -160,29 +206,24 @@ bool intersect_v2(const ray_t *ray, const sphere_t *sphere, double t_min, double
         if (t0 < 0)
             return false; // both t0 and t1 are negative
     }
-
+    //printf("t0=%f, t1=%f\n", t0, t1);
+    //printf("}\n");
     *t = t0;
-
     return true;
-}
-
-vec3_t point_at(const ray_t *ray, double t)
-{
-    return plus(ray->origin, scalar_multiply(ray->direction, t));
 }
 
 vec3_t cast_ray(const ray_t *ray, const sphere_t *spheres, size_t n)
 {
-    hit_t hit_record;
-    hit_record.t = DBL_MAX;
+    hit_t hit_record = { .t = DBL_MAX };
 
-    double t = DBL_MAX;
+    double t = DBL_MAX, t2;
     const sphere_t *sphere = NULL;
 
     for (int i = 0; i < n; i++)
     {
-        if (intersect_v1(ray, &spheres[i], 0, hit_record.t, &t) && t < hit_record.t)
+        if (intersect_sphere_v1(ray, &spheres[i], 0, hit_record.t, &t) && t < hit_record.t)
         {
+            puts("hit");
             sphere = &spheres[i];
             hit_record.t = t;
             hit_record.p = point_at(ray, t);
@@ -213,8 +254,6 @@ vec3_t cast_ray(const ray_t *ray, const sphere_t *spheres, size_t n)
 #endif
 
     return sphere->material.color;
-
-    //return (vec3_t) { 1, 1, 1 };
 }
 
 char rgb_to_char(uint8_t r, uint8_t g, uint8_t b)
@@ -281,46 +320,65 @@ void render()
 
     //show(framebuffer);
 
-    if (stbi_write_png("image.png", WIDTH, HEIGHT, 3, framebuffer, WIDTH * 3) == 0)
+    if (stbi_write_png(
+            "image.png",
+            WIDTH,
+            HEIGHT,
+            3,
+            framebuffer,
+            WIDTH * 3) == 0)
     {
         puts("failed to write");
         exit(1);
     }
 }
 
-void print_vec(const vec3_t v)
-{
-    printf("vec3_t { %f, %f, %f }\n", v.x, v.y, v.z);
-}
-
-void test()
+void run_tests()
 {
     printf("TEST\n");
 
-    sphere_t sphere = {{0, 0, -3}, 2.0};
+    // test math
+    {
+        {
+            vec3_t a = {1,0,3,};
+            vec3_t b = {-1, 4, 2};
+            vec3_t r = {0, 4, 5};
+            assert(vector_equals(plus(a,b), r));
+        }
+        {
+            vec3_t a = {1,0,3,};
+            vec3_t b = {-1, 4, 2};
+            vec3_t r = {2, -4, 1};
+            assert(vector_equals(minus(a,b), r));
+        }
+    }
 
-    vec3_t origin = {0, 0, 0};
-    ray_t ray = {origin, minus(sphere.center, origin)};
+    {
+        sphere_t sphere = {{0, 0, -3}, 2.0};
+        vec3_t origin = {0, 0, 0};
+        vec3_t direction = normalize(minus(sphere.center, origin));
 
-    double t0, t1;
+        ray_t ray = {origin, direction};
+        double t0, t1;
 
-    assert(intersect_v1(&ray, &sphere, 0, DBL_MAX, &t0));
-    printf("%f\n", t0);
-    print_vec(point_at(&ray, t0));
+        assert(intersect_sphere_v1(&ray, &sphere, 0, DBL_MAX, &t0));
+        printf("%f\n", t0);
+        print_vec(point_at(&ray, t0));
 
-    assert(intersect_v2(&ray, &sphere, 0, DBL_MAX, &t1));
-    printf("%f\n", t1);
-    print_vec(point_at(&ray, t1));
+        assert(intersect_sphere_v2(&ray, &sphere, 0, DBL_MAX, &t1));
+        printf("%f\n", t1);
+        print_vec(point_at(&ray, t1));
 
-    assert(t0 == t1);
+        assert(t0 == t1);
+    }
 }
 
 int main()
 {
-#if 0
+#if 1
     render();
 #else
-    test();
+    run_tests();
 #endif
     return 0;
 }
