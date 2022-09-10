@@ -3,6 +3,7 @@
  */
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <stdbool.h>
 #include <assert.h>
 #include <math.h>
@@ -12,10 +13,18 @@
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "stb_image_write.h"
 
-#define WIDTH   320
-#define HEIGHT  180
+#define WIDTH   640
+#define HEIGHT  320
 #define EPSILON 1e-8
 #define MAX_DEPTH 5
+#define SAMPLES   15
+#define MAX(a,b) ((a) > (b) ? (a) : (b))
+#define MIN(a,b) ((a) < (b) ? (a) : (b))
+#define CLAMP(x) (MAX(0, MIN(x, 1)))
+#define RED (vec3_t) {1, 0, 0}
+#define GREEN (vec3_t) {0, 1, 0}
+#define BLUE (vec3_t) {0, 0, 1}
+#define BACKGROUND_COLOR (vec3_t) { 0, 1, 1 }
 
 typedef struct vec3
 {
@@ -27,9 +36,16 @@ typedef struct ray
     vec3_t origin, direction;
 } ray_t;
 
+typedef enum material_type {
+    REFLECTION_AND_REFRACTION,
+    REFLECTION,
+    PHONG,
+} material_type_t;
+
 typedef struct material
 {
     vec3_t color;
+    material_type_t type;
 } material_t;
 
 typedef struct sphere
@@ -65,6 +81,7 @@ bool scalar_equals(const vec3_t v1, const double s) { return v1.x == s && v1.y =
 bool vector_equals(const vec3_t v1, const vec3_t v2) { return v1.x == v2.x && v1.y == v2.y && v1.z == v2.z; }
 vec3_t point_at(const ray_t *ray, double t) { return plus(ray->origin, scalar_multiply(ray->direction, t)); }
 bool equal_d(double a, double b) { return fabs(a - b) < EPSILON; }
+vec3_t clamp(const vec3_t v1)  { return (vec3_t) {CLAMP(v1.x), CLAMP(v1.y), CLAMP(v1.z) }; }
 vec3_t normalize(const vec3_t v1)
 {
     double m = length(v1);
@@ -74,6 +91,14 @@ vec3_t normalize(const vec3_t v1)
 void print_vec(const vec3_t v)
 {
     printf("vec3_t { %f, %f, %f }\n", v.x, v.y, v.z);
+}
+
+ray_t reflect_ray(const ray_t *ray, const vec3_t normal){
+
+    double tmp = 2 * dot(ray->direction, normal);
+    vec3_t reflected = minus(ray->direction, scalar_multiply(normal, tmp));
+
+    return (ray_t) {ray->origin, reflected } ;
 }
 
 void init_camera(camera_t *camera)
@@ -212,48 +237,77 @@ bool intersect_sphere_v2(const ray_t *ray, const sphere_t *sphere, double t_min,
     return true;
 }
 
-vec3_t cast_ray(const ray_t *ray, const sphere_t *spheres, size_t n)
+vec3_t cast_ray(const ray_t *ray, const sphere_t *spheres, size_t n, int depth)
 {
-    hit_t hit_record = { .t = DBL_MAX };
+    if (depth > MAX_DEPTH){
+        return BACKGROUND_COLOR;
+    }
+
+    hit_t hit = { .t = DBL_MAX };
 
     double t = DBL_MAX, t2;
     const sphere_t *sphere = NULL;
 
     for (int i = 0; i < n; i++)
     {
-        if (intersect_sphere_v1(ray, &spheres[i], 0, hit_record.t, &t) && t < hit_record.t)
+        if (intersect_sphere_v1(ray, &spheres[i], 0, hit.t, &t) && t < hit.t)
         {
-            puts("hit");
             sphere = &spheres[i];
-            hit_record.t = t;
-            hit_record.p = point_at(ray, t);
-            hit_record.n = scalar_divide(minus(hit_record.p, spheres[i].center), spheres[i].radius);
+            hit.t = t;
+            hit.p = point_at(ray, t);
+            hit.n = scalar_divide(minus(hit.p, spheres[i].center), spheres[i].radius);
         }
     }
 
-    if (hit_record.t == DBL_MAX)
+    if (sphere == NULL)
     {
-        return (vec3_t){0, 0, 0};
+        return BACKGROUND_COLOR;
     }
 
 #if 0
-    vec3_t light_pos = {1, 3, 0};
-    vec3_t object_color = {1, .5, .5};
-    vec3_t light_color = {1, 1, 1};
+    return (vec3_t) { 1, 0, 0};
+#else
 
-    double ambient_strength = 0.7;
-    vec3_t ambient = scalar_multiply((vec3_t) {0.5, 0.5, 0.5}, ambient_strength);
+    vec3_t color;
 
-    vec3_t normal = normalize(hit_record.n);
-    vec3_t light_dir = normalize(minus(light_pos, hit_record.p));
-    double diff = max(dot(normal, light_dir), 0.0);
+    switch (sphere->material.type) {
+        case REFLECTION: {
+            // TODO: compute reflection ray
+            // TODO: compute fresnel equation
 
-    vec3_t diffuse = scalar_multiply(light_color, diff);
-    vec3_t result = multiply(plus(ambient, diffuse), object_color);
-    return result;
+            ray_t reflected = reflect_ray(ray, hit.n);
+            color = cast_ray(&reflected, spheres, n, depth + 1);
+            break;
+        }
+
+        case REFLECTION_AND_REFRACTION:{
+            color = (vec3_t){1, 1, 0};
+            break;
+        }
+
+        case PHONG:{
+            vec3_t light_pos = {1, 3, 0};
+            vec3_t light_color = {1, 1, 1};
+            double ambient_strength = 0.6;
+
+            vec3_t ambient = scalar_multiply((vec3_t) {0.5, 0.5, 0.5}, ambient_strength);
+
+            vec3_t normal = normalize(hit.n);
+            vec3_t light_dir = normalize(minus(light_pos, hit.p));
+            double diff = max(dot(normal, light_dir), 0.0);
+
+            vec3_t diffuse = scalar_multiply(light_color, diff);
+            color = clamp(multiply(clamp(plus(ambient, diffuse)), sphere->material.color));
+            break;
+        }
+
+        default:{
+            puts("no material type set");
+            exit(1);
+        }
+    }
+    return color;
 #endif
-
-    return sphere->material.color;
 }
 
 char rgb_to_char(uint8_t r, uint8_t g, uint8_t b)
@@ -286,11 +340,18 @@ void show(const uint8_t *buffer)
     }
 }
 
+double random()
+{
+    return (double)rand() / ((double)RAND_MAX + 1);
+}
+
 void render()
 {
     sphere_t spheres[] = {
-            {{0, 0, -2}, 0.5, { {0,0,1}}},
-            {{0, 0, -3}, 1.0, { {1,0,0}}},
+            {{0, 0, -3}, 1.0, { RED, PHONG }},
+            {{2, 0, -3}, .5, { GREEN, PHONG }},
+            {{-2, 0, -3}, .5, { BLUE, PHONG }},
+            {{0, -100, -10}, 100, { BLUE, PHONG }},
     };
 
     camera_t camera;
@@ -298,18 +359,24 @@ void render()
 
     uint8_t framebuffer[WIDTH * HEIGHT * 3] = { 0 };
 
-    int x, y;
+    int x, y, s;
     double u, v;
 
     for (y = 0; y < HEIGHT; y++)
     {
         for (x = 0; x < WIDTH; x++)
         {
-            u = (double)x / (WIDTH - 1);
-            v = (double)y / (HEIGHT - 1);
+           vec3_t pixel = {0,0,0};
+           for (s = 0; s < SAMPLES; s++)
+           {
+                u = (double)(x + random()) / ((double)WIDTH  - 1.0);
+                v = (double)(y + random()) / ((double)HEIGHT - 1.0);
 
-            ray_t ray = get_camera_ray(&camera, u, v);
-            vec3_t pixel = cast_ray(&ray, spheres, sizeof(spheres) / sizeof(spheres[0]));
+                ray_t ray = get_camera_ray(&camera, u, v);
+                pixel = plus(pixel, cast_ray(&ray, spheres, sizeof(spheres) / sizeof(spheres[0]), 0));
+           }
+
+            pixel = scalar_divide(pixel, SAMPLES);
 
             size_t index = (y * WIDTH + x) * 3;
             framebuffer[index + 0] = 255 * pixel.x;
