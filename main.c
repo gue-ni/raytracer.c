@@ -71,7 +71,7 @@ double max(double a, double b) { return a > b ? a : b; }
 
 double dot(const vec3_t v1, const vec3_t v2) { return v1.x * v2.x + v1.y * v2.y + v1.z * v2.z; }
 
-double length2(const vec3_t v1) { return v1.x  * v1.x + v1.y * v1.y + v1.z * v1.z; }
+double length2(const vec3_t v1) { return v1.x * v1.x + v1.y * v1.y + v1.z * v1.z; }
 
 double length(const vec3_t v1) { return sqrt(length2(v1)); }
 
@@ -148,7 +148,7 @@ ray_t get_camera_ray(const camera_t *camera, double u, double v) {
             plus(
                     camera->lower_left_corner,
                     plus(scalar_multiply(camera->horizontal, u), scalar_multiply(camera->vertical, v)))
-            );
+    );
 
     direction = normalize(direction);
     assert(equal_d(length(direction), 1.0));
@@ -354,22 +354,21 @@ vec3_t cast_ray(const ray_t *ray, const sphere_t *spheres, size_t n, int depth) 
 }
 
 void render() {
-
     sphere_t spheres[] = {
-            {{0, -100, -10}, 100, { GREEN, PHONG }},
-            {{1,  0, -3.5}, .5,  {RED,          PHONG}},
-            {{0,  0, -3},   .75, {RANDOM_COLOR, PHONG}},
-            {{-1, 0, -2.5}, .5,  {BLUE,         PHONG}},
+            {{0,  -100, -10},  100, {GREEN,        PHONG}},
+            {{1,  0,    -3.5}, .5,  {RED,          PHONG}},
+            {{0,  0,    -3},   .75, {RANDOM_COLOR, PHONG}},
+            {{-1, 0,    -2.3}, .5,  {BLUE,         PHONG}},
     };
 
     camera_t camera;
     init_camera(&camera);
 
-    uint8_t framebuffer[WIDTH * HEIGHT * 3] = { 0 };
+    uint8_t framebuffer[WIDTH * HEIGHT * 3] = {0};
 
     int x, y, s;
     double u, v;
-    ray_t  ray;
+    ray_t ray;
 
     for (y = 0; y < HEIGHT; y++) {
         for (x = 0; x < WIDTH; x++) {
@@ -382,7 +381,7 @@ void render() {
                 pixel = plus(pixel, cast_ray(&ray, spheres, sizeof(spheres) / sizeof(spheres[0]), 0));
             }
 
-            if (x == (int)(WIDTH/ 2) && y == (int)(HEIGHT / 2)){
+            if (x == (int) (WIDTH / 2) && y == (int) (HEIGHT / 2)) {
                 print_vec(ray.direction);
             }
 
@@ -390,9 +389,9 @@ void render() {
             pixel = scalar_multiply(pixel, 255); // scale to range 0-255
 
             size_t index = (y * WIDTH + x) * 3;
-            framebuffer[index + 0] = (uint8_t)(pixel.x);
-            framebuffer[index + 1] = (uint8_t)(pixel.y);
-            framebuffer[index + 2] = (uint8_t)(pixel.z);
+            framebuffer[index + 0] = (uint8_t) (pixel.x);
+            framebuffer[index + 1] = (uint8_t) (pixel.y);
+            framebuffer[index + 2] = (uint8_t) (pixel.z);
         }
     }
 
@@ -433,8 +432,8 @@ void run_tests() {
         sphere_t sphere = {{0, 0, -3}, 2.0};
         vec3_t origin = {0, 0, 0};
 
-        vec3_t dir1 = (vec3_t) { 0.001545, 0.001740, 0.999997 };
-        vec3_t dir2 = (vec3_t) { 0.0, 0.0, -1 };
+        vec3_t dir1 = (vec3_t) {0.001545, 0.001740, 0.999997};
+        vec3_t dir2 = (vec3_t) {0.0, 0.0, -1};
         //vec3_t direction = normalize(minus(sphere.center, origin));
 
         ray_t ray = {origin, dir2};
