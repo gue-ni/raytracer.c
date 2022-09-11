@@ -66,14 +66,14 @@ typedef struct triangle {
     vec3_t v0, v1, v2;
 } triangle_t;
 
-typedef struct triangle_mesh {
-    triangle_t *triangles;
+typedef struct mesh {
     size_t count;
-} triangle_mesh_t;
+    triangle_t *triangles;
+} mesh_t;
 
 typedef union geometry {
     sphere_t *sphere;
-    triangle_t *triangle_mesh;
+    mesh_t *triangle_mesh;
 } geometry_t;
 
 typedef enum geometry_type {
@@ -309,8 +309,8 @@ bool intersect(const ray_t *ray, const object_t *objects, size_t n, hit_t *hit) 
         switch (objects[i].type) {
             case TRIANGLE_MESH: {
 
-#if 0
-                triangle_mesh_t *mesh = objects[i].geometry.triangle_mesh;
+#if 1
+                mesh_t *mesh = objects[i].geometry.triangle_mesh;
 
                 for (int j = 0; j < mesh->count; j++) {
                     triangle_t triangle = mesh->triangles[j];
@@ -444,18 +444,22 @@ void render() {
             {{-1.5, 0,    -3},  .5,},
     };
 
-    triangle_t triangle = {
-            {-.5, 0, -2},  // lower right
-            {.5, 0, -3}, // lower left
-            {0, 1, -3}, // top
-
-
-
-
-
+    triangle_t triangles[] = {
+            {
+                    {-.5, 0, -3},   // lower right
+                    {.5, 0, -3},    // lower left
+                    {-.5, 1, -3},   // top
+            },
+            {
+                    {.5,  0, -3},   // lower right
+                    {.5, 1, -3},    // lower left
+                    {-.5, 1, -3},   // top
+            }
     };
 
-
+    mesh_t mesh = {
+            2, triangles
+    };
 
     object_t objects[] = {
             {.type = SPHERE, .material = {GREEN, DIFFUSE}, .geometry.sphere = &spheres[0]},
@@ -463,7 +467,7 @@ void render() {
             {.type = SPHERE, .material = {RANDOM_COLOR, DIFFUSE}, .geometry.sphere = &spheres[2]},
             //{.type= SPHERE, .material= {RANDOM_COLOR, REFLECTION_AND_REFRACTION}, .geometry.sphere = &spheres[3]},
             {.type = SPHERE, .material = {BLUE, REFLECTION}, .geometry.sphere = &spheres[4]},
-            {.type = TRIANGLE_MESH, .material = {RED, DIFFUSE}, .geometry.triangle_mesh = &triangle}
+            {.type = TRIANGLE_MESH, .material = {RED, SOLID}, .geometry.triangle_mesh = &mesh}
     };
 
     camera_t camera;
