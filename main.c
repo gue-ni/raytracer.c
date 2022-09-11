@@ -20,7 +20,7 @@
 #define HEIGHT 480
 #define EPSILON 1e-8
 #define MAX_DEPTH 25
-#define SAMPLES   25
+#define SAMPLES   50
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
 #define CLAMP(x) (MAX(0, MIN(x, 1)))
@@ -46,10 +46,10 @@ typedef struct ray {
 } ray_t;
 
 typedef enum material_type {
-    REFLECTION_AND_REFRACTION,
-    REFLECTION,
-    DIFFUSE,
     SOLID,
+    DIFFUSE,
+    REFLECTION,
+    REFLECTION_AND_REFRACTION,
 } material_type_t;
 
 typedef struct material {
@@ -62,6 +62,7 @@ typedef struct sphere {
     double radius;
 } sphere_t;
 
+// vertices are in clockwise order
 typedef struct triangle {
     vec3_t v0, v1, v2;
 } triangle_t;
@@ -73,12 +74,12 @@ typedef struct mesh {
 
 typedef union geometry {
     sphere_t *sphere;
-    mesh_t *triangle_mesh;
+    mesh_t *mesh;
 } geometry_t;
 
 typedef enum geometry_type {
-    TRIANGLE_MESH,
-    SPHERE
+    SPHERE,
+    MESH,
 } geometry_type_t;
 
 typedef struct object {
@@ -106,20 +107,14 @@ typedef struct light {
 typedef struct render_context {
     sphere_t *spheres;
     size_t ns;
-
     light_t *lights;
     size_t nl;
 } render_context_t;
 
 double dot(const vec3_t v1, const vec3_t v2) { return v1.x * v2.x + v1.y * v2.y + v1.z * v2.z; }
 
-// TODO
 vec3_t cross(const vec3_t a, const vec3_t b) {
-    return (vec3_t) {
-            a.y * b.z - a.z * b.y,
-            a.z * b.x - a.x * b.z,
-            a.x * b.y - a.y * b.x
-    };
+    return (vec3_t) {a.y * b.z - a.z * b.y, a.z * b.x - a.x * b.z, a.x * b.y - a.y * b.x};
 }
 
 double length2(const vec3_t v1) { return v1.x * v1.x + v1.y * v1.y + v1.z * v1.z; }
@@ -130,9 +125,9 @@ vec3_t multiply(const vec3_t v1, const vec3_t v2) { return (vec3_t) {v1.x * v2.x
 
 vec3_t divide(const vec3_t v1, const vec3_t v2) { return (vec3_t) {v1.x / v2.x, v1.y / v2.y, v1.z / v2.z}; }
 
-vec3_t minus(const vec3_t v1, const vec3_t v2) { return (vec3_t) {v1.x - v2.x, v1.y - v2.y, v1.z - v2.z}; }
+vec3_t sub(const vec3_t v1, const vec3_t v2) { return (vec3_t) {v1.x - v2.x, v1.y - v2.y, v1.z - v2.z}; }
 
-vec3_t plus(const vec3_t v1, const vec3_t v2) { return (vec3_t) {v1.x + v2.x, v1.y + v2.y, v1.z + v2.z}; }
+vec3_t add(const vec3_t v1, const vec3_t v2) { return (vec3_t) {v1.x + v2.x, v1.y + v2.y, v1.z + v2.z}; }
 
 vec3_t scalar_multiply(const vec3_t v1, const double s) { return (vec3_t) {v1.x * s, v1.y * s, v1.z * s}; }
 
@@ -142,7 +137,7 @@ bool scalar_equals(const vec3_t v1, const double s) { return v1.x == s && v1.y =
 
 bool vector_equals(const vec3_t v1, const vec3_t v2) { return v1.x == v2.x && v1.y == v2.y && v1.z == v2.z; }
 
-vec3_t point_at(const ray_t *ray, double t) { return plus(ray->origin, scalar_multiply(ray->direction, t)); }
+vec3_t point_at(const ray_t *ray, double t) { return add(ray->origin, scalar_multiply(ray->direction, t)); }
 
 bool equal_d(double a, double b) { return ABS(a - b) < EPSILON; }
 
@@ -159,7 +154,7 @@ void print_vec(const vec3_t v) {
 }
 
 vec3_t reflect(const vec3_t I, const vec3_t N) {
-    return minus(I, scalar_multiply(N, 2 * dot(I, N)));
+    return sub(I, scalar_multiply(N, 2 * dot(I, N)));
 }
 
 vec3_t refract(const vec3_t I, const vec3_t N, double iot) {
@@ -176,10 +171,10 @@ vec3_t refract(const vec3_t I, const vec3_t N, double iot) {
     }
     double eta = etai / etat;
     double k = 1 - eta * eta * (1 - cosi * cosi);
-    return k < 0 ? ZERO_VECTOR : plus(scalar_multiply(I, eta), scalar_multiply(n, eta * cosi - sqrtf(k)));
+    return k < 0 ? ZERO_VECTOR : add(scalar_multiply(I, eta), scalar_multiply(n, eta * cosi - sqrtf(k)));
 }
 
-void init_camera(camera_t *camera) {
+void init_camera(camera_t *camera, vec3_t position) {
 #if 0
     double viewport_height = 2.0;
 #else
@@ -191,25 +186,25 @@ void init_camera(camera_t *camera) {
     double viewport_width = aspect_ratio * viewport_height;
     double focal_length = 1.0;
 
-    camera->origin = (vec3_t) {0, 0, 0};
+    camera->origin = position;
     camera->horizontal = (vec3_t) {viewport_width, 0, 0};
     camera->vertical = (vec3_t) {0, viewport_height, 0};
 
     vec3_t half_h = scalar_divide(camera->horizontal, 2);
     vec3_t half_v = scalar_divide(camera->vertical, 2);
 
-    camera->lower_left_corner = minus(
-            minus(camera->origin, half_h),
-            minus(half_v, (vec3_t) {0, 0, focal_length})
+    camera->lower_left_corner = sub(
+            sub(camera->origin, half_h),
+            sub(half_v, (vec3_t) {0, 0, focal_length})
     );
 }
 
 ray_t get_camera_ray(const camera_t *camera, double u, double v) {
-    vec3_t direction = minus(
+    vec3_t direction = sub(
             camera->origin,
-            plus(
+            add(
                     camera->lower_left_corner,
-                    plus(scalar_multiply(camera->horizontal, u), scalar_multiply(camera->vertical, v)))
+                    add(scalar_multiply(camera->horizontal, u), scalar_multiply(camera->vertical, v)))
     );
 
     direction = normalize(direction);
@@ -220,7 +215,7 @@ ray_t get_camera_ray(const camera_t *camera, double u, double v) {
 
 bool intersect_sphere(const ray_t *ray, const sphere_t *sphere, double *t) {
     double t0, t1; // solutions for t if the ray intersects
-    vec3_t L = minus(sphere->center, ray->origin);
+    vec3_t L = sub(sphere->center, ray->origin);
     double tca = dot(L, ray->direction);
     if (tca < 0) return false;
     double d2 = dot(L, L) - tca * tca;
@@ -245,7 +240,7 @@ bool intersect_sphere(const ray_t *ray, const sphere_t *sphere, double *t) {
     }
 
     *t = t0;
-    return true;
+    return *t > EPSILON;
 }
 
 bool intersect_triangle(const ray_t *ray, const triangle_t *triangle, double *t) {
@@ -255,14 +250,14 @@ bool intersect_triangle(const ray_t *ray, const triangle_t *triangle, double *t)
     vec3_t vertex2 = triangle->v2;
     vec3_t edge1, edge2, h, s, q;
     double a, f, u, v;
-    edge1 = minus(vertex1, vertex0);
-    edge2 = minus(vertex2, vertex0);
+    edge1 = sub(vertex1, vertex0);
+    edge2 = sub(vertex2, vertex0);
     h = cross(ray->direction, edge2);
     a = dot(edge1, h);
     if (a > -EPSILON && a < EPSILON)
         return false;    // This ray is parallel to this triangle.
     f = 1.0 / a;
-    s = minus(ray->origin, vertex0);
+    s = sub(ray->origin, vertex0);
     u = f * dot(s, h);
     if (u < 0.0 || u > 1.0)
         return false;
@@ -288,11 +283,7 @@ void show(const uint8_t *buffer) {
     for (int y = 0; y < HEIGHT; y++) {
         for (int x = 0; x < WIDTH; x++) {
             size_t i = (y * WIDTH + x) * 3;
-            uint8_t r, g, b;
-            r = buffer[i + 0];
-            g = buffer[i + 1];
-            b = buffer[i + 2];
-            printf("%c", rgb_to_char(r, g, b));
+            printf("%c", rgb_to_char(buffer[i + 0], buffer[i + 1], buffer[i + 2]));
         }
         printf("\n");
     }
@@ -307,43 +298,29 @@ bool intersect(const ray_t *ray, const object_t *objects, size_t n, hit_t *hit) 
 
     for (int i = 0; i < n; i++) {
         switch (objects[i].type) {
-            case TRIANGLE_MESH: {
-
-#if 1
-                mesh_t *mesh = objects[i].geometry.triangle_mesh;
-
+            case MESH: {
+                mesh_t *mesh = objects[i].geometry.mesh;
                 for (int j = 0; j < mesh->count; j++) {
                     triangle_t triangle = mesh->triangles[j];
-                    if (intersect_triangle(ray, &triangle, &t) && 1e-8 < t && t < min_t) {
+                    if (intersect_triangle(ray, &triangle, &t)  && t < min_t) {
                         local.t = min_t = t;
                         local.object = &objects[i];
                         local.point = point_at(ray, t);
                         local.normal = cross(triangle.v0, triangle.v1);
                     }
                 }
-#else
-                triangle_t triangle = *objects[i].geometry.triangle_mesh;
-                if (intersect_triangle(ray, &triangle, &t) && 1e-8 < t && t < min_t) {
-                    local.t = min_t = t;
-                    local.object = &objects[i];
-                    local.point = point_at(ray, t);
-                    local.normal = cross(triangle.v0, triangle.v1);
-                }
-#endif
                 break;
             }
-
             case SPHERE: {
-                if (intersect_sphere(ray, objects[i].geometry.sphere, &t) && 1e-8 < t && t < min_t) {
+                if (intersect_sphere(ray, objects[i].geometry.sphere, &t) &&  t < min_t) {
                     local.t = min_t = t;
                     local.object = &objects[i];
                     local.point = point_at(ray, t);
-                    local.normal = scalar_divide(minus(local.point, objects[i].geometry.sphere->center),
+                    local.normal = scalar_divide(sub(local.point, objects[i].geometry.sphere->center),
                                                  objects[i].geometry.sphere->radius);
                 }
                 break;
             }
-
             default: {
                 puts("unknown geometry");
                 exit(EXIT_FAILURE);
@@ -356,7 +333,6 @@ bool intersect(const ray_t *ray, const object_t *objects, size_t n, hit_t *hit) 
     }
 
     return min_t < old_t;
-
 }
 
 vec3_t cast_ray(const ray_t *ray, const object_t *objects, size_t n_objects, int depth) {
@@ -380,7 +356,7 @@ vec3_t cast_ray(const ray_t *ray, const object_t *objects, size_t n_objects, int
             ray_t reflected = {hit.point, normalize(reflect(ray->direction, hit.normal))};
             vec3_t reflected_color = cast_ray(&reflected, objects, n_objects, depth + 1);
             double f = 0.5;
-            out_color = plus(scalar_multiply(reflected_color, f), scalar_multiply(hit.object->material.color, (1 - f)));
+            out_color = add(scalar_multiply(reflected_color, f), scalar_multiply(hit.object->material.color, (1 - f)));
             break;
         }
 
@@ -396,7 +372,7 @@ vec3_t cast_ray(const ray_t *ray, const object_t *objects, size_t n_objects, int
 
             double kr = .8;
 
-            out_color = plus(scalar_multiply(refracted_color, kr), scalar_multiply(reflected_color, (1 - kr)));
+            out_color = add(scalar_multiply(refracted_color, kr), scalar_multiply(reflected_color, (1 - kr)));
             break;
         }
 
@@ -404,7 +380,7 @@ vec3_t cast_ray(const ray_t *ray, const object_t *objects, size_t n_objects, int
             vec3_t light_pos = {1, 3, 0};
             vec3_t light_color = {1, 1, 1};
             double intensity = 1.0;
-            ray_t light_ray = {hit.point, normalize(minus(light_pos, hit.point))};
+            ray_t light_ray = {hit.point, normalize(sub(light_pos, hit.point))};
 
             bool in_shadow = intersect(&light_ray, objects, n_objects, NULL);
 
@@ -413,11 +389,11 @@ vec3_t cast_ray(const ray_t *ray, const object_t *objects, size_t n_objects, int
             vec3_t ambient = scalar_multiply((vec3_t) {0.5, 0.5, 0.5}, ambient_strength);
 
             vec3_t normal = normalize(hit.normal);
-            vec3_t light_dir = normalize(minus(light_pos, hit.point));
+            vec3_t light_dir = normalize(sub(light_pos, hit.point));
             double diff = MAX(dot(normal, light_dir), 0.0);
 
             vec3_t diffuse = scalar_multiply(light_color, diff);
-            out_color = clamp(multiply(plus(ambient, in_shadow ? ZERO_VECTOR : diffuse), hit.object->material.color));
+            out_color = clamp(multiply(add(ambient, in_shadow ? ZERO_VECTOR : diffuse), hit.object->material.color));
             break;
         }
 
@@ -444,17 +420,36 @@ void render() {
             {{-1.5, 0,    -3},  .5,},
     };
 
+    vec3_t pos = {0, 2, -3};
+    vec3_t size = {4, 3, 8};
+    double w = 3;
+
     triangle_t triangles[] = {
             {
-                    {-.5, 0, -3},   // lower right
-                    {.5, 0, -3},    // lower left
-                    {-.5, 1, -3},   // top
+                    {pos.x + size.x, pos.y - size.y, pos.z - size.z},    // lower left
+                    {pos.x - size.x, pos.y - size.y, pos.z + size.z},   // top right
+                    {pos.x - size.x, pos.y - size.y, pos.z - size.z},   // lower right
             },
             {
-                    {.5,  0, -3},   // lower right
-                    {.5, 1, -3},    // lower left
-                    {-.5, 1, -3},   // top
-            }
+                    {pos.x + size.x, pos.y - size.y, pos.z - size.z},   // lower left
+                    {pos.x - size.x, pos.y - size.y, pos.z + size.z},  // top right
+                    {pos.x + size.x, pos.y - size.y, pos.z + size.z},  // top left
+            },
+            {
+                    {pos.x + w,      pos.y - w,      pos.z - w},    // lower left
+                    {pos.x - w,      pos.y + w,      pos.z - w},   // top right
+                    {pos.x - w,      pos.y - w,      pos.z - w},   // lower right
+            },
+            {
+                    {pos.x + w,      pos.y - w,      pos.z - w},   // lower left
+                    {pos.x + w,      pos.y + w,      pos.z - w},  // top left
+                    {pos.x - w,      pos.y + w,      pos.z - w},  // top right
+            },
+            {
+                    {pos.x - w,      pos.y - w,      pos.z - w},  // top right
+                    {pos.x - w,      pos.y - w,      pos.z + w},  // top right
+                    {pos.x - w,      pos.y + w,      pos.z + w},  // top right
+            },
     };
 
     mesh_t mesh = {
@@ -462,18 +457,17 @@ void render() {
     };
 
     object_t objects[] = {
-            {.type = SPHERE, .material = {GREEN, DIFFUSE}, .geometry.sphere = &spheres[0]},
             {.type = SPHERE, .material = {RED, DIFFUSE}, .geometry.sphere = &spheres[1]},
             {.type = SPHERE, .material = {RANDOM_COLOR, DIFFUSE}, .geometry.sphere = &spheres[2]},
-            //{.type= SPHERE, .material= {RANDOM_COLOR, REFLECTION_AND_REFRACTION}, .geometry.sphere = &spheres[3]},
+            {.type = SPHERE, .material= {RANDOM_COLOR, REFLECTION_AND_REFRACTION}, .geometry.sphere = &spheres[3]},
             {.type = SPHERE, .material = {BLUE, REFLECTION}, .geometry.sphere = &spheres[4]},
-            {.type = TRIANGLE_MESH, .material = {RED, SOLID}, .geometry.triangle_mesh = &mesh}
+            {.type = MESH, .material = {GREEN, DIFFUSE}, .geometry.mesh = &mesh}
     };
 
     camera_t camera;
-    init_camera(&camera);
+    init_camera(&camera, (vec3_t) {0,0,1});
 
-    uint8_t framebuffer[WIDTH * HEIGHT * 3] = {0};
+    uint8_t *framebuffer = (uint8_t*) malloc(sizeof(uint8_t) * WIDTH * HEIGHT * 3);
 
     int x, y, s;
     double u, v;
@@ -487,7 +481,7 @@ void render() {
                 v = (double) (y + random()) / ((double) HEIGHT - 1.0);
 
                 ray = get_camera_ray(&camera, u, v);
-                pixel = plus(pixel, cast_ray(&ray, objects, sizeof(objects) / sizeof(objects[0]), 0));
+                pixel = add(pixel, cast_ray(&ray, objects, sizeof(objects) / sizeof(objects[0]), 0));
             }
 
             pixel = scalar_divide(pixel, SAMPLES);
@@ -510,8 +504,6 @@ void render() {
 
 void run_tests() {
     printf("TEST\n");
-
-
     {
         sphere_t sphere = {{0, 0, -3}, 2.0};
         triangle_t triangle = {
