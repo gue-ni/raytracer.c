@@ -49,6 +49,7 @@ typedef enum material_type {
     REFLECTION_AND_REFRACTION,
     REFLECTION,
     DIFFUSE,
+    SOLID,
 } material_type_t;
 
 typedef struct material {
@@ -64,6 +65,11 @@ typedef struct sphere {
 typedef struct triangle {
     vec3_t v0, v1, v2;
 } triangle_t;
+
+typedef struct triangle_mesh {
+    triangle_t *triangles;
+    size_t count;
+} triangle_mesh_t;
 
 typedef union geometry {
     sphere_t *sphere;
@@ -106,6 +112,15 @@ typedef struct render_context {
 } render_context_t;
 
 double dot(const vec3_t v1, const vec3_t v2) { return v1.x * v2.x + v1.y * v2.y + v1.z * v2.z; }
+
+// TODO
+vec3_t cross(const vec3_t a, const vec3_t b) {
+    return (vec3_t) {
+            a.y * b.z - a.z * b.y,
+            a.z * b.x - a.x * b.z,
+            a.x * b.y - a.y * b.x
+    };
+}
 
 double length2(const vec3_t v1) { return v1.x * v1.x + v1.y * v1.y + v1.z * v1.z; }
 
@@ -205,22 +220,15 @@ ray_t get_camera_ray(const camera_t *camera, double u, double v) {
 
 bool intersect_sphere(const ray_t *ray, const sphere_t *sphere, double *t) {
     double t0, t1; // solutions for t if the ray intersects
-
-
     vec3_t L = minus(sphere->center, ray->origin);
-
     double tca = dot(L, ray->direction);
     if (tca < 0) return false;
-
     double d2 = dot(L, L) - tca * tca;
-
     double radius2 = sphere->radius * sphere->radius;
-
     if (d2 > radius2)
         return false;
 
     double thc = sqrt(radius2 - d2);
-
     t0 = tca - thc;
     t1 = tca + thc;
 
@@ -235,14 +243,36 @@ bool intersect_sphere(const ray_t *ray, const sphere_t *sphere, double *t) {
         if (t0 < 0)
             return false; // both t0 and t1 are negative
     }
-    //printf("t0=%f, t1=%f\normal", t0, t1);
-    //printf("}\normal");
+
     *t = t0;
     return true;
 }
 
 bool intersect_triangle(const ray_t *ray, const triangle_t *triangle, double *t) {
-    return false;
+    // https://en.wikipedia.org/wiki/M%C3%B6ller%E2%80%93Trumbore_intersection_algorithm
+    vec3_t vertex0 = triangle->v0;
+    vec3_t vertex1 = triangle->v1;
+    vec3_t vertex2 = triangle->v2;
+    vec3_t edge1, edge2, h, s, q;
+    double a, f, u, v;
+    edge1 = minus(vertex1, vertex0);
+    edge2 = minus(vertex2, vertex0);
+    h = cross(ray->direction, edge2);
+    a = dot(edge1, h);
+    if (a > -EPSILON && a < EPSILON)
+        return false;    // This ray is parallel to this triangle.
+    f = 1.0 / a;
+    s = minus(ray->origin, vertex0);
+    u = f * dot(s, h);
+    if (u < 0.0 || u > 1.0)
+        return false;
+    q = cross(s, edge1);
+    v = f * dot(ray->direction, q);
+    if (v < 0.0 || u + v > 1.0)
+        return false;
+    // At this stage we can compute t to find out where the intersection point is on the line.
+    *t = f * dot(edge2, q);
+    return *t > EPSILON;
 }
 
 char rgb_to_char(uint8_t r, uint8_t g, uint8_t b) {
@@ -269,27 +299,47 @@ void show(const uint8_t *buffer) {
 }
 
 bool intersect(const ray_t *ray, const object_t *objects, size_t n, hit_t *hit) {
-    double min_t  = hit->t;
-    double old_t = min_t;
+    double old_t = hit != NULL ? hit->t : DBL_MAX;
+    double min_t = old_t;
     double t;
+
+    hit_t local;
 
     for (int i = 0; i < n; i++) {
         switch (objects[i].type) {
             case TRIANGLE_MESH: {
-                puts("not implemented");
-                exit(EXIT_FAILURE);
+
+#if 0
+                triangle_mesh_t *mesh = objects[i].geometry.triangle_mesh;
+
+                for (int j = 0; j < mesh->count; j++) {
+                    triangle_t triangle = mesh->triangles[j];
+                    if (intersect_triangle(ray, &triangle, &t) && 1e-8 < t && t < min_t) {
+                        local.t = min_t = t;
+                        local.object = &objects[i];
+                        local.point = point_at(ray, t);
+                        local.normal = cross(triangle.v0, triangle.v1);
+                    }
+                }
+#else
+                triangle_t triangle = *objects[i].geometry.triangle_mesh;
+                if (intersect_triangle(ray, &triangle, &t) && 1e-8 < t && t < min_t) {
+                    local.t = min_t = t;
+                    local.object = &objects[i];
+                    local.point = point_at(ray, t);
+                    local.normal = cross(triangle.v0, triangle.v1);
+                }
+#endif
                 break;
             }
 
             case SPHERE: {
                 if (intersect_sphere(ray, objects[i].geometry.sphere, &t) && 1e-8 < t && t < min_t) {
-                    //puts("hit");
-                    min_t = t;
-                    hit->t = t;
-                    hit->object = &objects[i];
-                    hit->point = point_at(ray, t);
-                    hit->normal = scalar_divide(minus(hit->point, objects[i].geometry.sphere->center),
-                                               objects[i].geometry.sphere->radius);
+                    local.t = min_t = t;
+                    local.object = &objects[i];
+                    local.point = point_at(ray, t);
+                    local.normal = scalar_divide(minus(local.point, objects[i].geometry.sphere->center),
+                                                 objects[i].geometry.sphere->radius);
                 }
                 break;
             }
@@ -300,17 +350,21 @@ bool intersect(const ray_t *ray, const object_t *objects, size_t n, hit_t *hit) 
             }
         }
     }
-    return hit->t < old_t;
+
+    if (hit != NULL) {
+        memcpy(hit, &local, sizeof(hit_t));
+    }
+
+    return min_t < old_t;
 
 }
-
 
 vec3_t cast_ray(const ray_t *ray, const object_t *objects, size_t n_objects, int depth) {
     if (depth > MAX_DEPTH) {
         return BACKGROUND_COLOR;
     }
 
-    hit_t hit = {.t = DBL_MAX, .object = NULL };
+    hit_t hit = {.t = DBL_MAX, .object = NULL};
 
     if (!intersect(ray, objects, n_objects, &hit)) {
         return BACKGROUND_COLOR;
@@ -352,17 +406,7 @@ vec3_t cast_ray(const ray_t *ray, const object_t *objects, size_t n_objects, int
             double intensity = 1.0;
             ray_t light_ray = {hit.point, normalize(minus(light_pos, hit.point))};
 
-            double t_min;
-            bool in_shadow = false;
-            /*
-            for (int i = 0; i < n_objects; i++) {
-                if (intersect_sphere(&light_ray, &spheres[i], &t_min)) {
-                    in_shadow = true;
-                }
-            }
-             */
-
-            //in_shadow = intersect(&light_ray, objects, n_objects, NULL);
+            bool in_shadow = intersect(&light_ray, objects, n_objects, NULL);
 
             double ambient_strength = 0.6;
 
@@ -377,6 +421,11 @@ vec3_t cast_ray(const ray_t *ray, const object_t *objects, size_t n_objects, int
             break;
         }
 
+        case SOLID: {
+            out_color = hit.object->material.color;
+            break;
+        }
+
         default: {
             puts("no material type set");
             exit(1);
@@ -388,25 +437,33 @@ vec3_t cast_ray(const ray_t *ray, const object_t *objects, size_t n_objects, int
 
 void render() {
     sphere_t spheres[] = {
-            {{0,    -100, -15}, 100, },
-            {{1,    0,    -2},  .5,  },
-            {{-0.5, 0,    -5},  .5,  },
-            {{0,    0,    -3},  .75, },
-            {{-1.5, 0,    -3},  .5,  },
+            {{0,    -100, -15}, 100,},
+            {{1,    0,    -2},  .5,},
+            {{-0.5, 0,    -5},  .5,},
+            {{0,    0,    -3},  .75,},
+            {{-1.5, 0,    -3},  .5,},
     };
 
     triangle_t triangle = {
-            {1,  0, 0},
-            {0,  1, 0},
-            {-1, 0, 0}
+            {-.5, 0, -2},  // lower right
+            {.5, 0, -3}, // lower left
+            {0, 1, -3}, // top
+
+
+
+
+
     };
 
+
+
     object_t objects[] = {
-            {.type= SPHERE, .material= {GREEN, DIFFUSE}, .geometry.sphere = &spheres[0],},
-            {.type= SPHERE, .material= {RED, DIFFUSE}, .geometry.sphere = &spheres[1],},
-            {.type= SPHERE, .material= {RANDOM_COLOR, DIFFUSE}, .geometry.sphere = &spheres[2],},
-            {.type= SPHERE, .material= {RANDOM_COLOR, REFLECTION_AND_REFRACTION}, .geometry.sphere = &spheres[3],},
-            {.type= SPHERE, .material= {BLUE, REFLECTION}, .geometry.sphere = &spheres[4],},
+            {.type = SPHERE, .material = {GREEN, DIFFUSE}, .geometry.sphere = &spheres[0]},
+            {.type = SPHERE, .material = {RED, DIFFUSE}, .geometry.sphere = &spheres[1]},
+            {.type = SPHERE, .material = {RANDOM_COLOR, DIFFUSE}, .geometry.sphere = &spheres[2]},
+            //{.type= SPHERE, .material= {RANDOM_COLOR, REFLECTION_AND_REFRACTION}, .geometry.sphere = &spheres[3]},
+            {.type = SPHERE, .material = {BLUE, REFLECTION}, .geometry.sphere = &spheres[4]},
+            {.type = TRIANGLE_MESH, .material = {RED, DIFFUSE}, .geometry.triangle_mesh = &triangle}
     };
 
     camera_t camera;
@@ -450,36 +507,24 @@ void render() {
 void run_tests() {
     printf("TEST\n");
 
-    // test math
-    {
-        {
-            vec3_t a = {1, 0, 3,};
-            vec3_t b = {-1, 4, 2};
-            vec3_t r = {0, 4, 5};
-            assert(vector_equals(plus(a, b), r));
-        }
-        {
-            vec3_t a = {1, 0, 3,};
-            vec3_t b = {-1, 4, 2};
-            vec3_t r = {2, -4, 1};
-            assert(vector_equals(minus(a, b), r));
-        }
-    }
 
     {
         sphere_t sphere = {{0, 0, -3}, 2.0};
+        triangle_t triangle = {
+                {1,  0, -3},
+                {0,  1, -3},
+                {-1, 0, -3},
+        };
+
         vec3_t origin = {0, 0, 0};
+        vec3_t direction = {0, 0, -1};
 
-        vec3_t dir1 = (vec3_t) {0.001545, 0.001740, 0.999997};
-        vec3_t dir2 = (vec3_t) {0.0, 0.0, -1};
-        //vec3_t direction = normalize(minus(sphere.center, origin));
+        ray_t ray = {origin, direction};
+        double t = 0;
 
-        ray_t ray = {origin, dir2};
-        double t0 = 0, t1 = 0;
-
-        //assert(intersect_sphere(&ray, &sphere, 0, DBL_MAX, &t0));
-        printf("%f\n", t0);
-        print_vec(point_at(&ray, t0));
+        assert(intersect_triangle(&ray, &triangle, &t) == true);
+        printf("%f\n", t);
+        print_vec(point_at(&ray, t));
     }
 }
 
@@ -487,7 +532,6 @@ int main() {
     srand((unsigned) time(NULL));
     clock_t tic = clock();
 #if 1
-
     render();
 #else
     run_tests();
