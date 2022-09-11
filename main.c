@@ -59,7 +59,6 @@ typedef struct material {
 typedef struct sphere {
     vec3_t center;
     double radius;
-    material_t material;
 } sphere_t;
 
 typedef struct triangle {
@@ -86,7 +85,7 @@ typedef struct hit {
     double t;
     vec3_t point;
     vec3_t normal;
-    sphere_t *sphere;
+    object_t *object;
 } hit_t;
 
 typedef struct camera {
@@ -269,37 +268,51 @@ void show(const uint8_t *buffer) {
     }
 }
 
-bool intersect_all(const ray_t *ray, const sphere_t *spheres, size_t n_spheres, hit_t *hit) {
-    double t = DBL_MAX;
-    for (int i = 0; i < n_spheres; i++) {
-        if (intersect_sphere(ray, &spheres[i], &t) && t < hit->t) {
-            hit->t = t;
-            hit->sphere = &spheres[i];
-            hit->point = point_at(ray, t);
-            hit->normal = scalar_divide(minus(hit->point, hit->sphere->center), hit->sphere->radius);
+bool intersect(const ray_t *ray, const object_t *objects, size_t n, hit_t *hit) {
+    double min_t  = hit->t;
+    double old_t = min_t;
+    double t;
+
+    for (int i = 0; i < n; i++) {
+        switch (objects[i].type) {
+            case TRIANGLE_MESH: {
+                puts("not implemented");
+                exit(EXIT_FAILURE);
+                break;
+            }
+
+            case SPHERE: {
+                if (intersect_sphere(ray, objects[i].geometry.sphere, &t) && 1e-8 < t && t < min_t) {
+                    //puts("hit");
+                    min_t = t;
+                    hit->t = t;
+                    hit->object = &objects[i];
+                    hit->point = point_at(ray, t);
+                    hit->normal = scalar_divide(minus(hit->point, objects[i].geometry.sphere->center),
+                                               objects[i].geometry.sphere->radius);
+                }
+                break;
+            }
+
+            default: {
+                puts("unknown geometry");
+                exit(EXIT_FAILURE);
+            }
         }
     }
+    return hit->t < old_t;
+
 }
 
-vec3_t cast_ray(const ray_t *ray, const sphere_t *spheres, size_t n, int depth) {
+
+vec3_t cast_ray(const ray_t *ray, const object_t *objects, size_t n_objects, int depth) {
     if (depth > MAX_DEPTH) {
         return BACKGROUND_COLOR;
     }
 
-    double t = DBL_MAX;
-    hit_t hit = {.t = DBL_MAX};
-    const sphere_t *sphere = NULL;
+    hit_t hit = {.t = DBL_MAX, .object = NULL };
 
-    for (int i = 0; i < n; i++) {
-        if (intersect_sphere(ray, &spheres[i], &t) && 1e-8 < t && t < hit.t) {
-            sphere = &spheres[i];
-            hit.t = t;
-            hit.point = point_at(ray, t);
-            hit.normal = scalar_divide(minus(hit.point, spheres[i].center), spheres[i].radius);
-        }
-    }
-
-    if (sphere == NULL) {
+    if (!intersect(ray, objects, n_objects, &hit)) {
         return BACKGROUND_COLOR;
     }
 
@@ -307,28 +320,25 @@ vec3_t cast_ray(const ray_t *ray, const sphere_t *spheres, size_t n, int depth) 
     return (vec3_t) { 1, 0, 0};
 #else
     vec3_t out_color = ZERO_VECTOR;
-    switch (sphere->material.type) {
+    switch (hit.object->material.type) {
         case REFLECTION: {
             // TODO: compute fresnel equation
             ray_t reflected = {hit.point, normalize(reflect(ray->direction, hit.normal))};
-            vec3_t reflected_color = cast_ray(&reflected, spheres, n, depth + 1);
-
-            out_color = reflected_color;
-
+            vec3_t reflected_color = cast_ray(&reflected, objects, n_objects, depth + 1);
             double f = 0.5;
-            out_color = plus(scalar_multiply(reflected_color, f), scalar_multiply(sphere->material.color, (1 - f)));
+            out_color = plus(scalar_multiply(reflected_color, f), scalar_multiply(hit.object->material.color, (1 - f)));
             break;
         }
 
         case REFLECTION_AND_REFRACTION: {
             vec3_t reflected_dir = normalize(reflect(ray->direction, hit.normal));
             ray_t reflected = {hit.point, reflected_dir};
-            vec3_t reflected_color = cast_ray(&reflected, spheres, n, depth + 1);
+            vec3_t reflected_color = cast_ray(&reflected, objects, n_objects, depth + 1);
 
             double iot = 1;
             vec3_t refracted_dir = normalize(refract(ray->direction, hit.normal, iot));
             ray_t refracted = {hit.point, refracted_dir};
-            vec3_t refracted_color = cast_ray(&refracted, spheres, n, depth + 1);
+            vec3_t refracted_color = cast_ray(&refracted, objects, n_objects, depth + 1);
 
             double kr = .8;
 
@@ -344,11 +354,16 @@ vec3_t cast_ray(const ray_t *ray, const sphere_t *spheres, size_t n, int depth) 
 
             double t_min;
             bool in_shadow = false;
-            for (int i = 0; i < n; i++) {
+            /*
+            for (int i = 0; i < n_objects; i++) {
                 if (intersect_sphere(&light_ray, &spheres[i], &t_min)) {
                     in_shadow = true;
                 }
             }
+             */
+
+            //in_shadow = intersect(&light_ray, objects, n_objects, NULL);
+
             double ambient_strength = 0.6;
 
             vec3_t ambient = scalar_multiply((vec3_t) {0.5, 0.5, 0.5}, ambient_strength);
@@ -358,7 +373,7 @@ vec3_t cast_ray(const ray_t *ray, const sphere_t *spheres, size_t n, int depth) 
             double diff = MAX(dot(normal, light_dir), 0.0);
 
             vec3_t diffuse = scalar_multiply(light_color, diff);
-            out_color = clamp(multiply(plus(ambient, in_shadow ? ZERO_VECTOR : diffuse), sphere->material.color));
+            out_color = clamp(multiply(plus(ambient, in_shadow ? ZERO_VECTOR : diffuse), hit.object->material.color));
             break;
         }
 
@@ -373,19 +388,25 @@ vec3_t cast_ray(const ray_t *ray, const sphere_t *spheres, size_t n, int depth) 
 
 void render() {
     sphere_t spheres[] = {
-            {{0,    -100, -15}, 100, {GREEN,        DIFFUSE}},
-            {{1,    0,    -2},  .5,  {RED,          DIFFUSE}},
-            {{-0.5, 0,    -5},  .5,  {RANDOM_COLOR, DIFFUSE}},
-            {{0,    0,    -3},  .75, {RANDOM_COLOR, REFLECTION_AND_REFRACTION}},
-            {{-1.5, 0,    -3},  .5,  {BLUE,         REFLECTION}},
+            {{0,    -100, -15}, 100, },
+            {{1,    0,    -2},  .5,  },
+            {{-0.5, 0,    -5},  .5,  },
+            {{0,    0,    -3},  .75, },
+            {{-1.5, 0,    -3},  .5,  },
     };
 
     triangle_t triangle = {
-            {1,0,0} , {0,1,0}, {-1, 0, 0}
+            {1,  0, 0},
+            {0,  1, 0},
+            {-1, 0, 0}
     };
 
     object_t objects[] = {
-            {.material= {RED, DIFFUSE}, .geometry.sphere = &spheres[0]},
+            {.type= SPHERE, .material= {GREEN, DIFFUSE}, .geometry.sphere = &spheres[0],},
+            {.type= SPHERE, .material= {RED, DIFFUSE}, .geometry.sphere = &spheres[1],},
+            {.type= SPHERE, .material= {RANDOM_COLOR, DIFFUSE}, .geometry.sphere = &spheres[2],},
+            {.type= SPHERE, .material= {RANDOM_COLOR, REFLECTION_AND_REFRACTION}, .geometry.sphere = &spheres[3],},
+            {.type= SPHERE, .material= {BLUE, REFLECTION}, .geometry.sphere = &spheres[4],},
     };
 
     camera_t camera;
@@ -405,7 +426,7 @@ void render() {
                 v = (double) (y + random()) / ((double) HEIGHT - 1.0);
 
                 ray = get_camera_ray(&camera, u, v);
-                pixel = plus(pixel, cast_ray(&ray, spheres, sizeof(spheres) / sizeof(spheres[0]), 0));
+                pixel = plus(pixel, cast_ray(&ray, objects, sizeof(objects) / sizeof(objects[0]), 0));
             }
 
             pixel = scalar_divide(pixel, SAMPLES);
@@ -418,7 +439,7 @@ void render() {
         }
     }
 
-    if (stbi_write_png("image.png",WIDTH,HEIGHT,3,framebuffer,WIDTH * 3) == 0) {
+    if (stbi_write_png("image.png", WIDTH, HEIGHT, 3, framebuffer, WIDTH * 3) == 0) {
         puts("failed to write");
         exit(1);
     }
@@ -456,7 +477,7 @@ void run_tests() {
         ray_t ray = {origin, dir2};
         double t0 = 0, t1 = 0;
 
-        assert(intersect_sphere(&ray, &sphere, 0, DBL_MAX, &t0));
+        //assert(intersect_sphere(&ray, &sphere, 0, DBL_MAX, &t0));
         printf("%f\n", t0);
         print_vec(point_at(&ray, t0));
     }
