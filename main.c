@@ -19,8 +19,8 @@
 #define WIDTH  640
 #define HEIGHT 480
 #define EPSILON 1e-8
-#define MAX_DEPTH 50
-#define SAMPLES   50
+#define MAX_DEPTH 25
+#define SAMPLES   25
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
 #define CLAMP(x) (MAX(0, MIN(x, 1)))
@@ -62,6 +62,26 @@ typedef struct sphere {
     material_t material;
 } sphere_t;
 
+typedef struct triangle {
+    vec3_t v0, v1, v2;
+} triangle_t;
+
+typedef union geometry {
+    sphere_t *sphere;
+    triangle_t *triangle_mesh;
+} geometry_t;
+
+typedef enum geometry_type {
+    TRIANGLE_MESH,
+    SPHERE
+} geometry_type_t;
+
+typedef struct object {
+    geometry_type_t type;
+    material_t material;
+    geometry_t geometry;
+} object_t;
+
 typedef struct hit {
     double t;
     vec3_t point;
@@ -75,6 +95,7 @@ typedef struct camera {
 
 typedef struct light {
     double intensity;
+    vec3_t position, color;
 } light_t;
 
 typedef struct render_context {
@@ -113,10 +134,6 @@ bool equal_d(double a, double b) { return ABS(a - b) < EPSILON; }
 
 vec3_t clamp(const vec3_t v1) { return (vec3_t) {CLAMP(v1.x), CLAMP(v1.y), CLAMP(v1.z)}; }
 
-vec3_t clamp_between(const vec3_t v1, double min, double max) {
-    return (vec3_t) {CLAMP_BETWEEN(v1.x, min, max), CLAMP_BETWEEN(v1.y, min, max), CLAMP_BETWEEN(v1.z, min, max)};
-}
-
 vec3_t normalize(const vec3_t v1) {
     double m = length(v1);
     assert(m > 0);
@@ -132,8 +149,8 @@ vec3_t reflect(const vec3_t I, const vec3_t N) {
 }
 
 vec3_t refract(const vec3_t I, const vec3_t N, double iot) {
-    float cosi = CLAMP_BETWEEN(dot(I, N), -1, 1);
-    float etai = 1, etat = iot;
+    double cosi = CLAMP_BETWEEN(dot(I, N), -1, 1);
+    double etai = 1, etat = iot;
     vec3_t n = N;
     if (cosi < 0) {
         cosi = -cosi;
@@ -143,10 +160,9 @@ vec3_t refract(const vec3_t I, const vec3_t N, double iot) {
         etat = tmp;
         n = scalar_multiply(N, -1);
     }
-    float eta = etai / etat;
-    float k = 1 - eta * eta * (1 - cosi * cosi);
+    double eta = etai / etat;
+    double k = 1 - eta * eta * (1 - cosi * cosi);
     return k < 0 ? ZERO_VECTOR : plus(scalar_multiply(I, eta), scalar_multiply(n, eta * cosi - sqrtf(k)));
-
 }
 
 void init_camera(camera_t *camera) {
@@ -224,6 +240,10 @@ bool intersect_sphere(const ray_t *ray, const sphere_t *sphere, double *t) {
     //printf("}\normal");
     *t = t0;
     return true;
+}
+
+bool intersect_triangle(const ray_t *ray, const triangle_t *triangle, double *t) {
+    return false;
 }
 
 char rgb_to_char(uint8_t r, uint8_t g, uint8_t b) {
@@ -355,9 +375,17 @@ void render() {
     sphere_t spheres[] = {
             {{0,    -100, -15}, 100, {GREEN,        DIFFUSE}},
             {{1,    0,    -2},  .5,  {RED,          DIFFUSE}},
-            {{0.5,  0,    -5},  .5,  {RANDOM_COLOR,         DIFFUSE}},
+            {{-0.5, 0,    -5},  .5,  {RANDOM_COLOR, DIFFUSE}},
             {{0,    0,    -3},  .75, {RANDOM_COLOR, REFLECTION_AND_REFRACTION}},
             {{-1.5, 0,    -3},  .5,  {BLUE,         REFLECTION}},
+    };
+
+    triangle_t triangle = {
+            {1,0,0} , {0,1,0}, {-1, 0, 0}
+    };
+
+    object_t objects[] = {
+            {.material= {RED, DIFFUSE}, .geometry.sphere = &spheres[0]},
     };
 
     camera_t camera;
@@ -390,13 +418,7 @@ void render() {
         }
     }
 
-    if (stbi_write_png(
-            "image.png",
-            WIDTH,
-            HEIGHT,
-            3,
-            framebuffer,
-            WIDTH * 3) == 0) {
+    if (stbi_write_png("image.png",WIDTH,HEIGHT,3,framebuffer,WIDTH * 3) == 0) {
         puts("failed to write");
         exit(1);
     }
@@ -434,15 +456,9 @@ void run_tests() {
         ray_t ray = {origin, dir2};
         double t0 = 0, t1 = 0;
 
-        assert(intersect_sphere_v1(&ray, &sphere, 0, DBL_MAX, &t0));
+        assert(intersect_sphere(&ray, &sphere, 0, DBL_MAX, &t0));
         printf("%f\n", t0);
         print_vec(point_at(&ray, t0));
-
-        assert(intersect_sphere_v2(&ray, &sphere, 0, DBL_MAX, &t1));
-        printf("%f\n", t1);
-        print_vec(point_at(&ray, t1));
-
-        assert(t0 == t1);
     }
 }
 
