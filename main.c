@@ -1,5 +1,6 @@
 /**
  * a minimal raytracer
+ * https://www.scratchapixel.com/lessons/3d-basic-rendering/ray-tracing-overview/light-transport-ray-tracing-whitted
  */
 
 #include <stdio.h>
@@ -12,7 +13,6 @@
 #include <stdint.h>
 
 #define STB_IMAGE_WRITE_IMPLEMENTATION
-
 #include "stb_image_write.h"
 
 #define WIDTH  640
@@ -27,6 +27,7 @@
 #define GREEN               (vec3_t) {0, 1, 0}
 #define BLUE                (vec3_t) {0, 0, 1}
 #define BACKGROUND_COLOR    (vec3_t) { 135.0 / 255.0, 206.0 / 255.0, 235.0 / 255.0 }
+#define BLACK                 (vec3_t) {0, 0, 0}
 
 double random() { return (double) rand() / ((double) RAND_MAX + 1); }
 
@@ -61,11 +62,24 @@ typedef struct hit {
     vec3_t point;
     vec3_t normal;
     double t; // hit time
+    sphere_t *sphere;
 } hit_t;
 
 typedef struct camera {
     vec3_t origin, horizontal, vertical, lower_left_corner;
 } camera_t;
+
+typedef struct light {
+
+} light_t;
+
+typedef struct render_context {
+    sphere_t *spheres;
+    size_t ns;
+
+    light_t *lights;
+    size_t nl;
+} render_context_t;
 
 double max(double a, double b) { return a > b ? a : b; }
 
@@ -107,9 +121,12 @@ void print_vec(const vec3_t v) {
     printf("(vec3_t) { %f, %f, %f }\n", v.x, v.y, v.z);
 }
 
+vec3_t reflect(const vec3_t I, const vec3_t N){
+    return minus(I, scalar_multiply(N, 2 * dot(I, N)));
+}
+
 ray_t reflect_ray(const ray_t *ray, const vec3_t normal) {
-    double tmp = 2 * dot(ray->direction, normal);
-    vec3_t reflected = minus(ray->direction, scalar_multiply(normal, tmp));
+    vec3_t reflected = normalize(reflect(ray->direction, normal));
     return (ray_t) {ray->origin, reflected};
 }
 
@@ -143,7 +160,6 @@ void init_camera(camera_t *camera) {
 
 ray_t get_camera_ray(const camera_t *camera, double u, double v) {
     vec3_t direction = minus(
-
             camera->origin,
             plus(
                     camera->lower_left_corner,
@@ -152,7 +168,7 @@ ray_t get_camera_ray(const camera_t *camera, double u, double v) {
 
     direction = normalize(direction);
     assert(equal_d(length(direction), 1.0));
-    //direction.z = -direction.z;
+    assert(direction.z < 0);
     return (ray_t) {camera->origin, direction};
 }
 
@@ -211,8 +227,7 @@ bool intersect_sphere_v1(const ray_t *ray, const sphere_t *sphere, double t_min,
 #endif
 }
 
-// this is somehow broken
-bool intersect_sphere_v2(const ray_t *ray, const sphere_t *sphere, double t_min, double t_max, double *t) {
+bool intersect_sphere(const ray_t *ray, const sphere_t *sphere, double *t) {
     double t0, t1; // solutions for t if the ray intersects
 
     //printf("intersect_sphere() { \normal");
@@ -255,7 +270,6 @@ bool intersect_sphere_v2(const ray_t *ray, const sphere_t *sphere, double t_min,
     return true;
 }
 
-
 char rgb_to_char(uint8_t r, uint8_t g, uint8_t b) {
     static char grey[10] = " .:-=+*#%@";
     double grayscale_value = ((r + g + b) / 3.0) * 0.999;
@@ -282,6 +296,18 @@ void show(const uint8_t *buffer) {
     }
 }
 
+bool intersect_all(const ray_t *ray, const sphere_t *spheres, size_t n_spheres, hit_t *hit) {
+    double t = DBL_MAX;
+    for (int i = 0; i < n_spheres; i++) {
+        if (intersect_sphere(ray, &spheres[i], &t) && t < hit->t) {
+            hit->t = t;
+            hit->sphere = &spheres[i];
+            hit->point = point_at(ray, t);
+            hit->normal = scalar_divide(minus(hit->point,hit->sphere->center ), hit->sphere->radius);
+        }
+    }
+}
+
 vec3_t cast_ray(const ray_t *ray, const sphere_t *spheres, size_t n, int depth) {
     if (depth > MAX_DEPTH) {
         return BACKGROUND_COLOR;
@@ -292,9 +318,8 @@ vec3_t cast_ray(const ray_t *ray, const sphere_t *spheres, size_t n, int depth) 
     double t = DBL_MAX, t2;
     const sphere_t *sphere = NULL;
 
-    int i;
-    for (i = 0; i < n; i++) {
-        if (intersect_sphere_v1(ray, &spheres[i], 1e-8, hit.t, &t) && t < hit.t) {
+    for (int i = 0; i < n; i++) {
+        if (intersect_sphere(ray, &spheres[i], &t) && t < hit.t) {
             //puts("hit");
             sphere = &spheres[i];
             hit.t = t;
@@ -320,17 +345,29 @@ vec3_t cast_ray(const ray_t *ray, const sphere_t *spheres, size_t n, int depth) 
 
             ray_t reflected = reflect_ray(ray, hit.normal);
             color = cast_ray(&reflected, spheres, n, depth + 1);
+            color = clamp(multiply(color, sphere->material.color));
             break;
         }
 
         case REFLECTION_AND_REFRACTION: {
-            color = (vec3_t) {1, 1, 0};
+            color = RED;
             break;
         }
 
         case PHONG: {
             vec3_t light_pos = {1, 3, 0};
             vec3_t light_color = {1, 1, 1};
+            ray_t light_ray = { hit.point, normalize(minus(light_pos, hit.point))};
+
+            double t_min;
+            bool in_shadow = false;
+            for (int i = 0; i < n; i++)
+            {
+                if (intersect_sphere(&light_ray, &spheres[i],&t_min)){
+                   in_shadow = true;
+                }
+            }
+
             double ambient_strength = 0.6;
 
             vec3_t ambient = scalar_multiply((vec3_t) {0.5, 0.5, 0.5}, ambient_strength);
@@ -341,6 +378,9 @@ vec3_t cast_ray(const ray_t *ray, const sphere_t *spheres, size_t n, int depth) 
 
             vec3_t diffuse = scalar_multiply(light_color, diff);
             color = clamp(multiply(clamp(plus(ambient, diffuse)), sphere->material.color));
+            if (in_shadow) {
+                //color = BLACK;
+            }
             break;
         }
 
@@ -355,10 +395,10 @@ vec3_t cast_ray(const ray_t *ray, const sphere_t *spheres, size_t n, int depth) 
 
 void render() {
     sphere_t spheres[] = {
-            {{0,  -100, -10},  100, {GREEN,        PHONG}},
-            {{1,  0,    -3.5}, .5,  {RED,          PHONG}},
-            {{0,  0,    -3},   .75, {RANDOM_COLOR, PHONG}},
-            {{-1, 0,    -2.3}, .5,  {BLUE,         PHONG}},
+            {{0,  -100, -15},  100, {GREEN,        PHONG}},
+            {{1,  0,    -2.5}, .5,  {RED,          PHONG}},
+            {{0,  0,    -3},   .75, {RANDOM_COLOR, REFLECTION}},
+            {{-1, 0,    -3}, .5,  {BLUE,         PHONG}},
     };
 
     camera_t camera;
