@@ -13,12 +13,13 @@
 #include <stdint.h>
 
 #define STB_IMAGE_WRITE_IMPLEMENTATION
+
 #include "stb_image_write.h"
 
 #define WIDTH  640
 #define HEIGHT 380
 #define EPSILON 1e-8
-#define MAX_DEPTH 5
+#define MAX_DEPTH 25
 #define SAMPLES   25
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
@@ -26,6 +27,7 @@
 #define RED                 (vec3_t) {1, 0, 0}
 #define GREEN               (vec3_t) {0, 1, 0}
 #define BLUE                (vec3_t) {0, 0, 1}
+#define ZERO_VECTOR         (vec3_t) {0, 0, 0}
 #define BACKGROUND_COLOR    (vec3_t) { 135.0 / 255.0, 206.0 / 255.0, 235.0 / 255.0 }
 #define BLACK                 (vec3_t) {0, 0, 0}
 
@@ -121,7 +123,7 @@ void print_vec(const vec3_t v) {
     printf("(vec3_t) { %f, %f, %f }\n", v.x, v.y, v.z);
 }
 
-vec3_t reflect(const vec3_t I, const vec3_t N){
+vec3_t reflect(const vec3_t I, const vec3_t N) {
     return minus(I, scalar_multiply(N, 2 * dot(I, N)));
 }
 
@@ -147,12 +149,12 @@ void init_camera(camera_t *camera) {
     camera->horizontal = (vec3_t) {viewport_width, 0, 0};
     camera->vertical = (vec3_t) {0, viewport_height, 0};
 
-    vec3_t hh = scalar_divide(camera->horizontal, 2);
-    vec3_t hv = scalar_divide(camera->vertical, 2);
+    vec3_t half_h = scalar_divide(camera->horizontal, 2);
+    vec3_t half_v = scalar_divide(camera->vertical, 2);
 
     camera->lower_left_corner = minus(
-            minus(camera->origin, hh),
-            minus(hv, (vec3_t) {0, 0, focal_length})
+            minus(camera->origin, half_h),
+            minus(half_v, (vec3_t) {0, 0, focal_length})
     );
 
     //camera->lower_left_corner = origin - (horizontal / double(2)) - (vertical / double(2)) - Vec3d(0, 0, focal_length);
@@ -172,84 +174,24 @@ ray_t get_camera_ray(const camera_t *camera, double u, double v) {
     return (ray_t) {camera->origin, direction};
 }
 
-bool solve_quadratic(double a, double b, double c, double *x0, double *x1) {
-    double discr = b * b - 4 * a * c;
-
-    if (discr < 0) {
-        return false;
-    } else if (discr == 0) {
-        *x1 = -0.5 * (b + sqrt(discr));
-        *x0 = *x1;
-    } else {
-        double q = (b > 0) ? -0.5 * (b + sqrt(discr)) : -0.5 * (b - sqrt(discr));
-        *x0 = q / a;
-        *x1 = c / q;
-    }
-
-    if (x0 > x1) {
-        double tmp = *x0;
-        *x0 = *x1;
-        *x1 = tmp;
-    }
-    return true;
-}
-
-bool intersect_sphere_v1(const ray_t *ray, const sphere_t *sphere, double t_min, double t_max, double *t) {
-#if 0
-    vec3_t oc = minus(ray->origin, sphere->center);
-    double a = dot(ray->direction, ray->direction);
-    double c = dot(oc, oc) - sphere->radius * sphere->radius;
-    double b = 2.0 * dot(oc, ray->direction);
-    double discriminant = b * b - 4 * a * c;
-    return (discriminant > 0);
-#else
-    vec3_t oc = minus(ray->origin, sphere->center);
-    double a = length2(ray->direction);
-    double half_b = dot(oc, ray->direction);
-    double c = length2(oc) - (sphere->radius * sphere->radius);
-
-    double discriminant = half_b * half_b - a * c;
-    if (discriminant < 0)
-        return false;
-
-    double sqrt_d = sqrt(discriminant);
-
-    double root = (-half_b - sqrt_d) / a;
-    if (root < t_min || t_max < root) {
-        root = (-half_b + sqrt_d) / a;
-
-        if (root < t_min) return false;
-        if (root > t_max) return false;
-    }
-
-    *t = root;
-    return true;
-#endif
-}
-
 bool intersect_sphere(const ray_t *ray, const sphere_t *sphere, double *t) {
     double t0, t1; // solutions for t if the ray intersects
 
-    //printf("intersect_sphere() { \normal");
 
     vec3_t L = minus(sphere->center, ray->origin);
-    //print_vec(L);
 
     double tca = dot(L, ray->direction);
-    //printf("tca=%f\normal", tca);
     if (tca < 0) return false;
 
     double d2 = dot(L, L) - tca * tca;
-    //printf("d2=%f\normal", d2);
 
     double radius2 = sphere->radius * sphere->radius;
-    //printf("radius2=%f\normal", radius2);
 
     if (d2 > radius2)
         return false;
 
     double thc = sqrt(radius2 - d2);
-    //printf("thc=%f\normal", thc);
+
     t0 = tca - thc;
     t1 = tca + thc;
 
@@ -303,7 +245,7 @@ bool intersect_all(const ray_t *ray, const sphere_t *spheres, size_t n_spheres, 
             hit->t = t;
             hit->sphere = &spheres[i];
             hit->point = point_at(ray, t);
-            hit->normal = scalar_divide(minus(hit->point,hit->sphere->center ), hit->sphere->radius);
+            hit->normal = scalar_divide(minus(hit->point, hit->sphere->center), hit->sphere->radius);
         }
     }
 }
@@ -340,12 +282,10 @@ vec3_t cast_ray(const ray_t *ray, const sphere_t *spheres, size_t n, int depth) 
 
     switch (sphere->material.type) {
         case REFLECTION: {
-            // TODO: compute reflection ray
             // TODO: compute fresnel equation
-
-            ray_t reflected = reflect_ray(ray, hit.normal);
-            color = cast_ray(&reflected, spheres, n, depth + 1);
-            color = clamp(multiply(color, sphere->material.color));
+            ray_t reflected = {hit.point, normalize(reflect(ray->direction, hit.normal))};
+            vec3_t reflected_color = cast_ray(&reflected, spheres, n, depth + 1);
+            color = multiply(reflected_color, sphere->material.color);
             break;
         }
 
@@ -357,14 +297,13 @@ vec3_t cast_ray(const ray_t *ray, const sphere_t *spheres, size_t n, int depth) 
         case PHONG: {
             vec3_t light_pos = {1, 3, 0};
             vec3_t light_color = {1, 1, 1};
-            ray_t light_ray = { hit.point, normalize(minus(light_pos, hit.point))};
+            ray_t light_ray = {hit.point, normalize(minus(light_pos, hit.point))};
 
             double t_min;
             bool in_shadow = false;
-            for (int i = 0; i < n; i++)
-            {
-                if (intersect_sphere(&light_ray, &spheres[i],&t_min)){
-                   in_shadow = true;
+            for (int i = 0; i < n; i++) {
+                if (intersect_sphere(&light_ray, &spheres[i], &t_min)) {
+                    in_shadow = true;
                 }
             }
 
@@ -398,7 +337,7 @@ void render() {
             {{0,  -100, -15},  100, {GREEN,        PHONG}},
             {{1,  0,    -2.5}, .5,  {RED,          PHONG}},
             {{0,  0,    -3},   .75, {RANDOM_COLOR, REFLECTION}},
-            {{-1, 0,    -3}, .5,  {BLUE,         PHONG}},
+            {{-1, 0,    -3},   .5,  {BLUE,         PHONG}},
     };
 
     camera_t camera;
@@ -419,10 +358,6 @@ void render() {
 
                 ray = get_camera_ray(&camera, u, v);
                 pixel = plus(pixel, cast_ray(&ray, spheres, sizeof(spheres) / sizeof(spheres[0]), 0));
-            }
-
-            if (x == (int) (WIDTH / 2) && y == (int) (HEIGHT / 2)) {
-                print_vec(ray.direction);
             }
 
             pixel = scalar_divide(pixel, SAMPLES);
