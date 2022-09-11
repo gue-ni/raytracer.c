@@ -33,9 +33,9 @@
 #define BACKGROUND_COLOR        (vec3_t) { 0.0 / 255.0, 172.0 / 255.0, 214.0 / 255.0 }
 #define BLACK                   (vec3_t) {0, 0, 0}
 
-double random() { return (double) rand() / ((double) RAND_MAX + 1); }
+double random_double() { return (double) rand() / ((double) RAND_MAX + 1); }
 
-#define RANDOM_COLOR (vec3_t) { random(), random(), random() }
+#define RANDOM_COLOR (vec3_t) { random_double(), random_double(), random_double() }
 
 typedef struct vec3 {
     double x, y, z;
@@ -477,8 +477,8 @@ void render() {
         for (x = 0; x < WIDTH; x++) {
             vec3_t pixel = {0, 0, 0};
             for (s = 0; s < SAMPLES; s++) {
-                u = (double) (x + random()) / ((double) WIDTH - 1.0);
-                v = (double) (y + random()) / ((double) HEIGHT - 1.0);
+                u = (double) (x + random_double()) / ((double) WIDTH - 1.0);
+                v = (double) (y + random_double()) / ((double) HEIGHT - 1.0);
 
                 ray = get_camera_ray(&camera, u, v);
                 pixel = add(pixel, cast_ray(&ray, objects, sizeof(objects) / sizeof(objects[0]), 0));
