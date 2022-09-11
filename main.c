@@ -48,7 +48,7 @@ typedef struct ray {
 typedef enum material_type {
     REFLECTION_AND_REFRACTION,
     REFLECTION,
-    PHONG,
+    DIFFUSE,
 } material_type_t;
 
 typedef struct material {
@@ -316,7 +316,7 @@ vec3_t cast_ray(const ray_t *ray, const sphere_t *spheres, size_t n, int depth) 
             break;
         }
 
-        case PHONG: {
+        case DIFFUSE: {
             vec3_t light_pos = {1, 3, 0};
             vec3_t light_color = {1, 1, 1};
             double intensity = 1.0;
@@ -353,9 +353,9 @@ vec3_t cast_ray(const ray_t *ray, const sphere_t *spheres, size_t n, int depth) 
 
 void render() {
     sphere_t spheres[] = {
-            {{0,    -100, -15}, 100, {GREEN,        PHONG}},
-            {{1,    0,    -2},  .5,  {RED,          PHONG}},
-            {{0.5,  0,    -5},  .5,  {BLUE,         PHONG}},
+            {{0,    -100, -15}, 100, {GREEN,        DIFFUSE}},
+            {{1,    0,    -2},  .5,  {RED,          DIFFUSE}},
+            {{0.5,  0,    -5},  .5,  {RANDOM_COLOR,         DIFFUSE}},
             {{0,    0,    -3},  .75, {RANDOM_COLOR, REFLECTION_AND_REFRACTION}},
             {{-1.5, 0,    -3},  .5,  {BLUE,         REFLECTION}},
     };
