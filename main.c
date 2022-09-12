@@ -16,7 +16,9 @@
 #define PNG
 #ifdef PNG
 #define STB_IMAGE_WRITE_IMPLEMENTATION
+
 #include "stb_image_write.h"
+
 #endif
 
 #include "tinyobj_loader.h"
@@ -41,74 +43,63 @@
 #define BLACK \
     (vec3_t) { 0, 0, 0 }
 
-double random_double() { return (double)rand() / ((double)RAND_MAX + 1); }
+double random_double() { return (double) rand() / ((double) RAND_MAX + 1); }
 
 #define RANDOM_COLOR \
     (vec3_t) { random_double(), random_double(), random_double() }
 
-typedef struct
-{
+typedef struct {
     double x, y, z;
 } vec3_t;
 
-typedef struct
-{
+typedef struct {
     vec3_t origin, direction;
 } ray_t;
 
-typedef enum
-{
+typedef enum {
     SOLID,
     DIFFUSE,
     REFLECTION,
     REFLECTION_AND_REFRACTION,
 } material_type_t;
 
-typedef struct
-{
+typedef struct {
     vec3_t color;
     material_type_t type;
 } material_t;
 
-typedef struct
-{
+typedef struct {
     vec3_t center;
     double radius;
 } sphere_t;
 
 // vertices are in clockwise order
-typedef struct
-{
+typedef struct {
     vec3_t v0, v1, v2;
 } triangle_t;
 
-typedef struct
-{
+typedef struct {
     size_t count;
     triangle_t *triangles;
 } mesh_t;
 
-typedef union
-{
+typedef union {
     sphere_t *sphere;
     mesh_t *mesh;
 } geometry_t;
 
-typedef enum
-{
+typedef enum {
     SPHERE,
     MESH,
 } geometry_type_t;
 
-typedef struct
-{
+typedef struct {
     geometry_type_t type;
     material_t material;
     geometry_t geometry;
 } object_t;
 
-typedef struct
-{
+typedef struct {
     double t;
     double u, v;
     vec3_t point;
@@ -116,27 +107,23 @@ typedef struct
     object_t *object;
 } hit_t;
 
-typedef struct
-{
+typedef struct {
     vec3_t origin, horizontal, vertical, lower_left_corner;
 } camera_t;
 
-typedef struct
-{
+typedef struct {
     double intensity;
     vec3_t position, color;
 } light_t;
 
-typedef struct
-{
+typedef struct {
     sphere_t *spheres;
     size_t ns;
     light_t *lights;
     size_t nl;
 } render_context_t;
 
-typedef struct
-{
+typedef struct {
     int width, height, samples;
     char *result_filename;
     char *obj_filename;
@@ -144,65 +131,67 @@ typedef struct
 
 static inline double dot(const vec3_t v1, const vec3_t v2) { return v1.x * v2.x + v1.y * v2.y + v1.z * v2.z; }
 
-static inline vec3_t cross(const vec3_t a, const vec3_t b)
-{
-    return (vec3_t){a.y * b.z - a.z * b.y, a.z * b.x - a.x * b.z, a.x * b.y - a.y * b.x};
+static inline vec3_t cross(const vec3_t a, const vec3_t b) {
+    return (vec3_t) {a.y * b.z - a.z * b.y, a.z * b.x - a.x * b.z, a.x * b.y - a.y * b.x};
 }
 
 static inline double length2(const vec3_t v1) { return v1.x * v1.x + v1.y * v1.y + v1.z * v1.z; }
 
 static inline double length(const vec3_t v1) { return sqrt(length2(v1)); }
 
-static inline vec3_t multiply(const vec3_t v1, const vec3_t v2) { return (vec3_t){v1.x * v2.x, v1.y * v2.y, v1.z * v2.z}; }
+static inline vec3_t multiply(const vec3_t v1, const vec3_t v2) {
+    return (vec3_t) {v1.x * v2.x, v1.y * v2.y, v1.z * v2.z};
+}
 
-static inline vec3_t divide(const vec3_t v1, const vec3_t v2) { return (vec3_t){v1.x / v2.x, v1.y / v2.y, v1.z / v2.z}; }
+static inline vec3_t divide(const vec3_t v1, const vec3_t v2) {
+    return (vec3_t) {v1.x / v2.x, v1.y / v2.y, v1.z / v2.z};
+}
 
-static inline vec3_t sub(const vec3_t v1, const vec3_t v2) { return (vec3_t){v1.x - v2.x, v1.y - v2.y, v1.z - v2.z}; }
+static inline vec3_t sub(const vec3_t v1, const vec3_t v2) { return (vec3_t) {v1.x - v2.x, v1.y - v2.y, v1.z - v2.z}; }
 
-static inline vec3_t add(const vec3_t v1, const vec3_t v2) { return (vec3_t){v1.x + v2.x, v1.y + v2.y, v1.z + v2.z}; }
+static inline vec3_t add(const vec3_t v1, const vec3_t v2) { return (vec3_t) {v1.x + v2.x, v1.y + v2.y, v1.z + v2.z}; }
 
-static inline vec3_t scalar_multiply(const vec3_t v1, const double s) { return (vec3_t){v1.x * s, v1.y * s, v1.z * s}; }
+static inline vec3_t scalar_multiply(const vec3_t v1, const double s) {
+    return (vec3_t) {v1.x * s, v1.y * s, v1.z * s};
+}
 
-static inline vec3_t scalar_divide(const vec3_t v1, const double s) { return (vec3_t){v1.x / s, v1.y / s, v1.z / s}; }
+static inline vec3_t scalar_divide(const vec3_t v1, const double s) { return (vec3_t) {v1.x / s, v1.y / s, v1.z / s}; }
 
 inline static bool scalar_equals(const vec3_t v1, const double s) { return v1.x == s && v1.y == s && v1.z == s; }
 
-inline static bool vector_equals(const vec3_t v1, const vec3_t v2) { return v1.x == v2.x && v1.y == v2.y && v1.z == v2.z; }
+inline static bool vector_equals(const vec3_t v1, const vec3_t v2) {
+    return v1.x == v2.x && v1.y == v2.y && v1.z == v2.z;
+}
 
-inline static vec3_t point_at(const ray_t *ray, double t) { return add(ray->origin, scalar_multiply(ray->direction, t)); }
+inline static vec3_t point_at(const ray_t *ray, double t) {
+    return add(ray->origin, scalar_multiply(ray->direction, t));
+}
 
 inline static bool equal_d(double a, double b) { return ABS(a - b) < EPSILON; }
 
-inline static vec3_t clamp(const vec3_t v1) { return (vec3_t){CLAMP(v1.x), CLAMP(v1.y), CLAMP(v1.z)}; }
+inline static vec3_t clamp(const vec3_t v1) { return (vec3_t) {CLAMP(v1.x), CLAMP(v1.y), CLAMP(v1.z)}; }
 
-inline static vec3_t normalize(const vec3_t v1)
-{
+inline static vec3_t normalize(const vec3_t v1) {
     double m = length(v1);
     assert(m > 0);
-    return (vec3_t){v1.x / m, v1.y / m, v1.z / m};
+    return (vec3_t) {v1.x / m, v1.y / m, v1.z / m};
 }
 
-void print_vec(const vec3_t v)
-{
+void print_vec(const vec3_t v) {
     printf("(vec3_t) { %f, %f, %f }\n", v.x, v.y, v.z);
 }
 
-vec3_t reflect(const vec3_t I, const vec3_t N)
-{
+vec3_t reflect(const vec3_t I, const vec3_t N) {
     return sub(I, scalar_multiply(N, 2 * dot(I, N)));
 }
 
-vec3_t refract(const vec3_t I, const vec3_t N, double iot)
-{
+vec3_t refract(const vec3_t I, const vec3_t N, double iot) {
     double cosi = CLAMP_BETWEEN(dot(I, N), -1, 1);
     double etai = 1, etat = iot;
     vec3_t n = N;
-    if (cosi < 0)
-    {
+    if (cosi < 0) {
         cosi = -cosi;
-    }
-    else
-    {
+    } else {
         double tmp = etai;
         etai = etat;
         etat = tmp;
@@ -213,8 +202,7 @@ vec3_t refract(const vec3_t I, const vec3_t N, double iot)
     return k < 0 ? ZERO_VECTOR : add(scalar_multiply(I, eta), scalar_multiply(n, eta * cosi - sqrtf(k)));
 }
 
-void init_camera(camera_t *camera, vec3_t position, options_t options)
-{
+void init_camera(camera_t *camera, vec3_t position, options_t options) {
 #if 0
     double viewport_height = 2.0;
 #else
@@ -222,36 +210,58 @@ void init_camera(camera_t *camera, vec3_t position, options_t options)
     double h = tan(theta / 2);
     double viewport_height = 2.0 * h;
 #endif
-    double aspect_ratio = (double)options.width / (double)options.height;
+    double aspect_ratio = (double) options.width / (double) options.height;
     double viewport_width = aspect_ratio * viewport_height;
     double focal_length = 1.0;
 
     camera->origin = position;
-    camera->horizontal = (vec3_t){viewport_width, 0, 0};
-    camera->vertical = (vec3_t){0, viewport_height, 0};
+    camera->horizontal = (vec3_t) {viewport_width, 0, 0};
+    camera->vertical = (vec3_t) {0, viewport_height, 0};
 
     vec3_t half_h = scalar_divide(camera->horizontal, 2);
     vec3_t half_v = scalar_divide(camera->vertical, 2);
 
-    camera->lower_left_corner = sub(sub(camera->origin, half_h), sub(half_v, (vec3_t){0, 0, focal_length}));
+    camera->lower_left_corner = sub(sub(camera->origin, half_h), sub(half_v, (vec3_t) {0, 0, focal_length}));
 }
 
-ray_t get_camera_ray(const camera_t *camera, double u, double v)
-{
+ray_t get_camera_ray(const camera_t *camera, double u, double v) {
     vec3_t direction = sub(
-        camera->origin,
-        add(
-            camera->lower_left_corner,
-            add(scalar_multiply(camera->horizontal, u), scalar_multiply(camera->vertical, v))));
+            camera->origin,
+            add(
+                    camera->lower_left_corner,
+                    add(scalar_multiply(camera->horizontal, u), scalar_multiply(camera->vertical, v))));
 
     direction = normalize(direction);
     assert(equal_d(length(direction), 1.0));
     assert(direction.z < 0);
-    return (ray_t){camera->origin, direction};
+    return (ray_t) {camera->origin, direction};
 }
 
-bool intersect_sphere(const ray_t *ray, const sphere_t *sphere, hit_t *hit)
-{
+char rgb_to_char(uint8_t r, uint8_t g, uint8_t b) {
+    static char grey[10] = " .:-=+*#%@";
+    double grayscale_value = ((r + g + b) / 3.0) * 0.999;
+    int index = (int) (sizeof(grey) * (grayscale_value / 255.0));
+    assert(0 <= index && index < 10);
+    return grey[9 - index];
+}
+
+vec3_t sample_texture(double u, double v) {
+    return RED;
+}
+
+void show(const uint8_t *buffer, const options_t options) {
+    // TODO scale to appropriate size
+    for (int y = 0; y < options.height; y++) {
+        for (int x = 0; x < options.width; x++) {
+            size_t i = (y * options.width + x) * 3;
+            printf("%c", rgb_to_char(buffer[i + 0], buffer[i + 1], buffer[i + 2]));
+        }
+        printf("\n");
+    }
+}
+
+
+bool intersect_sphere(const ray_t *ray, const sphere_t *sphere, hit_t *hit) {
     double t0, t1; // solutions for t if the ray intersects
     vec3_t L = sub(sphere->center, ray->origin);
     double tca = dot(L, ray->direction);
@@ -266,15 +276,13 @@ bool intersect_sphere(const ray_t *ray, const sphere_t *sphere, hit_t *hit)
     t0 = tca - thc;
     t1 = tca + thc;
 
-    if (t0 > t1)
-    {
+    if (t0 > t1) {
         double tmp = t0;
         t0 = t1;
         t1 = tmp;
     }
 
-    if (t0 < 0)
-    {
+    if (t0 < 0) {
         t0 = t1; // if t0 is negative, let's use t1 instead
         if (t0 < 0)
             return false; // both t0 and t1 are negative
@@ -288,8 +296,7 @@ bool intersect_sphere(const ray_t *ray, const sphere_t *sphere, hit_t *hit)
     }
 }
 
-bool intersect_triangle(const ray_t *ray, const triangle_t *triangle, hit_t *hit)
-{
+bool intersect_triangle(const ray_t *ray, const triangle_t *triangle, hit_t *hit) {
     // https://en.wikipedia.org/wiki/M%C3%B6ller%E2%80%93Trumbore_intersection_algorithm
     vec3_t v0 = triangle->v0;
     vec3_t v1 = triangle->v1;
@@ -324,99 +331,60 @@ bool intersect_triangle(const ray_t *ray, const triangle_t *triangle, hit_t *hit
     }
 }
 
-char rgb_to_char(uint8_t r, uint8_t g, uint8_t b)
-{
-    static char grey[10] = " .:-=+*#%@";
-    double grayscale_value = ((r + g + b) / 3.0) * 0.999;
-    int index = (int)(sizeof(grey) * (grayscale_value / 255.0));
-    assert(0 <= index && index < 10);
-    return grey[9 - index];
-}
 
-vec3_t sample_texture(double u, double v) {
-    return RED;
-}
-
-void show(const uint8_t *buffer, const options_t options)
-{
-    // TODO scale to appropriate size
-    for (int y = 0; y < options.height; y++)
-    {
-        for (int x = 0; x < options.width; x++)
-        {
-            size_t i = (y * options.width + x) * 3;
-            printf("%c", rgb_to_char(buffer[i + 0], buffer[i + 1], buffer[i + 2]));
-        }
-        printf("\n");
-    }
-}
-
-bool intersect(const ray_t *ray, const object_t *objects, size_t n, hit_t *hit)
-{
+bool intersect(const ray_t *ray, const object_t *objects, size_t n, hit_t *hit) {
     double old_t = hit != NULL ? hit->t : DBL_MAX;
     double min_t = old_t;
 
-    hit_t local = { .t = DBL_MAX };
+    hit_t local = {.t = DBL_MAX};
 
-    for (int i = 0; i < n; i++)
-    {
-        switch (objects[i].type)
-        {
-        case MESH:
-        {
-            mesh_t *mesh = objects[i].geometry.mesh;
-            for (int j = 0; j < mesh->count; j++)
-            {
-                triangle_t triangle = mesh->triangles[j];
-                if (intersect_triangle(ray, &triangle, &local) && local.t < min_t)
-                {
+    for (int i = 0; i < n; i++) {
+        switch (objects[i].type) {
+            case MESH: {
+                mesh_t *mesh = objects[i].geometry.mesh;
+                for (int j = 0; j < mesh->count; j++) {
+                    triangle_t triangle = mesh->triangles[j];
+                    if (intersect_triangle(ray, &triangle, &local) && local.t < min_t) {
+                        min_t = local.t;
+                        local.object = &objects[i];
+                        local.point = point_at(ray, local.t);
+                        local.normal = cross(triangle.v0, triangle.v1);
+                    }
+                }
+                break;
+            }
+            case SPHERE: {
+                if (intersect_sphere(ray, objects[i].geometry.sphere, &local) && local.t < min_t) {
                     min_t = local.t;
                     local.object = &objects[i];
                     local.point = point_at(ray, local.t);
-                    local.normal = cross(triangle.v0, triangle.v1);
+                    local.normal = scalar_divide(sub(local.point, objects[i].geometry.sphere->center),
+                                                 objects[i].geometry.sphere->radius);
                 }
+                break;
             }
-            break;
-        }
-        case SPHERE:
-        {
-            if (intersect_sphere(ray, objects[i].geometry.sphere, &local) && local.t < min_t)
-            {
-                min_t = local.t;
-                local.object = &objects[i];
-                local.point = point_at(ray, local.t);
-                local.normal = scalar_divide(sub(local.point, objects[i].geometry.sphere->center),
-                                             objects[i].geometry.sphere->radius);
+            default: {
+                puts("unknown geometry");
+                exit(EXIT_FAILURE);
             }
-            break;
-        }
-        default:
-        {
-            puts("unknown geometry");
-            exit(EXIT_FAILURE);
-        }
         }
     }
 
-    if (hit != NULL)
-    {
+    if (hit != NULL) {
         memcpy(hit, &local, sizeof(*hit));
     }
 
     return min_t < old_t;
 }
 
-vec3_t cast_ray(const ray_t *ray, const object_t *scene, size_t n_objects, int depth)
-{
-    if (depth > MAX_DEPTH)
-    {
+vec3_t cast_ray(const ray_t *ray, const object_t *scene, size_t n_objects, int depth) {
+    if (depth > MAX_DEPTH) {
         return BACKGROUND_COLOR;
     }
 
     hit_t hit = {.t = DBL_MAX, .object = NULL};
 
-    if (!intersect(ray, scene, n_objects, &hit))
-    {
+    if (!intersect(ray, scene, n_objects, &hit)) {
         return BACKGROUND_COLOR;
     }
 
@@ -424,102 +392,144 @@ vec3_t cast_ray(const ray_t *ray, const object_t *scene, size_t n_objects, int d
     return (vec3_t) { 1, 0, 0};
 #else
     vec3_t out_color = ZERO_VECTOR;
-    switch (hit.object->material.type)
-    {
-    case REFLECTION:
-    {
-        // TODO: compute fresnel equation
-        ray_t reflected = {hit.point, normalize(reflect(ray->direction, hit.normal))};
-        vec3_t reflected_color = cast_ray(&reflected, scene, n_objects, depth + 1);
-        double f = 0.5;
-        out_color = add(scalar_multiply(reflected_color, f), scalar_multiply(hit.object->material.color, (1 - f)));
-        break;
-    }
+    switch (hit.object->material.type) {
+        case REFLECTION: {
+            // TODO: compute fresnel equation
+            ray_t reflected = {hit.point, normalize(reflect(ray->direction, hit.normal))};
+            vec3_t reflected_color = cast_ray(&reflected, scene, n_objects, depth + 1);
+            double f = 0.5;
+            out_color = add(scalar_multiply(reflected_color, f), scalar_multiply(hit.object->material.color, (1 - f)));
+            break;
+        }
 
-    case REFLECTION_AND_REFRACTION:
-    {
-        vec3_t reflected_dir = normalize(reflect(ray->direction, hit.normal));
-        ray_t reflected = {hit.point, reflected_dir};
-        vec3_t reflected_color = cast_ray(&reflected, scene, n_objects, depth + 1);
+        case REFLECTION_AND_REFRACTION: {
+            vec3_t reflected_dir = normalize(reflect(ray->direction, hit.normal));
+            ray_t reflected = {hit.point, reflected_dir};
+            vec3_t reflected_color = cast_ray(&reflected, scene, n_objects, depth + 1);
 
-        double iot = 1;
-        vec3_t refracted_dir = normalize(refract(ray->direction, hit.normal, iot));
-        ray_t refracted = {hit.point, refracted_dir};
-        vec3_t refracted_color = cast_ray(&refracted, scene, n_objects, depth + 1);
+            double iot = 1;
+            vec3_t refracted_dir = normalize(refract(ray->direction, hit.normal, iot));
+            ray_t refracted = {hit.point, refracted_dir};
+            vec3_t refracted_color = cast_ray(&refracted, scene, n_objects, depth + 1);
 
-        double kr = .8;
+            double kr = .8;
 
-        out_color = add(scalar_multiply(refracted_color, kr), scalar_multiply(reflected_color, (1 - kr)));
-        break;
-    }
+            out_color = add(scalar_multiply(refracted_color, kr), scalar_multiply(reflected_color, (1 - kr)));
+            break;
+        }
 
-    case DIFFUSE:
-    {
-        vec3_t light_pos = {1, 3, 0};
-        vec3_t light_color = {1, 1, 1};
-        ray_t light_ray = {hit.point, normalize(sub(light_pos, hit.point))};
+        case DIFFUSE: {
+            vec3_t light_pos = {1, 3, 0};
+            vec3_t light_color = {1, 1, 1};
+            ray_t light_ray = {hit.point, normalize(sub(light_pos, hit.point))};
 
-        bool in_shadow = intersect(&light_ray, scene, n_objects, NULL);
+            bool in_shadow = intersect(&light_ray, scene, n_objects, NULL);
 
-        double ambient_strength = 0.6;
+            double ambient_strength = 0.6;
 
-        vec3_t ambient = scalar_multiply((vec3_t){0.5, 0.5, 0.5}, ambient_strength);
+            vec3_t ambient = scalar_multiply((vec3_t) {0.5, 0.5, 0.5}, ambient_strength);
 
-        vec3_t normal = normalize(hit.normal);
-        vec3_t light_dir = normalize(sub(light_pos, hit.point));
-        double diff = MAX(dot(normal, light_dir), 0.0);
+            vec3_t normal = normalize(hit.normal);
+            vec3_t light_dir = normalize(sub(light_pos, hit.point));
+            double diff = MAX(dot(normal, light_dir), 0.0);
 
-        vec3_t diffuse = scalar_multiply(light_color, diff);
-        out_color = clamp(multiply(add(ambient, in_shadow ? ZERO_VECTOR : diffuse), hit.object->material.color));
-        break;
-    }
+            vec3_t diffuse = scalar_multiply(light_color, diff);
+            out_color = clamp(multiply(add(ambient, in_shadow ? ZERO_VECTOR : diffuse), hit.object->material.color));
+            break;
+        }
 
-    case SOLID:
-    {
-        out_color = hit.object->material.color;
-        break;
-    }
+        case SOLID: {
+            out_color = hit.object->material.color;
+            break;
+        }
 
-    default:
-    {
-        puts("no material type set");
-        exit(1);
-    }
+        default: {
+            puts("no material type set");
+            exit(1);
+        }
     }
     return out_color;
 #endif
 }
 
-
-bool parse_obj(const char* filename)
+void load_file(void *ctx, const char * filename, const int is_mtl, const char *obj_filename, char ** buffer, size_t * len)
 {
+    long string_size = 0, read_size = 0;
+    FILE * handler = fopen(filename, "r");
 
-
+    if (handler) {
+        fseek(handler, 0, SEEK_END);
+        string_size = ftell(handler);
+        rewind(handler);
+        *buffer = (char *) malloc(sizeof(char) * (string_size + 1));
+        read_size = fread(*buffer, sizeof(char), (size_t) string_size, handler);
+        (*buffer)[string_size] = '\0';
+        if (string_size != read_size) {
+            free(buffer);
+            *buffer = NULL;
+        }
+        fclose(handler);
+    }
+    *len = read_size;
 }
 
-void render(const options_t options)
-{
+bool load_obj(const char *filename, object_t *objects, size_t *num_objects) {
+
+    tinyobj_shape_t *shape = NULL;
+    tinyobj_material_t *material = NULL;
+    tinyobj_attrib_t attrib;
+
+    size_t num_shapes;
+    size_t num_materials;
+
+    tinyobj_attrib_init(&attrib);
+
+    int result = tinyobj_parse_obj(
+            &attrib,
+            &shape,
+            &num_shapes,
+            &material,
+            &num_materials,
+            filename,
+            load_file,
+            NULL,
+            TINYOBJ_FLAG_TRIANGULATE);
+
+    if (result != TINYOBJ_SUCCESS){
+        puts("error during loading of obj");
+        exit(EXIT_FAILURE);
+    }
+
+
+    tinyobj_attrib_free(&attrib);
+    if (shape) {
+        tinyobj_shapes_free(shape, num_shapes);
+    }
+    return true;
+}
+
+void render(const options_t options) {
     sphere_t spheres[] = {
-        {
-            {0, -100, -15},
-            100,
-        },
-        {
-            {1, 0, -2},
-            .5,
-        },
-        {
-            {-0.5, 0, -5},
-            .5,
-        },
-        {
-            {0, 0, -3},
-            .75,
-        },
-        {
-            {-1.5, 0, -3},
-            .5,
-        },
+            {
+                    {0,    -100, -15},
+                    100,
+            },
+            {
+                    {1,    0,    -2},
+                    .5,
+            },
+            {
+                    {-0.5, 0,    -5},
+                    .5,
+            },
+            {
+                    {0,    0,    -3},
+                    .75,
+            },
+            {
+                    {-1.5, 0,    -3},
+                    .5,
+            },
     };
 
     vec3_t pos = {0, 2, -3};
@@ -527,62 +537,59 @@ void render(const options_t options)
     double w = 3;
 
     triangle_t triangles[] = {
-        {
-            {pos.x + size.x, pos.y - size.y, pos.z - size.z}, // lower left
-            {pos.x - size.x, pos.y - size.y, pos.z + size.z}, // top right
-            {pos.x - size.x, pos.y - size.y, pos.z - size.z}, // lower right
-        },
-        {
-            {pos.x + size.x, pos.y - size.y, pos.z - size.z}, // lower left
-            {pos.x - size.x, pos.y - size.y, pos.z + size.z}, // top right
-            {pos.x + size.x, pos.y - size.y, pos.z + size.z}, // top left
-        },
-        {
-            {pos.x + w, pos.y - w, pos.z - w}, // lower left
-            {pos.x - w, pos.y + w, pos.z - w}, // top right
-            {pos.x - w, pos.y - w, pos.z - w}, // lower right
-        },
-        {
-            {pos.x + w, pos.y - w, pos.z - w}, // lower left
-            {pos.x + w, pos.y + w, pos.z - w}, // top left
-            {pos.x - w, pos.y + w, pos.z - w}, // top right
-        },
-        {
-            {pos.x - w, pos.y - w, pos.z - w}, // top right
-            {pos.x - w, pos.y - w, pos.z + w}, // top right
-            {pos.x - w, pos.y + w, pos.z + w}, // top right
-        },
+            {
+                    {pos.x + size.x, pos.y - size.y, pos.z - size.z}, // lower left
+                    {pos.x - size.x, pos.y - size.y, pos.z + size.z}, // top right
+                    {pos.x - size.x, pos.y - size.y, pos.z - size.z}, // lower right
+            },
+            {
+                    {pos.x + size.x, pos.y - size.y, pos.z - size.z}, // lower left
+                    {pos.x - size.x, pos.y - size.y, pos.z + size.z}, // top right
+                    {pos.x + size.x, pos.y - size.y, pos.z + size.z}, // top left
+            },
+            {
+                    {pos.x + w,      pos.y - w,      pos.z - w}, // lower left
+                    {pos.x - w,      pos.y + w,      pos.z - w}, // top right
+                    {pos.x - w,      pos.y - w,      pos.z - w}, // lower right
+            },
+            {
+                    {pos.x + w,      pos.y - w,      pos.z - w}, // lower left
+                    {pos.x + w,      pos.y + w,      pos.z - w}, // top left
+                    {pos.x - w,      pos.y + w,      pos.z - w}, // top right
+            },
+            {
+                    {pos.x - w,      pos.y - w,      pos.z - w}, // top right
+                    {pos.x - w,      pos.y - w,      pos.z + w}, // top right
+                    {pos.x - w,      pos.y + w,      pos.z + w}, // top right
+            },
     };
 
     mesh_t mesh = {
-        2, triangles};
+            2, triangles};
 
     object_t scene[] = {
-        {.type = SPHERE, .material = {RED, DIFFUSE}, .geometry.sphere = &spheres[1]},
-        {.type = SPHERE, .material = {RANDOM_COLOR, DIFFUSE}, .geometry.sphere = &spheres[2]},
-        {.type = SPHERE, .material = {RANDOM_COLOR, REFLECTION_AND_REFRACTION}, .geometry.sphere = &spheres[3]},
-        {.type = SPHERE, .material = {BLUE, REFLECTION}, .geometry.sphere = &spheres[4]},
-        {.type = MESH, .material = {GREEN, DIFFUSE}, .geometry.mesh = &mesh}};
+            {.type = SPHERE, .material = {RED, DIFFUSE}, .geometry.sphere = &spheres[1]},
+            {.type = SPHERE, .material = {RANDOM_COLOR, DIFFUSE}, .geometry.sphere = &spheres[2]},
+            {.type = SPHERE, .material = {RANDOM_COLOR, REFLECTION_AND_REFRACTION}, .geometry.sphere = &spheres[3]},
+            {.type = SPHERE, .material = {BLUE, REFLECTION}, .geometry.sphere = &spheres[4]},
+            {.type = MESH, .material = {GREEN, DIFFUSE}, .geometry.mesh = &mesh}};
 
     camera_t camera;
-    init_camera(&camera, (vec3_t){0, 0, 1}, options);
+    init_camera(&camera, (vec3_t) {0, 0, 1}, options);
 
-    uint8_t *framebuffer = (uint8_t *)malloc(sizeof(uint8_t) * options.width * options.height * 3);
+    uint8_t *framebuffer = (uint8_t *) malloc(sizeof(uint8_t) * options.width * options.height * 3);
 
     int x, y, s;
     double u, v;
     ray_t ray;
 
     clock_t tic = clock();
-    for (y = 0; y < options.height; y++)
-    {
-        for (x = 0; x < options.width; x++)
-        {
+    for (y = 0; y < options.height; y++) {
+        for (x = 0; x < options.width; x++) {
             vec3_t pixel = {0, 0, 0};
-            for (s = 0; s < options.samples; s++)
-            {
-                u = (double)(x + random_double()) / ((double)options.width - 1.0);
-                v = (double)(y + random_double()) / ((double)options.height - 1.0);
+            for (s = 0; s < options.samples; s++) {
+                u = (double) (x + random_double()) / ((double) options.width - 1.0);
+                v = (double) (y + random_double()) / ((double) options.height - 1.0);
 
                 ray = get_camera_ray(&camera, u, v);
                 pixel = add(pixel, cast_ray(&ray, scene, sizeof(scene) / sizeof(scene[0]), 0));
@@ -592,18 +599,18 @@ void render(const options_t options)
             pixel = scalar_multiply(pixel, 255); // scale to range 0-255
 
             size_t index = (y * options.width + x) * 3;
-            framebuffer[index + 0] = (uint8_t)(pixel.x);
-            framebuffer[index + 1] = (uint8_t)(pixel.y);
-            framebuffer[index + 2] = (uint8_t)(pixel.z);
+            framebuffer[index + 0] = (uint8_t) (pixel.x);
+            framebuffer[index + 1] = (uint8_t) (pixel.y);
+            framebuffer[index + 2] = (uint8_t) (pixel.z);
         }
     }
     clock_t toc = clock();
-    double time_taken = (double)(toc - tic) / CLOCKS_PER_SEC;
+    double time_taken = (double) (toc - tic) / CLOCKS_PER_SEC;
     printf("Finished (%f seconds)\n", time_taken);
 
 #ifdef PNG
-    if (stbi_write_png(options.result_filename, options.width, options.height, 3, framebuffer, options.width * 3) == 0)
-    {
+    if (stbi_write_png(options.result_filename, options.width, options.height, 3, framebuffer, options.width * 3) ==
+        0) {
         puts("failed to write");
         exit(1);
     }
@@ -611,18 +618,27 @@ void render(const options_t options)
     // show(framebuffer);
 }
 
-void run_tests()
-{
+void test_load_obj() {
+    const char *obj = "assets/cube.obj";
+
+    object_t *scene = NULL;
+    size_t num_objects;
+
+    assert(load_obj(obj, scene, &num_objects));
+}
+
+void test_all() {
     printf("TEST\n");
     {
         sphere_t sphere = {{0, 0, -3}, 2.0};
         triangle_t triangle = {
-            {1, 0, -3},
-            {0, 1, -3},
-            {-1, 0, -3},
+                {1,  0, -3},
+                {0,  1, -3},
+                {-1, 0, -3},
         };
 
-        ray_t ray = {{0, 0, 0}, {0, 0, -1}};
+        ray_t ray = {{0, 0, 0},
+                     {0, 0, -1}};
         double t = 0;
 
         assert(intersect_triangle(&ray, &triangle, &t) == true);
@@ -633,10 +649,9 @@ void run_tests()
     }
 }
 
-int main()
-{
-    srand((unsigned)time(NULL));
-#if 1
+int main() {
+    srand((unsigned) time(NULL));
+#if 0
     options_t options = {
             .width = 640,
             .height = 480,
@@ -646,7 +661,7 @@ int main()
     };
     render(options);
 #else
-    run_tests();
+    test_all();
 #endif
     return 0;
 }
