@@ -17,6 +17,10 @@ $(PROGRAM): $(OBJ)
 
 all: $(PROGRAM)
 
+test: CFLAGS += -DRUN_TESTS
+test: all
+	./$(PROGRAM)
+
 run: all 
 	./$(PROGRAM)
 

@@ -51,7 +51,8 @@ void _test_check(int cond, const char *filename, int line, const char *expr, boo
     if (!cond)
     {
         fprintf(stderr, "[FAIL] [%s:%d] '%s'%s\n", filename, line, expr, abort_after_fail ? ", aborting..." : "");
-        if (abort_after_fail) {
+        if (abort_after_fail)
+        {
             exit(1);
         }
     }
@@ -549,10 +550,9 @@ void load_file(void *ctx, const char *filename, const int is_mtl, const char *ob
 bool load_obj(const char *filename, object_t *objects, size_t *num_objects)
 {
 
-    return false;
+    tinyobj_attrib_t attrib;
     tinyobj_shape_t *shape = NULL;
     tinyobj_material_t *material = NULL;
-    tinyobj_attrib_t attrib;
 
     size_t num_shapes;
     size_t num_materials;
@@ -570,10 +570,24 @@ bool load_obj(const char *filename, object_t *objects, size_t *num_objects)
         NULL,
         TINYOBJ_FLAG_TRIANGULATE);
 
-    if (result != TINYOBJ_SUCCESS)
+    TEST_ASSERT(result == TINYOBJ_SUCCESS);
+    TEST_CHECK(attrib.num_faces == 36);
+    TEST_CHECK(attrib.num_face_num_verts == 12); // two triangles per side
+    TEST_CHECK(attrib.num_normals == 6);         // one per side
+    TEST_CHECK(attrib.num_vertices == 8);        // one per corner
+    TEST_CHECK(attrib.num_texcoords == 0);
+
+    triangle_t *triangles = malloc(attrib.num_face_num_verts * sizeof(*triangles));
+    TEST_ASSERT(triangles != NULL);
+
+    for (size_t i = 0; i < attrib.num_face_num_verts; i++)
     {
-        puts("error during loading of obj");
-        exit(EXIT_FAILURE);
+
+        TEST_ASSERT(attrib.face_num_verts[i] % 3 == 0); // check all faces are triangles
+
+        for (size_t f = 0; f < attrib.face_num_verts[i] / 3; f++)
+        {
+        }
     }
 
     tinyobj_attrib_free(&attrib);
@@ -584,7 +598,7 @@ bool load_obj(const char *filename, object_t *objects, size_t *num_objects)
     return true;
 }
 
-void render(const options_t options)
+void render(uint8_t *framebuffer, const options_t options)
 {
     sphere_t spheres[] = {
         {
@@ -654,13 +668,10 @@ void render(const options_t options)
     camera_t camera;
     init_camera(&camera, (vec3){0, 0, 1}, options);
 
-    uint8_t *framebuffer = (uint8_t *)malloc(sizeof(uint8_t) * options.width * options.height * 3);
-
     int x, y, s;
     double u, v;
     ray_t ray;
 
-    clock_t tic = clock();
     for (y = 0; y < options.height; y++)
     {
         for (x = 0; x < options.width; x++)
@@ -676,7 +687,7 @@ void render(const options_t options)
             }
 
             pixel = scalar_divide(pixel, options.samples);
-            pixel = scalar_multiply(pixel, 255); // scale to range 0-255
+            pixel = scalar_multiply(pixel, 255.0); // scale to range 0-255
 
             size_t index = (y * options.width + x) * 3;
             framebuffer[index + 0] = (uint8_t)(pixel.x);
@@ -684,6 +695,70 @@ void render(const options_t options)
             framebuffer[index + 2] = (uint8_t)(pixel.z);
         }
     }
+}
+
+/**
+ * TEST
+ */
+
+void _test_load_obj()
+{
+    const char *obj = "assets/cube.obj";
+
+    object_t *scene = NULL;
+    size_t num_objects;
+
+    TEST_CHECK(load_obj(obj, scene, &num_objects) == true);
+}
+
+void _test_intersect()
+{
+    hit_t hit;
+    ray_t ray;
+
+    triangle_t triangle = {
+        {1, 0, -3},
+        {0, 1, -3},
+        {-1, 0, -3},
+    };
+
+    ray = (ray_t){{0, 0, 0}, {0, 0, -1}};
+    TEST_CHECK(intersect_triangle(&ray, &triangle, &hit) == true);
+    TEST_CHECK(hit.t == 3.0);
+    TEST_CHECK(point_at(&ray, hit.t).z == -3.0);
+
+    sphere_t sphere = {{0, 0, -3}, 2.0};
+    ray = (ray_t){{0, 0, 0}, {0, 0, -1}};
+    TEST_CHECK(intersect_sphere(&ray, &sphere, &hit) == true);
+    TEST_CHECK(hit.t == 1.0);
+    TEST_CHECK(point_at(&ray, hit.t).z == -1.0);
+}
+
+void _test_all()
+{
+    _test_load_obj();
+    _test_intersect();
+}
+
+int main()
+{
+    srand((unsigned)time(NULL));
+#ifdef RUN_TESTS
+    _test_all();
+#else
+    options_t options = {
+        .width = 640,
+        .height = 480,
+        .samples = 25,
+        .result_filename = "result.png",
+        .obj_filename = "scene.obj"};
+
+    uint8_t *framebuffer = (uint8_t *)malloc(sizeof(uint8_t) * options.width * options.height * 3);
+
+    clock_t tic = clock();
+
+    render(framebuffer, options);
+
     clock_t toc = clock();
     double time_taken = (double)(toc - tic) / CLOCKS_PER_SEC;
     printf("Finished (%f seconds)\n", time_taken);
@@ -696,64 +771,7 @@ void render(const options_t options)
     }
 
     // show(framebuffer);
-}
-/* ======================== TEST ======================*/
-void test_load_obj()
-{
-    const char *obj = "assets/cube.obj";
 
-    object_t *scene = NULL;
-    size_t num_objects;
-
-    TEST_CHECK(false == true);
-
-    TEST_CHECK(true);
-
-    TEST_ASSERT(false);
-
-    TEST_CHECK(load_obj(obj, scene, &num_objects) == true);
-}
-
-void test_intersect()
-{
-    sphere_t sphere = {{0, 0, -3}, 2.0};
-    triangle_t triangle = {
-        {1, 0, -3},
-        {0, 1, -3},
-        {-1, 0, -3},
-    };
-
-    ray_t ray = {{0, 0, 0},
-                 {0, 0, -1}};
-    double t = 0;
-    hit_t hit;
-
-    assert(intersect_triangle(&ray, &triangle, &hit) == true);
-    printf("%f\n", hit.t);
-    print_vec(point_at(&ray, hit.t));
-
-    assert(intersect_sphere(&ray, &sphere, &hit) == true);
-}
-
-void test_all()
-{
-    test_load_obj();
-    test_intersect();
-}
-
-int main()
-{
-    srand((unsigned)time(NULL));
-#if 1
-    options_t options = {
-        .width = 640,
-        .height = 480,
-        .samples = 25,
-        .result_filename = "result.png",
-        .obj_filename = "scene.obj"};
-    render(options);
-#else
-    test_all();
 #endif
     return 0;
 }
