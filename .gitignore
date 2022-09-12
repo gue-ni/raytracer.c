@@ -1,3 +1,5 @@
 .idea/
 cmake-*
-
+*.o
+result.png
+raytracer

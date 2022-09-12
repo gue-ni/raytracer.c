@@ -1,29 +1,27 @@
-
 CC = gcc
-CFLAGS =
+CFLAGS = --std=c99 -O3 -Wall 
 LFLAGS = -lm
 
 SRC = $(wildcard *.c)
 OBJ = $(patsubst %.c, %.o, $(SRC))
+HEADERS = $(wildcard *.h)
 
 PROGRAM = raytracer
 
-all: $(PROGRAM)
 
 $(PROGRAM): $(OBJ)
-	$(CC) $(CFLAGS) -o $@ $<
+	$(CC) $(CFLAGS) -o $@ $< $(LFLAGS) $(HEADERS)
 
-%.o: %.c
+%.o: %.c $(HEADERS)
 	$(CC) $(CFLAGS) -c -o $@ $<
 
+all: $(PROGRAM)
 
-
-run:
+run: all 
 	./$(PROGRAM)
 
 clean:
-	rm -f $(PROGRAM) *.o 
+	rm -f $(PROGRAM) *.o
 
 .PHONY: all clean run
-
 
