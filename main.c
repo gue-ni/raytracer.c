@@ -119,17 +119,17 @@ vec3_t cross(const vec3_t a, const vec3_t b) {
     return (vec3_t) {a.y * b.z - a.z * b.y, a.z * b.x - a.x * b.z, a.x * b.y - a.y * b.x};
 }
 
-double length2(const vec3_t v1) { return v1.x * v1.x + v1.y * v1.y + v1.z * v1.z; }
+static inline double length2(const vec3_t v1) { return v1.x * v1.x + v1.y * v1.y + v1.z * v1.z; }
 
-double length(const vec3_t v1) { return sqrt(length2(v1)); }
+static inline double length(const vec3_t v1) { return sqrt(length2(v1)); }
 
-vec3_t multiply(const vec3_t v1, const vec3_t v2) { return (vec3_t) {v1.x * v2.x, v1.y * v2.y, v1.z * v2.z}; }
+static inline vec3_t multiply(const vec3_t v1, const vec3_t v2) { return (vec3_t) {v1.x * v2.x, v1.y * v2.y, v1.z * v2.z}; }
 
-vec3_t divide(const vec3_t v1, const vec3_t v2) { return (vec3_t) {v1.x / v2.x, v1.y / v2.y, v1.z / v2.z}; }
+static inline vec3_t divide(const vec3_t v1, const vec3_t v2) { return (vec3_t) {v1.x / v2.x, v1.y / v2.y, v1.z / v2.z}; }
 
-vec3_t sub(const vec3_t v1, const vec3_t v2) { return (vec3_t) {v1.x - v2.x, v1.y - v2.y, v1.z - v2.z}; }
+static inline vec3_t sub(const vec3_t v1, const vec3_t v2) { return (vec3_t) {v1.x - v2.x, v1.y - v2.y, v1.z - v2.z}; }
 
-vec3_t add(const vec3_t v1, const vec3_t v2) { return (vec3_t) {v1.x + v2.x, v1.y + v2.y, v1.z + v2.z}; }
+static inline vec3_t add(const vec3_t v1, const vec3_t v2) { return (vec3_t) {v1.x + v2.x, v1.y + v2.y, v1.z + v2.z}; }
 
 vec3_t scalar_multiply(const vec3_t v1, const double s) { return (vec3_t) {v1.x * s, v1.y * s, v1.z * s}; }
 
