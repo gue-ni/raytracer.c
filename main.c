@@ -28,11 +28,11 @@
 #define ABS(x) ((x < 0) ? (-x) : (x))
 #define RGB(r, g, b) ((vec3){r / 255.0, g / 255.0, b / 255.0})
 
-#define RED RGB(255, 0, 0)
-#define GREEN RGB(0, 255, 0)
-#define BLUE RGB(0, 0, 255)
+#define RED RGB(187, 52, 155)
+#define BLUE RGB(122, 94, 147)
+#define GREEN RGB(108, 69, 117)
 #define ZERO_VECTOR RGB(0, 0, 0)
-#define BACKGROUND_COLOR RGB(0, 172, 214)
+#define BACKGROUND_COLOR RGB(69, 185, 211)
 #define BLACK ZERO_VECTOR
 
 double random_double() { return (double)rand() / ((double)RAND_MAX + 1); }
