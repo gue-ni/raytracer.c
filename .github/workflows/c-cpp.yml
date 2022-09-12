@@ -13,7 +13,14 @@ jobs:
 
     steps:
     - uses: actions/checkout@v3
-    - name: make
-      run: make
-    - name: make run
+    - name: test
+      run: make test
+    - name: clean
+      run: make clean
+    - name: run
       run: make run
+
+    - uses: actions/upload-artifact@v3
+      with:
+        name: render-artifact
+        path: result.png 
