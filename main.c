@@ -282,7 +282,7 @@ bool intersect_sphere(const ray_t *ray, const sphere_t *sphere, double *t)
     return *t > EPSILON;
 }
 
-bool intersect_triangle(const ray_t *ray, const triangle_t *triangle, double *t)
+bool intersect_triangle(const ray_t *ray, const triangle_t *triangle, hit_t *hit)
 {
     // https://en.wikipedia.org/wiki/M%C3%B6ller%E2%80%93Trumbore_intersection_algorithm
     vec3_t v0 = triangle->v0;
@@ -306,8 +306,16 @@ bool intersect_triangle(const ray_t *ray, const triangle_t *triangle, double *t)
     if (v < 0.0 || u + v > 1.0)
         return false;
     // At this stage we can compute t to find out where the intersection point is on the line.
-    *t = f * dot(edge2, q);
-    return *t > EPSILON;
+    double tmp_t;
+    tmp_t = f * dot(edge2, q);
+
+    if (tmp_t > EPSILON) {
+        //*t = tmp_t;
+        hit->t = tmp_t;
+        return true;
+    } else {
+        return false;
+    }
 }
 
 char rgb_to_char(uint8_t r, uint8_t g, uint8_t b)
@@ -355,11 +363,11 @@ bool intersect(const ray_t *ray, const object_t *objects, size_t n, hit_t *hit)
             for (int j = 0; j < mesh->count; j++)
             {
                 triangle_t triangle = mesh->triangles[j];
-                if (intersect_triangle(ray, &triangle, &t) && t < min_t)
+                if (intersect_triangle(ray, &triangle, &local) && local.t < min_t)
                 {
-                    local.t = min_t = t;
+                    min_t = local.t;
                     local.object = &objects[i];
-                    local.point = point_at(ray, t);
+                    local.point = point_at(ray, local.t);
                     local.normal = cross(triangle.v0, triangle.v1);
                 }
             }
