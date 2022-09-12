@@ -12,9 +12,11 @@
 #include <float.h>
 #include <stdint.h>
 
+#ifdef PNG
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 
 #include "stb_image_write.h"
+#endif
 
 #define WIDTH  640
 #define HEIGHT 480
@@ -493,12 +495,12 @@ void render() {
             framebuffer[index + 2] = (uint8_t) (pixel.z);
         }
     }
-
+#ifdef PNG
     if (stbi_write_png("image.png", WIDTH, HEIGHT, 3, framebuffer, WIDTH * 3) == 0) {
         puts("failed to write");
         exit(1);
     }
-
+#endif
     //show(framebuffer);
 }
 
