@@ -16,9 +16,10 @@
 #define PNG
 #ifdef PNG
 #define STB_IMAGE_WRITE_IMPLEMENTATION
-
 #include "stb_image_write.h"
 #endif
+
+#include "tinyobj_loader.h"
 
 #define EPSILON 1e-8
 #define MAX_DEPTH 5
@@ -138,6 +139,7 @@ typedef struct
 {
     int width, height, samples;
     char *result_filename;
+    char *obj_filename;
 } options_t;
 
 static inline double dot(const vec3_t v1, const vec3_t v2) { return v1.x * v2.x + v1.y * v2.y + v1.z * v2.z; }
@@ -248,7 +250,7 @@ ray_t get_camera_ray(const camera_t *camera, double u, double v)
     return (ray_t){camera->origin, direction};
 }
 
-bool intersect_sphere(const ray_t *ray, const sphere_t *sphere, double *t)
+bool intersect_sphere(const ray_t *ray, const sphere_t *sphere, hit_t *hit)
 {
     double t0, t1; // solutions for t if the ray intersects
     vec3_t L = sub(sphere->center, ray->origin);
@@ -278,8 +280,12 @@ bool intersect_sphere(const ray_t *ray, const sphere_t *sphere, double *t)
             return false; // both t0 and t1 are negative
     }
 
-    *t = t0;
-    return *t > EPSILON;
+    if (t0 > EPSILON) {
+        hit->t = t0;
+        return true;
+    } else {
+        return false;
+    }
 }
 
 bool intersect_triangle(const ray_t *ray, const triangle_t *triangle, hit_t *hit)
@@ -289,7 +295,7 @@ bool intersect_triangle(const ray_t *ray, const triangle_t *triangle, hit_t *hit
     vec3_t v1 = triangle->v1;
     vec3_t v2 = triangle->v2;
     vec3_t edge1, edge2, h, s, q;
-    double a, f, u, v;
+    double a, f, u, v, t;
     edge1 = sub(v1, v0);
     edge2 = sub(v2, v0);
     h = cross(ray->direction, edge2);
@@ -306,12 +312,12 @@ bool intersect_triangle(const ray_t *ray, const triangle_t *triangle, hit_t *hit
     if (v < 0.0 || u + v > 1.0)
         return false;
     // At this stage we can compute t to find out where the intersection point is on the line.
-    double tmp_t;
-    tmp_t = f * dot(edge2, q);
+    t = f * dot(edge2, q);
 
-    if (tmp_t > EPSILON) {
-        //*t = tmp_t;
-        hit->t = tmp_t;
+    if (t > EPSILON) {
+        hit->t = t;
+        hit->u = u;
+        hit->v = v;
         return true;
     } else {
         return false;
@@ -349,9 +355,8 @@ bool intersect(const ray_t *ray, const object_t *objects, size_t n, hit_t *hit)
 {
     double old_t = hit != NULL ? hit->t : DBL_MAX;
     double min_t = old_t;
-    double t;
 
-    hit_t local = {0};
+    hit_t local = { .t = DBL_MAX };
 
     for (int i = 0; i < n; i++)
     {
@@ -375,11 +380,11 @@ bool intersect(const ray_t *ray, const object_t *objects, size_t n, hit_t *hit)
         }
         case SPHERE:
         {
-            if (intersect_sphere(ray, objects[i].geometry.sphere, &t) && t < min_t)
+            if (intersect_sphere(ray, objects[i].geometry.sphere, &local) && local.t < min_t)
             {
-                local.t = min_t = t;
+                min_t = local.t;
                 local.object = &objects[i];
-                local.point = point_at(ray, t);
+                local.point = point_at(ray, local.t);
                 local.normal = scalar_divide(sub(local.point, objects[i].geometry.sphere->center),
                                              objects[i].geometry.sphere->radius);
             }
@@ -395,13 +400,13 @@ bool intersect(const ray_t *ray, const object_t *objects, size_t n, hit_t *hit)
 
     if (hit != NULL)
     {
-        memcpy(hit, &local, sizeof(hit_t));
+        memcpy(hit, &local, sizeof(*hit));
     }
 
     return min_t < old_t;
 }
 
-vec3_t cast_ray(const ray_t *ray, const object_t *objects, size_t n_objects, int depth)
+vec3_t cast_ray(const ray_t *ray, const object_t *scene, size_t n_objects, int depth)
 {
     if (depth > MAX_DEPTH)
     {
@@ -410,7 +415,7 @@ vec3_t cast_ray(const ray_t *ray, const object_t *objects, size_t n_objects, int
 
     hit_t hit = {.t = DBL_MAX, .object = NULL};
 
-    if (!intersect(ray, objects, n_objects, &hit))
+    if (!intersect(ray, scene, n_objects, &hit))
     {
         return BACKGROUND_COLOR;
     }
@@ -425,7 +430,7 @@ vec3_t cast_ray(const ray_t *ray, const object_t *objects, size_t n_objects, int
     {
         // TODO: compute fresnel equation
         ray_t reflected = {hit.point, normalize(reflect(ray->direction, hit.normal))};
-        vec3_t reflected_color = cast_ray(&reflected, objects, n_objects, depth + 1);
+        vec3_t reflected_color = cast_ray(&reflected, scene, n_objects, depth + 1);
         double f = 0.5;
         out_color = add(scalar_multiply(reflected_color, f), scalar_multiply(hit.object->material.color, (1 - f)));
         break;
@@ -435,12 +440,12 @@ vec3_t cast_ray(const ray_t *ray, const object_t *objects, size_t n_objects, int
     {
         vec3_t reflected_dir = normalize(reflect(ray->direction, hit.normal));
         ray_t reflected = {hit.point, reflected_dir};
-        vec3_t reflected_color = cast_ray(&reflected, objects, n_objects, depth + 1);
+        vec3_t reflected_color = cast_ray(&reflected, scene, n_objects, depth + 1);
 
         double iot = 1;
         vec3_t refracted_dir = normalize(refract(ray->direction, hit.normal, iot));
         ray_t refracted = {hit.point, refracted_dir};
-        vec3_t refracted_color = cast_ray(&refracted, objects, n_objects, depth + 1);
+        vec3_t refracted_color = cast_ray(&refracted, scene, n_objects, depth + 1);
 
         double kr = .8;
 
@@ -454,7 +459,7 @@ vec3_t cast_ray(const ray_t *ray, const object_t *objects, size_t n_objects, int
         vec3_t light_color = {1, 1, 1};
         ray_t light_ray = {hit.point, normalize(sub(light_pos, hit.point))};
 
-        bool in_shadow = intersect(&light_ray, objects, n_objects, NULL);
+        bool in_shadow = intersect(&light_ray, scene, n_objects, NULL);
 
         double ambient_strength = 0.6;
 
@@ -483,6 +488,13 @@ vec3_t cast_ray(const ray_t *ray, const object_t *objects, size_t n_objects, int
     }
     return out_color;
 #endif
+}
+
+
+bool parse_obj(const char* filename)
+{
+
+
 }
 
 void render(const options_t options)
@@ -545,7 +557,7 @@ void render(const options_t options)
     mesh_t mesh = {
         2, triangles};
 
-    object_t objects[] = {
+    object_t scene[] = {
         {.type = SPHERE, .material = {RED, DIFFUSE}, .geometry.sphere = &spheres[1]},
         {.type = SPHERE, .material = {RANDOM_COLOR, DIFFUSE}, .geometry.sphere = &spheres[2]},
         {.type = SPHERE, .material = {RANDOM_COLOR, REFLECTION_AND_REFRACTION}, .geometry.sphere = &spheres[3]},
@@ -573,7 +585,7 @@ void render(const options_t options)
                 v = (double)(y + random_double()) / ((double)options.height - 1.0);
 
                 ray = get_camera_ray(&camera, u, v);
-                pixel = add(pixel, cast_ray(&ray, objects, sizeof(objects) / sizeof(objects[0]), 0));
+                pixel = add(pixel, cast_ray(&ray, scene, sizeof(scene) / sizeof(scene[0]), 0));
             }
 
             pixel = scalar_divide(pixel, options.samples);
@@ -625,7 +637,13 @@ int main()
 {
     srand((unsigned)time(NULL));
 #if 1
-    options_t options = {.width = 640, .height = 480, .samples = 25, .result_filename = "result.png"};
+    options_t options = {
+            .width = 640,
+            .height = 480,
+            .samples = 25,
+            .result_filename = "result.png",
+            .obj_filename = "scene.obj"
+    };
     render(options);
 #else
     run_tests();
