@@ -13,6 +13,7 @@
 #include <stdint.h>
 #include <string.h>
 
+#define PNG
 #ifdef PNG
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 
@@ -40,83 +41,88 @@ double random_double() { return (double) rand() / ((double) RAND_MAX + 1); }
 
 #define RANDOM_COLOR (vec3_t) { random_double(), random_double(), random_double() }
 
-typedef struct vec3 {
+typedef struct {
     double x, y, z;
 } vec3_t;
 
-typedef struct ray {
+typedef struct {
     vec3_t origin, direction;
 } ray_t;
 
-typedef enum material_type {
+typedef enum {
     SOLID,
     DIFFUSE,
     REFLECTION,
     REFLECTION_AND_REFRACTION,
 } material_type_t;
 
-typedef struct material {
+typedef struct {
     vec3_t color;
     material_type_t type;
 } material_t;
 
-typedef struct sphere {
+typedef struct {
     vec3_t center;
     double radius;
 } sphere_t;
 
 // vertices are in clockwise order
-typedef struct triangle {
+typedef struct {
     vec3_t v0, v1, v2;
 } triangle_t;
 
-typedef struct mesh {
+typedef struct {
     size_t count;
     triangle_t *triangles;
 } mesh_t;
 
-typedef union geometry {
+typedef union {
     sphere_t *sphere;
     mesh_t *mesh;
 } geometry_t;
 
-typedef enum geometry_type {
+typedef enum {
     SPHERE,
     MESH,
 } geometry_type_t;
 
-typedef struct object {
+typedef struct {
     geometry_type_t type;
     material_t material;
     geometry_t geometry;
 } object_t;
 
-typedef struct hit {
+typedef struct {
     double t;
     vec3_t point;
     vec3_t normal;
     object_t *object;
 } hit_t;
 
-typedef struct camera {
+typedef struct {
     vec3_t origin, horizontal, vertical, lower_left_corner;
 } camera_t;
 
-typedef struct light {
+typedef struct {
     double intensity;
     vec3_t position, color;
 } light_t;
 
-typedef struct render_context {
+typedef struct {
     sphere_t *spheres;
     size_t ns;
     light_t *lights;
     size_t nl;
 } render_context_t;
 
-double dot(const vec3_t v1, const vec3_t v2) { return v1.x * v2.x + v1.y * v2.y + v1.z * v2.z; }
+typedef struct {
+    int width, height;
+    char *result_filename;
+} options_t;
 
-vec3_t cross(const vec3_t a, const vec3_t b) {
+static inline double dot(const vec3_t v1, const vec3_t v2) { return v1.x * v2.x + v1.y * v2.y + v1.z * v2.z; }
+
+static inline vec3_t cross(const vec3_t a, const vec3_t b) {
     return (vec3_t) {a.y * b.z - a.z * b.y, a.z * b.x - a.x * b.z, a.x * b.y - a.y * b.x};
 }
 
@@ -132,21 +138,21 @@ static inline vec3_t sub(const vec3_t v1, const vec3_t v2) { return (vec3_t) {v1
 
 static inline vec3_t add(const vec3_t v1, const vec3_t v2) { return (vec3_t) {v1.x + v2.x, v1.y + v2.y, v1.z + v2.z}; }
 
-vec3_t scalar_multiply(const vec3_t v1, const double s) { return (vec3_t) {v1.x * s, v1.y * s, v1.z * s}; }
+static inline vec3_t scalar_multiply(const vec3_t v1, const double s) { return (vec3_t) {v1.x * s, v1.y * s, v1.z * s}; }
 
-vec3_t scalar_divide(const vec3_t v1, const double s) { return (vec3_t) {v1.x / s, v1.y / s, v1.z / s}; }
+static inline vec3_t scalar_divide(const vec3_t v1, const double s) { return (vec3_t) {v1.x / s, v1.y / s, v1.z / s}; }
 
-bool scalar_equals(const vec3_t v1, const double s) { return v1.x == s && v1.y == s && v1.z == s; }
+inline static bool scalar_equals(const vec3_t v1, const double s) { return v1.x == s && v1.y == s && v1.z == s; }
 
-bool vector_equals(const vec3_t v1, const vec3_t v2) { return v1.x == v2.x && v1.y == v2.y && v1.z == v2.z; }
+inline static bool vector_equals(const vec3_t v1, const vec3_t v2) { return v1.x == v2.x && v1.y == v2.y && v1.z == v2.z; }
 
-vec3_t point_at(const ray_t *ray, double t) { return add(ray->origin, scalar_multiply(ray->direction, t)); }
+inline static vec3_t point_at(const ray_t *ray, double t) { return add(ray->origin, scalar_multiply(ray->direction, t)); }
 
 bool equal_d(double a, double b) { return ABS(a - b) < EPSILON; }
 
-vec3_t clamp(const vec3_t v1) { return (vec3_t) {CLAMP(v1.x), CLAMP(v1.y), CLAMP(v1.z)}; }
+inline static vec3_t clamp(const vec3_t v1) { return (vec3_t) {CLAMP(v1.x), CLAMP(v1.y), CLAMP(v1.z)}; }
 
-vec3_t normalize(const vec3_t v1) {
+inline static vec3_t normalize(const vec3_t v1) {
     double m = length(v1);
     assert(m > 0);
     return (vec3_t) {v1.x / m, v1.y / m, v1.z / m};
@@ -177,7 +183,7 @@ vec3_t refract(const vec3_t I, const vec3_t N, double iot) {
     return k < 0 ? ZERO_VECTOR : add(scalar_multiply(I, eta), scalar_multiply(n, eta * cosi - sqrtf(k)));
 }
 
-void init_camera(camera_t *camera, vec3_t position) {
+void init_camera(camera_t *camera, vec3_t position, options_t options) {
 #if 0
     double viewport_height = 2.0;
 #else
@@ -185,7 +191,7 @@ void init_camera(camera_t *camera, vec3_t position) {
     double h = tan(theta / 2);
     double viewport_height = 2.0 * h;
 #endif
-    double aspect_ratio = (double) WIDTH / (double) HEIGHT;
+    double aspect_ratio = (double) options.width / (double) options.height;
     double viewport_width = aspect_ratio * viewport_height;
     double focal_length = 1.0;
 
@@ -196,10 +202,7 @@ void init_camera(camera_t *camera, vec3_t position) {
     vec3_t half_h = scalar_divide(camera->horizontal, 2);
     vec3_t half_v = scalar_divide(camera->vertical, 2);
 
-    camera->lower_left_corner = sub(
-            sub(camera->origin, half_h),
-            sub(half_v, (vec3_t) {0, 0, focal_length})
-    );
+    camera->lower_left_corner = sub(sub(camera->origin, half_h),sub(half_v, (vec3_t) {0, 0, focal_length}));
 }
 
 ray_t get_camera_ray(const camera_t *camera, double u, double v) {
@@ -297,7 +300,8 @@ bool intersect(const ray_t *ray, const object_t *objects, size_t n, hit_t *hit) 
     double min_t = old_t;
     double t;
 
-    hit_t local;
+    hit_t local = {0};
+
 
     for (int i = 0; i < n; i++) {
         switch (objects[i].type) {
@@ -414,7 +418,7 @@ vec3_t cast_ray(const ray_t *ray, const object_t *objects, size_t n_objects, int
 #endif
 }
 
-void render() {
+void render(const options_t options) {
     sphere_t spheres[] = {
             {{0,    -100, -15}, 100,},
             {{1,    0,    -2},  .5,},
@@ -468,20 +472,21 @@ void render() {
     };
 
     camera_t camera;
-    init_camera(&camera, (vec3_t) {0,0,1});
+    init_camera(&camera, (vec3_t) {0,0,1}, options);
 
-    uint8_t *framebuffer = (uint8_t*) malloc(sizeof(uint8_t) * WIDTH * HEIGHT * 3);
+    uint8_t *framebuffer = (uint8_t*) malloc(sizeof(uint8_t) * options.width * options.height * 3);
 
     int x, y, s;
     double u, v;
     ray_t ray;
 
-    for (y = 0; y < HEIGHT; y++) {
-        for (x = 0; x < WIDTH; x++) {
+    clock_t tic = clock();
+    for (y = 0; y < options.height; y++) {
+        for (x = 0; x < options.width; x++) {
             vec3_t pixel = {0, 0, 0};
             for (s = 0; s < SAMPLES; s++) {
-                u = (double) (x + random_double()) / ((double) WIDTH - 1.0);
-                v = (double) (y + random_double()) / ((double) HEIGHT - 1.0);
+                u = (double) (x + random_double()) / ((double) options.width - 1.0);
+                v = (double) (y + random_double()) / ((double) options.height - 1.0);
 
                 ray = get_camera_ray(&camera, u, v);
                 pixel = add(pixel, cast_ray(&ray, objects, sizeof(objects) / sizeof(objects[0]), 0));
@@ -490,14 +495,18 @@ void render() {
             pixel = scalar_divide(pixel, SAMPLES);
             pixel = scalar_multiply(pixel, 255); // scale to range 0-255
 
-            size_t index = (y * WIDTH + x) * 3;
+            size_t index = (y * options.width + x) * 3;
             framebuffer[index + 0] = (uint8_t) (pixel.x);
             framebuffer[index + 1] = (uint8_t) (pixel.y);
             framebuffer[index + 2] = (uint8_t) (pixel.z);
         }
     }
+    clock_t toc = clock();
+    double time_taken = (double) (toc - tic) / CLOCKS_PER_SEC;
+    printf("Finished (%f seconds)\n", time_taken);
+
 #ifdef PNG
-    if (stbi_write_png("image.png", WIDTH, HEIGHT, 3, framebuffer, WIDTH * 3) == 0) {
+    if (stbi_write_png(options.result_filename, options.width, options.height, 3, framebuffer, options.width * 3) == 0) {
         puts("failed to write");
         exit(1);
     }
@@ -515,28 +524,25 @@ void run_tests() {
                 {-1, 0, -3},
         };
 
-        vec3_t origin = {0, 0, 0};
-        vec3_t direction = {0, 0, -1};
-
-        ray_t ray = {origin, direction};
+        ray_t ray = {{0,0,0}, {0,0,-1}};
         double t = 0;
 
         assert(intersect_triangle(&ray, &triangle, &t) == true);
         printf("%f\n", t);
         print_vec(point_at(&ray, t));
+
+        assert(intersect_sphere(&ray, &sphere, &t) == true);
     }
 }
 
 int main() {
     srand((unsigned) time(NULL));
-    clock_t tic = clock();
 #if 1
-    render();
+
+    options_t options = { .width = WIDTH, .height = HEIGHT, .result_filename = "result.png" };
+    render(options);
 #else
     run_tests();
 #endif
-    clock_t toc = clock();
-    double time_taken = (double) (toc - tic) / CLOCKS_PER_SEC;
-    printf("Finished (%f seconds)\n", time_taken);
     return 0;
 }
