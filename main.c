@@ -11,6 +11,7 @@
 #include <time.h>
 #include <float.h>
 #include <stdint.h>
+#include <string.h>
 
 #ifdef PNG
 #define STB_IMAGE_WRITE_IMPLEMENTATION
