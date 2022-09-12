@@ -7,19 +7,23 @@ OBJ = $(patsubst %.c, %.o, $(SRC))
 HEADERS = $(wildcard *.h)
 
 PROGRAM = raytracer
+TESTS = raytracer_test
 
 
 $(PROGRAM): $(OBJ)
-	$(CC) $(CFLAGS) -o $@ $< $(LFLAGS) $(HEADERS)
+	$(CC) $(CFLAGS) -o $@ $< $(LFLAGS)
 
-%.o: %.c $(HEADERS)
+$(TESTS): $(OBJ)
+	$(CC) $(CFLAGS) -o $@ $< $(LFLAGS)
+
+%.o: %.c
 	$(CC) $(CFLAGS) -c -o $@ $<
 
 all: $(PROGRAM)
 
 test: CFLAGS += -DRUN_TESTS
-test: all
-	./$(PROGRAM)
+test: $(TESTS)
+	./$(TESTS)
 
 run: all 
 	./$(PROGRAM)

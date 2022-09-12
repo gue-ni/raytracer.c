@@ -3,3 +3,4 @@ cmake-*
 *.o
 result.png
 raytracer
+raytracer_test
