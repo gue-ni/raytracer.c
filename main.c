@@ -156,6 +156,8 @@ typedef struct
     char *obj_filename;
 } options_t;
 
+long long ray_count = 0, intersection_test_count = 0;
+
 static inline double dot(const vec3 v1, const vec3 v2) { return v1.x * v2.x + v1.y * v2.y + v1.z * v2.z; }
 
 static inline vec3 cross(const vec3 a, const vec3 b)
@@ -309,6 +311,7 @@ void show(const uint8_t *buffer, const options_t options)
 
 bool intersect_sphere(const ray_t *ray, const sphere_t *sphere, hit_t *hit)
 {
+    intersection_test_count++;
     double t0, t1; // solutions for t if the ray intersects
     vec3 L = sub(sphere->center, ray->origin);
     double tca = dot(L, ray->direction);
@@ -350,6 +353,7 @@ bool intersect_sphere(const ray_t *ray, const sphere_t *sphere, hit_t *hit)
 
 bool intersect_triangle(const ray_t *ray, const triangle_t *triangle, hit_t *hit)
 {
+    intersection_test_count++;
     // https://en.wikipedia.org/wiki/M%C3%B6ller%E2%80%93Trumbore_intersection_algorithm
     vec3 v0 = triangle->v0;
     vec3 v1 = triangle->v1;
@@ -389,6 +393,7 @@ bool intersect_triangle(const ray_t *ray, const triangle_t *triangle, hit_t *hit
 
 bool intersect(const ray_t *ray, object_t *objects, size_t n, hit_t *hit)
 {
+    //ray_count++;
     double old_t = hit != NULL ? hit->t : DBL_MAX;
     double min_t = old_t;
 
@@ -444,6 +449,8 @@ bool intersect(const ray_t *ray, object_t *objects, size_t n, hit_t *hit)
 
 vec3 cast_ray(const ray_t *ray, object_t *scene, size_t n_objects, int depth)
 {
+    ray_count++;
+
     if (depth > MAX_DEPTH)
     {
         return BACKGROUND_COLOR;
@@ -745,13 +752,14 @@ int main()
     _test_all();
 #else
     options_t options = {
-        .width = 640,
-        .height = 480,
+        .width = 1280,
+        .height = 720,
         .samples = 25,
         .result_filename = "result.png",
         .obj_filename = "scene.obj"};
 
     uint8_t *framebuffer = (uint8_t *)malloc(sizeof(uint8_t) * options.width * options.height * 3);
+    assert(framebuffer != NULL);
 
     clock_t tic = clock();
 
@@ -759,7 +767,11 @@ int main()
 
     clock_t toc = clock();
     double time_taken = (double)(toc - tic) / CLOCKS_PER_SEC;
-    printf("Finished (%f seconds)\n", time_taken);
+
+    printf("%d x %d pixels\n", options.width, options.height);
+    printf("cast %lld rays\n", ray_count);
+    printf("checked %lld possible intersections\n", intersection_test_count);
+    printf("rendering took %f seconds\n", time_taken);
 
     if (stbi_write_png(options.result_filename, options.width, options.height, 3, framebuffer, options.width * 3) ==
         0)
