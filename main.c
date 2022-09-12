@@ -36,8 +36,7 @@
     (vec3) { 0, 0, 0 }
 #define BACKGROUND_COLOR \
     (vec3) { 0.0 / 255.0, 172.0 / 255.0, 214.0 / 255.0 }
-#define BLACK \
-    (vec3) { 0, 0, 0 }
+#define BLACK ZERO_VECTOR
 
 double random_double() { return (double)rand() / ((double)RAND_MAX + 1); }
 
@@ -92,7 +91,6 @@ typedef struct
     double radius;
 } sphere_t;
 
-// vertices are in clockwise order
 typedef struct
 {
     vec3 v0, v1, v2;
