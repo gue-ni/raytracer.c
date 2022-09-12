@@ -26,16 +26,13 @@
 #define CLAMP(x) (MAX(0, MIN(x, 1)))
 #define CLAMP_BETWEEN(x, min_v, max_v) (MAX(min_v, MIN(max_v, 1)))
 #define ABS(x) ((x < 0) ? (-x) : (x))
-#define RED \
-    (vec3) { 1, 0, 0 }
-#define GREEN \
-    (vec3) { 0, 1, 0 }
-#define BLUE \
-    (vec3) { 0, 0, 1 }
-#define ZERO_VECTOR \
-    (vec3) { 0, 0, 0 }
-#define BACKGROUND_COLOR \
-    (vec3) { 0.0 / 255.0, 172.0 / 255.0, 214.0 / 255.0 }
+#define RGB(r, g, b) ((vec3){r / 255.0, g / 255.0, b / 255.0})
+
+#define RED RGB(255, 0, 0)
+#define GREEN RGB(0, 255, 0)
+#define BLUE RGB(0, 0, 255)
+#define ZERO_VECTOR RGB(0, 0, 0)
+#define BACKGROUND_COLOR RGB(0, 172, 214)
 #define BLACK ZERO_VECTOR
 
 double random_double() { return (double)rand() / ((double)RAND_MAX + 1); }
@@ -393,7 +390,7 @@ bool intersect_triangle(const ray_t *ray, const triangle_t *triangle, hit_t *hit
 
 bool intersect(const ray_t *ray, object_t *objects, size_t n, hit_t *hit)
 {
-    //ray_count++;
+    // ray_count++;
     double old_t = hit != NULL ? hit->t : DBL_MAX;
     double min_t = old_t;
 
