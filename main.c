@@ -886,7 +886,7 @@ void _test_all()
 {
     _test_intersect();
     //_test_load_obj();
-    _test_load_obj_myself();
+    //_test_load_obj_myself();
 }
 
 int main()
