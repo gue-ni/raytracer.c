@@ -595,7 +595,8 @@ bool load_obj(const char *filename, object_t *objects, size_t *num_objects)
         }
     }
 
-    if (triangles){
+    if (triangles)
+    {
         free(triangles);
     }
 
@@ -607,16 +608,42 @@ bool load_obj(const char *filename, object_t *objects, size_t *num_objects)
     return true;
 }
 
-int obj_load(const char* filename, double *vertices, size_t *num_vertices, int *indices, size_t *num_indices)
+void obj_parse_vector(char *line, double *vertices, size_t num)
+{
+    char *end;
+    char *p = line;
+    double v[3];
+
+    vec3 vec;
+
+    int i = 0;
+    for (double f = strtod(p, &end); p != end; f = strtod(p, &end))
+    {
+        p = end;
+        if (errno == ERANGE)
+        {
+            printf("range error, got ");
+            errno = 0;
+        }
+        v[i++] = f; // TODO remove
+        vertices[num * 3 + i] = f;
+    }
+
+}
+
+int obj_load(const char *filename, double *vertices, size_t *num_vertices, int *indices, size_t *num_indices)
 {
     char buffer[256];
     FILE *fd = fopen(filename, "r");
-    size_t nv = 0, nf = 0;;
+    size_t nv = 0, nf = 0;
+    ;
 
-    if (fd){
-
-        while(fgets(buffer, 256, fd)) {
-            if (buffer[1] == ' '){
+    if (fd)
+    {
+        while (fgets(buffer, 256, fd))
+        {
+            if (buffer[1] == ' ')
+            {
                 switch (buffer[0])
                 {
                 case 'v':
@@ -626,42 +653,33 @@ int obj_load(const char* filename, double *vertices, size_t *num_vertices, int *
                 case 'f':
                     nf++;
                     break;
-                
+
                 default:
                     break;
                 }
-            } 
+            }
         }
 
         rewind(fd);
 
         printf("nv=%d, nf=%d\n", nv, nf);
 
-        vertices = malloc(nv * sizeof(*vertices));
+        vertices = malloc(3 * nv * sizeof(*vertices));
 
-        while(fgets(buffer, 256, fd)) {
-            switch (buffer[0])
+        while (fgets(buffer, 256, fd))
+        {
+
+            if (buffer[0] == 'v'&& buffer[1] == ' ')
             {
-            case 'v':{
-                char *endptr;
-                size_t k = 0;
-                do {
-                    double val = (double)strtof(buffer+2, &endptr);
-                    size_t i = (*num_vertices)++;
-                    printf("val=%f, %d\n", val, i);
-                    //vertices[i] = val;
-
-                } while (endptr != NULL && k++ < 3);
-                break;
-            }
-            
-            default:
-                break;
+                obj_parse_vector(buffer + 2, vertices, num_vertices);
+                num_vertices += 1;
             }
         }
         fclose(fd);
         return 0;
-    } else {
+    }
+    else
+    {
         return 1;
     }
 }
@@ -784,16 +802,18 @@ void _test_load_obj_myself()
     int *indices = NULL;
     double *vertices = NULL;
     size_t num_vertices = 0, num_indices = 0;
-    int result = obj_load(
-        "assets/cube.obj", 
-        vertices, 
-        &num_vertices, 
-        indices, 
-        &num_indices
-    );
+    int result = 0;
 
-    for (size_t i = 0; i < num_vertices; i++){
-        printf("v[%d] = %f\n", i, vertices[i]);
+    result = obj_load(
+        "assets/cube.obj",
+        vertices,
+        &num_vertices,
+        indices,
+        &num_indices);
+
+    for (size_t i = 0; i < num_vertices; i++)
+    {
+        // printf("v[%d] = %f\n", i, vertices[i]);
     }
 
     TEST_CHECK(result == 0);
@@ -802,15 +822,14 @@ void _test_load_obj_myself()
     TEST_CHECK(indices != NULL);
     TEST_CHECK(vertices != NULL);
 
-    if (vertices != NULL) {
+    if (vertices != NULL)
+    {
         free(vertices);
     }
-    if (indices != NULL) {
+    if (indices != NULL)
+    {
         free(indices);
     }
-
-
-
 }
 
 void _test_intersect()
@@ -855,8 +874,7 @@ int main()
         .height = 720,
         .samples = 25,
         .result = "result.png",
-        .obj = "assets/cube.obj"
-    };
+        .obj = "assets/cube.obj"};
 
     uint8_t *framebuffer = malloc(sizeof(*framebuffer) * options.width * options.height * 3);
     assert(framebuffer != NULL);
@@ -879,7 +897,7 @@ int main()
         fprintf(stderr, "failed to write");
         exit(EXIT_FAILURE);
     }
-    else 
+    else
     {
         printf("done.\n");
     }
