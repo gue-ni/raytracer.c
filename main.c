@@ -608,34 +608,29 @@ bool load_obj(const char *filename, object_t *objects, size_t *num_objects)
     return true;
 }
 
-void obj_parse_vector(char *line, double *vertices, size_t num)
+void obj_parse_vector(char *line, double *vertices, size_t *num_vertices)
 {
-    char *end;
-    char *p = line;
-    double v[3];
-
-    vec3 vec;
-
     int i = 0;
+    char *end, *p = line;
     for (double f = strtod(p, &end); p != end; f = strtod(p, &end))
     {
         p = end;
-        if (errno == ERANGE)
-        {
-            printf("range error, got ");
-            errno = 0;
-        }
-        v[i++] = f; // TODO remove
-        vertices[num * 3 + i] = f;
+        assert(i < 3);
+        vertices[*num_vertices * 3 + (i++)] = f;
     }
+    (*num_vertices)++;
+}
+
+void obj_parse_face(char *line, int *indices, size_t *num_indices)
+{
 
 }
 
-int obj_load(const char *filename, double *vertices, size_t *num_vertices, int *indices, size_t *num_indices)
+int obj_load(const char *filename, double *vertices, size_t *num_vertices, int *indices, size_t *num_indices, size_t *num_triangles)
 {
     char buffer[256];
     FILE *fd = fopen(filename, "r");
-    size_t nv = 0, nf = 0;
+    size_t obj_v = 0, obj_f = 0;
     ;
 
     if (fd)
@@ -647,11 +642,11 @@ int obj_load(const char *filename, double *vertices, size_t *num_vertices, int *
                 switch (buffer[0])
                 {
                 case 'v':
-                    nv++;
+                    obj_v++;
                     break;
 
                 case 'f':
-                    nf++;
+                    obj_f++;
                     break;
 
                 default:
@@ -662,19 +657,24 @@ int obj_load(const char *filename, double *vertices, size_t *num_vertices, int *
 
         rewind(fd);
 
-        printf("nv=%d, nf=%d\n", nv, nf);
+        printf("obj_v=%ld, obj_f=%ld\n", obj_v, obj_f);
 
-        vertices = malloc(3 * nv * sizeof(*vertices));
+        vertices = malloc(3 * obj_v * sizeof(*vertices));
 
         while (fgets(buffer, 256, fd))
         {
-
             if (buffer[0] == 'v'&& buffer[1] == ' ')
             {
                 obj_parse_vector(buffer + 2, vertices, num_vertices);
-                num_vertices += 1;
+            }
+            else if(buffer[0] == 'f'&& buffer[1] == ' ')
+            {
+                obj_parse_face(buffer + 2, indices, num_indices);
             }
         }
+
+        printf("num_vertices=%ld, num_indices=%ld\n", *num_vertices, *num_indices);
+
         fclose(fd);
         return 0;
     }
@@ -801,7 +801,7 @@ void _test_load_obj_myself()
 {
     int *indices = NULL;
     double *vertices = NULL;
-    size_t num_vertices = 0, num_indices = 0;
+    size_t num_vertices = 0, num_indices = 0, num_triangles;
     int result = 0;
 
     result = obj_load(
@@ -809,7 +809,8 @@ void _test_load_obj_myself()
         vertices,
         &num_vertices,
         indices,
-        &num_indices);
+        &num_indices,
+        &num_triangles);
 
     for (size_t i = 0; i < num_vertices; i++)
     {
@@ -817,8 +818,9 @@ void _test_load_obj_myself()
     }
 
     TEST_CHECK(result == 0);
-    TEST_CHECK(num_indices != 0);
-    TEST_CHECK(num_vertices != 0);
+    TEST_CHECK(num_indices == 12);
+    TEST_CHECK(num_triangles == 12);
+    TEST_CHECK(num_vertices == 8);
     TEST_CHECK(indices != NULL);
     TEST_CHECK(vertices != NULL);
 
