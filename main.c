@@ -42,14 +42,14 @@ double random_double() { return (double)rand() / ((double)RAND_MAX + 1); }
 
 #define TEST_CHECK(cond) _test_check((cond), __FILE__, __LINE__, #cond, false)
 #define TEST_ASSERT(cond) _test_check((cond), __FILE__, __LINE__, #cond, true)
-int _test_check(int cond, const char *filename, int line, const char *expr, bool abort_after_fail)
+int _test_check(int cond, const char *filename, int line, const char *expr, bool exit_after_fail)
 {
     static int _test_failures = 0;
     if (!cond)
     {
         _test_failures++;
-        fprintf(stderr, "[FAIL] [%s:%d] '%s'%s\n", filename, line, expr, abort_after_fail ? ", aborting..." : "");
-        if (abort_after_fail)
+        fprintf(stderr, "[FAIL] [%s:%d] '%s'%s\n", filename, line, expr, exit_after_fail ? ", aborting..." : "");
+        if (exit_after_fail)
         {
             exit(_test_failures);
         }

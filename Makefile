@@ -6,30 +6,26 @@ SRC = $(wildcard *.c)
 OBJ = $(patsubst %.c, %.o, $(SRC))
 HEADERS = $(wildcard *.h)
 
-PROGRAM = raytracer
+APP = raytracer
 TESTS = raytracer_test
 
-
-$(PROGRAM): $(OBJ)
+$(APP): $(SRC)
 	$(CC) $(CFLAGS) -o $@ $< $(LFLAGS)
 
-$(TESTS): $(OBJ)
+$(TESTS): $(SRC)
 	$(CC) $(CFLAGS) -o $@ $< $(LFLAGS)
 
-%.o: %.c
-	$(CC) $(CFLAGS) -c -o $@ $<
-
-all: $(PROGRAM)
+all: $(APP)
 
 test: CFLAGS += -DRUN_TESTS
 test: $(TESTS)
 	./$(TESTS)
 
 run: all 
-	./$(PROGRAM)
+	./$(APP)
 
 clean:
-	rm -f $(PROGRAM) *.o
+	rm -f $(APP) $(TESTS) *.o
 
 .PHONY: all clean run
 
