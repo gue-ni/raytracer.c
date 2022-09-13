@@ -42,22 +42,23 @@ double random_double() { return (double)rand() / ((double)RAND_MAX + 1); }
 
 #define TEST_CHECK(cond) _test_check((cond), __FILE__, __LINE__, #cond, false)
 #define TEST_ASSERT(cond) _test_check((cond), __FILE__, __LINE__, #cond, true)
-int TEST_FAILURES = 0;
-void _test_check(int cond, const char *filename, int line, const char *expr, bool abort_after_fail)
+int _test_check(int cond, const char *filename, int line, const char *expr, bool abort_after_fail)
 {
+    static int _test_failures = 0;
     if (!cond)
     {
-        TEST_FAILURES++;
+        _test_failures++;
         fprintf(stderr, "[FAIL] [%s:%d] '%s'%s\n", filename, line, expr, abort_after_fail ? ", aborting..." : "");
         if (abort_after_fail)
         {
-            exit(1);
+            exit(_test_failures);
         }
     }
     else
     {
         fprintf(stdout, "[ OK ] [%s:%d]\n", filename, line);
     }
+    return _test_failures;
 }
 
 typedef struct
@@ -155,7 +156,7 @@ typedef struct
     char *obj;
 } options_t;
 
-long long ray_count = 0, intersection_test_count = 0;
+int ray_count = 0, intersection_test_count = 0;
 
 static inline double dot(const vec3 v1, const vec3 v2) { return v1.x * v2.x + v1.y * v2.y + v1.z * v2.z; }
 
@@ -606,6 +607,65 @@ bool load_obj(const char *filename, object_t *objects, size_t *num_objects)
     return true;
 }
 
+int obj_load(const char* filename, double *vertices, size_t *num_vertices, int *indices, size_t *num_indices)
+{
+    char buffer[256];
+    FILE *fd = fopen(filename, "r");
+    size_t nv = 0, nf = 0;;
+
+    if (fd){
+
+        while(fgets(buffer, 256, fd)) {
+            if (buffer[1] == ' '){
+                switch (buffer[0])
+                {
+                case 'v':
+                    nv++;
+                    break;
+
+                case 'f':
+                    nf++;
+                    break;
+                
+                default:
+                    break;
+                }
+            } 
+        }
+
+        rewind(fd);
+
+        printf("nv=%d, nf=%d\n", nv, nf);
+
+        vertices = malloc(nv * sizeof(*vertices));
+
+        while(fgets(buffer, 256, fd)) {
+            switch (buffer[0])
+            {
+            case 'v':{
+                char *endptr;
+                size_t k = 0;
+                do {
+                    double val = (double)strtof(buffer+2, &endptr);
+                    size_t i = (*num_vertices)++;
+                    printf("val=%f, %d\n", val, i);
+                    //vertices[i] = val;
+
+                } while (endptr != NULL && k++ < 3);
+                break;
+            }
+            
+            default:
+                break;
+            }
+        }
+        fclose(fd);
+        return 0;
+    } else {
+        return 1;
+    }
+}
+
 void render(uint8_t *framebuffer, const options_t options)
 {
     sphere_t spheres[] = {
@@ -719,6 +779,40 @@ void _test_load_obj()
     TEST_CHECK(load_obj(obj, scene, &num_objects) == true);
 }
 
+void _test_load_obj_myself()
+{
+    int *indices = NULL;
+    double *vertices = NULL;
+    size_t num_vertices = 0, num_indices = 0;
+    int result = obj_load(
+        "assets/cube.obj", 
+        vertices, 
+        &num_vertices, 
+        indices, 
+        &num_indices
+    );
+
+    for (size_t i = 0; i < num_vertices; i++){
+        printf("v[%d] = %f\n", i, vertices[i]);
+    }
+
+    TEST_CHECK(result == 0);
+    TEST_CHECK(num_indices != 0);
+    TEST_CHECK(num_vertices != 0);
+    TEST_CHECK(indices != NULL);
+    TEST_CHECK(vertices != NULL);
+
+    if (vertices != NULL) {
+        free(vertices);
+    }
+    if (indices != NULL) {
+        free(indices);
+    }
+
+
+
+}
+
 void _test_intersect()
 {
     hit_t hit;
@@ -744,8 +838,9 @@ void _test_intersect()
 
 void _test_all()
 {
-    _test_load_obj();
     _test_intersect();
+    //_test_load_obj();
+    _test_load_obj_myself();
 }
 
 int main()
@@ -753,7 +848,7 @@ int main()
     srand((unsigned)time(NULL));
 #ifdef RUN_TESTS
     _test_all();
-    return TEST_FAILURES;
+    return TEST_CHECK(true); // return number of failed tests
 #else
     options_t options = {
         .width = 1280,
@@ -774,8 +869,8 @@ int main()
     double time_taken = (double)(toc - tic) / CLOCKS_PER_SEC;
 
     printf("%d x %d pixels\n", options.width, options.height);
-    printf("cast %lld rays\n", ray_count);
-    printf("checked %lld possible intersections\n", intersection_test_count);
+    printf("cast %d rays\n", ray_count);
+    printf("checked %d possible intersections\n", intersection_test_count);
     printf("rendering took %f seconds\n", time_taken);
     printf("writing result to '%s'...\n", options.result);
 
