@@ -42,12 +42,12 @@ double random_double() { return (double)rand() / ((double)RAND_MAX + 1); }
 
 #define TEST_CHECK(cond) _test_check((cond), __FILE__, __LINE__, #cond, false)
 #define TEST_ASSERT(cond) _test_check((cond), __FILE__, __LINE__, #cond, true)
-int TEST_STATUS = 0;
+int TEST_FAILURES = 0;
 void _test_check(int cond, const char *filename, int line, const char *expr, bool abort_after_fail)
 {
     if (!cond)
     {
-        TEST_STATUS = EXIT_FAILURE;
+        TEST_FAILURES++;
         fprintf(stderr, "[FAIL] [%s:%d] '%s'%s\n", filename, line, expr, abort_after_fail ? ", aborting..." : "");
         if (abort_after_fail)
         {
@@ -594,6 +594,10 @@ bool load_obj(const char *filename, object_t *objects, size_t *num_objects)
         }
     }
 
+    if (triangles){
+        free(triangles);
+    }
+
     tinyobj_attrib_free(&attrib);
     if (shape)
     {
@@ -749,14 +753,14 @@ int main()
     srand((unsigned)time(NULL));
 #ifdef RUN_TESTS
     _test_all();
-    return TEST_STATUS;
+    return TEST_FAILURES;
 #else
     options_t options = {
         .width = 1280,
         .height = 720,
         .samples = 25,
         .result_filename = "result.png",
-        .obj_filename = "scene.obj"};
+        .obj_filename = "assets/cube.obj"};
 
     uint8_t *framebuffer = (uint8_t *)malloc(sizeof(uint8_t) * options.width * options.height * 3);
     assert(framebuffer != NULL);
@@ -781,6 +785,7 @@ int main()
     }
 
     // show(framebuffer);
+    free(framebuffer);
     return 0;
 #endif
 }
