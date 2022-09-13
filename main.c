@@ -151,8 +151,8 @@ typedef struct
 typedef struct
 {
     int width, height, samples;
-    char *result_filename;
-    char *obj_filename;
+    char *result;
+    char *obj;
 } options_t;
 
 long long ray_count = 0, intersection_test_count = 0;
@@ -528,7 +528,7 @@ vec3 cast_ray(const ray_t *ray, object_t *scene, size_t n_objects, int depth)
     return out_color;
 }
 
-void load_file(void *ctx, const char *filename, const int is_mtl, const char *obj_filename, char **buffer, size_t *len)
+void load_file(void *ctx, const char *filename, const int is_mtl, const char *obj, char **buffer, size_t *len)
 {
     long string_size = 0, read_size = 0;
     FILE *handler = fopen(filename, "r");
@@ -759,10 +759,10 @@ int main()
         .width = 1280,
         .height = 720,
         .samples = 25,
-        .result_filename = "result.png",
-        .obj_filename = "assets/cube.obj"};
+        .result = "result.png",
+        .obj = "assets/cube.obj"};
 
-    uint8_t *framebuffer = (uint8_t *)malloc(sizeof(uint8_t) * options.width * options.height * 3);
+    uint8_t *framebuffer = malloc(sizeof(*framebuffer) * options.width * options.height * 3);
     assert(framebuffer != NULL);
 
     clock_t tic = clock();
@@ -776,12 +776,12 @@ int main()
     printf("cast %lld rays\n", ray_count);
     printf("checked %lld possible intersections\n", intersection_test_count);
     printf("rendering took %f seconds\n", time_taken);
+    printf("writing result to '%s'...\n", options.result);
 
-    if (stbi_write_png(options.result_filename, options.width, options.height, 3, framebuffer, options.width * 3) ==
-        0)
+    if (stbi_write_png(options.result, options.width, options.height, 3, framebuffer, options.width * 3) == 0)
     {
-        puts("failed to write");
-        exit(1);
+        fprintf(stderr, "failed to write");
+        exit(EXIT_FAILURE);
     }
 
     // show(framebuffer);
