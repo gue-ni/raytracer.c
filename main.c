@@ -448,10 +448,10 @@ bool intersect(const ray_t *ray, object_t *objects, size_t n, hit_t *hit)
     return min_t < old_t;
 }
 
-vec3 phong_light(vec3 color, vec3 dir, vec3 normal, vec3 camera_origin, vec3 pos, bool in_shadow)
+vec3 phong_lighting(vec3 color, vec3 light_dir, vec3 normal, vec3 camera_origin, vec3 position, bool in_shadow)
 {
     double ka = 0.18;
-    double ks = 0.9;
+    double ks = 0.4;
     double kd = 0.8;
     double alpha = 10;
 
@@ -460,20 +460,14 @@ vec3 phong_light(vec3 color, vec3 dir, vec3 normal, vec3 camera_origin, vec3 pos
 
     // diffuse
     vec3 norm = normalize(normal);
-    vec3 diffuse = scalar_multiply(color, kd * MAX(dot(norm, dir), 0.0));
+    vec3 diffuse = scalar_multiply(color, kd * MAX(dot(norm, light_dir), 0.0));
 
     // specular
-    vec3 view_dir = normalize(sub(pos, camera_origin));
-    vec3 reflected = reflect(dir, norm);
+    vec3 view_dir = normalize(sub(position, camera_origin));
+    vec3 reflected = reflect(light_dir, norm);
     vec3 specular = scalar_multiply(color, ks * pow(MAX(dot(view_dir, reflected), 0.0), alpha));
 
-
-    if (in_shadow) {
-        return ambient;
-    } else {
-        return clamp(add(add(ambient, diffuse), specular));
-    }
-
+    return in_shadow ? ambient : clamp(add(add(ambient, diffuse), specular));
 }
 
 vec3 cast_ray(const ray_t *ray, object_t *scene, size_t n_objects, int depth)
@@ -498,7 +492,7 @@ vec3 cast_ray(const ray_t *ray, object_t *scene, size_t n_objects, int depth)
     vec3 light_color = {1, 1, 1};
     vec3 light_dir = normalize(sub(light_pos, hit.point));
     ray_t light_ray = {hit.point, normalize(sub(light_pos, hit.point))};
-
+    bool in_shadow = intersect(&light_ray, scene, n_objects, NULL);
 
     switch (hit.object->material.type)
     {
@@ -509,40 +503,38 @@ vec3 cast_ray(const ray_t *ray, object_t *scene, size_t n_objects, int depth)
         vec3 reflected_color = cast_ray(&reflected, scene, n_objects, depth + 1);
         double f = 0.5;
         out_color = add(scalar_multiply(reflected_color, f), scalar_multiply(hit.object->material.color, (1 - f)));
+        out_color = phong_lighting(out_color, light_dir, hit.normal, ray->origin, hit.point, in_shadow);
         break;
     }
 
     case REFLECTION_AND_REFRACTION:
     {
-        vec3 reflected_dir = normalize(reflect(ray->direction, hit.normal));
-        ray_t reflected = {hit.point, reflected_dir};
+        ray_t reflected = {hit.point, normalize(reflect(ray->direction, hit.normal))};
         vec3 reflected_color = cast_ray(&reflected, scene, n_objects, depth + 1);
 
         double iot = 1;
-        vec3 refracted_dir = normalize(refract(ray->direction, hit.normal, iot));
-        ray_t refracted = {hit.point, refracted_dir};
+        ray_t refracted = {hit.point, normalize(refract(ray->direction, hit.normal, iot))};
         vec3 refracted_color = cast_ray(&refracted, scene, n_objects, depth + 1);
 
         double kr = .8;
 
         vec3 refracted_reflected = add(scalar_multiply(refracted_color, kr), scalar_multiply(reflected_color, (1 - kr)));
-
-        bool in_shadow = intersect(&light_ray, scene, n_objects, NULL);
-
         out_color = refracted_reflected;
+        // out_color = phong_light(out_color, light_dir, hit.normal, ray->origin, hit.point, in_shadow);
+        break;
+    }
 
-        //out_color = phong_light(refracted_reflected, light_dir, hit.normal, ray->origin, hit.point, in_shadow);
+    case PHONG:
+    {
+        out_color = phong_lighting(hit.object->material.color, light_dir, hit.normal, ray->origin, hit.point, in_shadow);
         break;
     }
 
     case DIFFUSE:
     {
 
-        bool in_shadow = intersect(&light_ray, scene, n_objects, NULL);
-
-        double ambient_strength = 0.6;
-
-        vec3 ambient = scalar_multiply((vec3){0.5, 0.5, 0.5}, ambient_strength);
+        double ks = 0.6;
+        vec3 ambient = scalar_multiply((vec3){0.5, 0.5, 0.5}, ks);
 
         vec3 normal = normalize(hit.normal);
         vec3 light_dir = normalize(sub(light_pos, hit.point));
@@ -550,17 +542,6 @@ vec3 cast_ray(const ray_t *ray, object_t *scene, size_t n_objects, int depth)
 
         vec3 diffuse = scalar_multiply(light_color, diff);
         out_color = clamp(multiply(add(ambient, in_shadow ? ZERO_VECTOR : diffuse), hit.object->material.color));
-        break;
-    }
-
-    case PHONG:
-    {
-        vec3 light_pos = {1, 3, 0};
-        vec3 light_dir = normalize(sub(light_pos, hit.point));
-
-        bool in_shadow = intersect(&light_ray, scene, n_objects, NULL);
-
-        out_color = phong_light(hit.object->material.color, light_dir, hit.normal, ray->origin, hit.point, in_shadow);
         break;
     }
 
@@ -793,10 +774,10 @@ void render(uint8_t *framebuffer, const options_t options)
         2, triangles};
 
     object_t scene[] = {
-        {.type = SPHERE, .material = {RANDOM_COLOR, PHONG}, .geometry.sphere = &spheres[1]},
-        {.type = SPHERE, .material = {RED, DIFFUSE}, .geometry.sphere = &spheres[2]},
+        {.type = SPHERE, .material = {RANDOM_COLOR, REFLECTION}, .geometry.sphere = &spheres[1]},
+        {.type = SPHERE, .material = {RED, PHONG}, .geometry.sphere = &spheres[2]},
         {.type = SPHERE, .material = {RANDOM_COLOR, REFLECTION_AND_REFRACTION}, .geometry.sphere = &spheres[3]},
-        {.type = SPHERE, .material = {BLUE, REFLECTION}, .geometry.sphere = &spheres[4]},
+        {.type = SPHERE, .material = {BLUE, PHONG}, .geometry.sphere = &spheres[4]},
         {.type = MESH, .material = {GREEN, PHONG}, .geometry.mesh = &mesh}};
 
     camera_t camera;
@@ -918,7 +899,7 @@ int main()
     options_t options = {
         .width = 1280,
         .height = 720,
-        .samples = 25,
+        .samples = 50,
         .result = "result.png",
         .obj = "assets/cube.obj"};
 
