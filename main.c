@@ -74,6 +74,7 @@ typedef struct
 typedef enum
 {
     SOLID,
+    PHONG,
     DIFFUSE,
     REFLECTION,
     REFLECTION_AND_REFRACTION,
@@ -447,6 +448,34 @@ bool intersect(const ray_t *ray, object_t *objects, size_t n, hit_t *hit)
     return min_t < old_t;
 }
 
+vec3 phong_light(vec3 color, vec3 dir, vec3 normal, vec3 camera_origin, vec3 pos, bool in_shadow)
+{
+    double ka = 0.18;
+    double ks = 0.9;
+    double kd = 0.8;
+    double alpha = 10;
+
+    // ambient
+    vec3 ambient = scalar_multiply(color, ka);
+
+    // diffuse
+    vec3 norm = normalize(normal);
+    vec3 diffuse = scalar_multiply(color, kd * MAX(dot(norm, dir), 0.0));
+
+    // specular
+    vec3 view_dir = normalize(sub(pos, camera_origin));
+    vec3 reflected = reflect(dir, norm);
+    vec3 specular = scalar_multiply(color, ks * pow(MAX(dot(view_dir, reflected), 0.0), alpha));
+
+
+    if (in_shadow) {
+        return ambient;
+    } else {
+        return clamp(add(add(ambient, diffuse), specular));
+    }
+
+}
+
 vec3 cast_ray(const ray_t *ray, object_t *scene, size_t n_objects, int depth)
 {
     ray_count++;
@@ -464,6 +493,13 @@ vec3 cast_ray(const ray_t *ray, object_t *scene, size_t n_objects, int depth)
     }
 
     vec3 out_color = ZERO_VECTOR;
+
+    vec3 light_pos = {1, 3, 0};
+    vec3 light_color = {1, 1, 1};
+    vec3 light_dir = normalize(sub(light_pos, hit.point));
+    ray_t light_ray = {hit.point, normalize(sub(light_pos, hit.point))};
+
+
     switch (hit.object->material.type)
     {
     case REFLECTION:
@@ -489,15 +525,18 @@ vec3 cast_ray(const ray_t *ray, object_t *scene, size_t n_objects, int depth)
 
         double kr = .8;
 
-        out_color = add(scalar_multiply(refracted_color, kr), scalar_multiply(reflected_color, (1 - kr)));
+        vec3 refracted_reflected = add(scalar_multiply(refracted_color, kr), scalar_multiply(reflected_color, (1 - kr)));
+
+        bool in_shadow = intersect(&light_ray, scene, n_objects, NULL);
+
+        out_color = refracted_reflected;
+
+        //out_color = phong_light(refracted_reflected, light_dir, hit.normal, ray->origin, hit.point, in_shadow);
         break;
     }
 
     case DIFFUSE:
     {
-        vec3 light_pos = {1, 3, 0};
-        vec3 light_color = {1, 1, 1};
-        ray_t light_ray = {hit.point, normalize(sub(light_pos, hit.point))};
 
         bool in_shadow = intersect(&light_ray, scene, n_objects, NULL);
 
@@ -511,6 +550,17 @@ vec3 cast_ray(const ray_t *ray, object_t *scene, size_t n_objects, int depth)
 
         vec3 diffuse = scalar_multiply(light_color, diff);
         out_color = clamp(multiply(add(ambient, in_shadow ? ZERO_VECTOR : diffuse), hit.object->material.color));
+        break;
+    }
+
+    case PHONG:
+    {
+        vec3 light_pos = {1, 3, 0};
+        vec3 light_dir = normalize(sub(light_pos, hit.point));
+
+        bool in_shadow = intersect(&light_ray, scene, n_objects, NULL);
+
+        out_color = phong_light(hit.object->material.color, light_dir, hit.normal, ray->origin, hit.point, in_shadow);
         break;
     }
 
@@ -623,7 +673,6 @@ void obj_parse_vector(char *line, double *vertices, size_t *num_vertices)
 
 void obj_parse_face(char *line, int *indices, size_t *num_indices)
 {
-
 }
 
 int obj_load(const char *filename, double *vertices, size_t *num_vertices, int *indices, size_t *num_indices, size_t *num_triangles)
@@ -631,7 +680,6 @@ int obj_load(const char *filename, double *vertices, size_t *num_vertices, int *
     char buffer[256];
     FILE *fd = fopen(filename, "r");
     size_t obj_v = 0, obj_f = 0;
-    ;
 
     if (fd)
     {
@@ -663,11 +711,11 @@ int obj_load(const char *filename, double *vertices, size_t *num_vertices, int *
 
         while (fgets(buffer, 256, fd))
         {
-            if (buffer[0] == 'v'&& buffer[1] == ' ')
+            if (buffer[0] == 'v' && buffer[1] == ' ')
             {
                 obj_parse_vector(buffer + 2, vertices, num_vertices);
             }
-            else if(buffer[0] == 'f'&& buffer[1] == ' ')
+            else if (buffer[0] == 'f' && buffer[1] == ' ')
             {
                 obj_parse_face(buffer + 2, indices, num_indices);
             }
@@ -745,11 +793,11 @@ void render(uint8_t *framebuffer, const options_t options)
         2, triangles};
 
     object_t scene[] = {
-        {.type = SPHERE, .material = {RED, DIFFUSE}, .geometry.sphere = &spheres[1]},
-        {.type = SPHERE, .material = {RANDOM_COLOR, DIFFUSE}, .geometry.sphere = &spheres[2]},
+        {.type = SPHERE, .material = {RANDOM_COLOR, PHONG}, .geometry.sphere = &spheres[1]},
+        {.type = SPHERE, .material = {RED, DIFFUSE}, .geometry.sphere = &spheres[2]},
         {.type = SPHERE, .material = {RANDOM_COLOR, REFLECTION_AND_REFRACTION}, .geometry.sphere = &spheres[3]},
         {.type = SPHERE, .material = {BLUE, REFLECTION}, .geometry.sphere = &spheres[4]},
-        {.type = MESH, .material = {GREEN, DIFFUSE}, .geometry.mesh = &mesh}};
+        {.type = MESH, .material = {GREEN, PHONG}, .geometry.mesh = &mesh}};
 
     camera_t camera;
     init_camera(&camera, (vec3){0, 0, 1}, options);
@@ -782,10 +830,6 @@ void render(uint8_t *framebuffer, const options_t options)
         }
     }
 }
-
-/**
- * TEST
- */
 
 void _test_load_obj()
 {
