@@ -760,7 +760,8 @@ int main()
         .height = 720,
         .samples = 25,
         .result = "result.png",
-        .obj = "assets/cube.obj"};
+        .obj = "assets/cube.obj"
+    };
 
     uint8_t *framebuffer = malloc(sizeof(*framebuffer) * options.width * options.height * 3);
     assert(framebuffer != NULL);
@@ -782,6 +783,10 @@ int main()
     {
         fprintf(stderr, "failed to write");
         exit(EXIT_FAILURE);
+    }
+    else 
+    {
+        printf("done.\n");
     }
 
     // show(framebuffer);
