@@ -42,10 +42,12 @@ double random_double() { return (double)rand() / ((double)RAND_MAX + 1); }
 
 #define TEST_CHECK(cond) _test_check((cond), __FILE__, __LINE__, #cond, false)
 #define TEST_ASSERT(cond) _test_check((cond), __FILE__, __LINE__, #cond, true)
+int TEST_STATUS = 0;
 void _test_check(int cond, const char *filename, int line, const char *expr, bool abort_after_fail)
 {
     if (!cond)
     {
+        TEST_STATUS = EXIT_FAILURE;
         fprintf(stderr, "[FAIL] [%s:%d] '%s'%s\n", filename, line, expr, abort_after_fail ? ", aborting..." : "");
         if (abort_after_fail)
         {
@@ -747,6 +749,7 @@ int main()
     srand((unsigned)time(NULL));
 #ifdef RUN_TESTS
     _test_all();
+    return TEST_STATUS;
 #else
     options_t options = {
         .width = 1280,
@@ -778,7 +781,6 @@ int main()
     }
 
     // show(framebuffer);
-
-#endif
     return 0;
+#endif
 }
