@@ -268,12 +268,50 @@ static vec3 mult_mv(const mat4 A, const vec3 v)
     return (vec3){C[0], C[1], C[2]};
 }
 
-void print_v(const vec3 v)
+static mat4 translate(const vec3 v)
+{
+    mat4 m = {{
+        1, 0, 0, v.x,
+        0, 1, 0, v.y,
+        0, 0, 1, v.z,
+        0, 0, 0, 1
+    }};
+    return m;
+}
+
+
+static mat4 rotate(const vec3 R){
+    mat4 rotate_x = {{
+        1, 0, 0, 0,
+        0, cos(R.x), -sin(R.x), 0,
+        0, sin(R.x), cos(R.x), 0,
+        0,0,0,1
+    }};
+
+    mat4 rotate_y = {{
+        cos(R.y),0,sin(R.y),0,
+        0,1,0,0,
+        -sin(R.y),0,cos(R.y),0,
+        0,0,0,1,
+    }};
+
+    mat4 rotate_z = {{
+        cos(R.z),-sin(R.z),0,0,
+        sin(R.z),cos(R.z),0,0,
+        0,0,1,0,
+        0,0,0,1,
+    }};
+
+
+    return rotate_y;
+}
+
+static void print_v(const vec3 v)
 {
     printf("(vec3) { %f, %f, %f }\n", v.x, v.y, v.z);
 }
 
-void print_t(const triangle_t triangle)
+static void print_t(const triangle_t triangle)
 {
     printf("(triangle_t) {\n");
     for (size_t i = 0; i < 3; i++)
@@ -789,11 +827,16 @@ void render(uint8_t *framebuffer, const options_t options)
     mesh_t cube;
     load_obj("assets/cube.obj", &cube);
 
+    vec3 euler = {.5,.5,.5};
+    mat4 rot = rotate(euler);
+    
     vec3 new_pos = {0,0,-3};
+    mat4 trans = translate(new_pos);
 
     for (size_t i = 0; i < cube.num_triangles; i++){
         for (size_t j = 0; j < 3; j++){
-            cube.triangles[i].v[j] = add(cube.triangles[i].v[j], new_pos);
+            vec3 *v = &cube.triangles[i].v[j];
+            *v = mult_mv(mult_mm(trans, rot), *v);
         }
     }
 
