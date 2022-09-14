@@ -48,7 +48,7 @@ int _test_check(int cond, const char *filename, int line, const char *expr, bool
     if (!cond)
     {
         _test_failures++;
-        fprintf(stderr, "[FAIL] [%s:%d] '%s'%s\n", filename, line, expr, exit_after_fail ? ", aborting..." : "");
+        fprintf(stderr, "[FAIL] [%s:%d] '%s'\n", filename, line, expr);
         if (exit_after_fail)
         {
             exit(_test_failures);
@@ -59,6 +59,12 @@ int _test_check(int cond, const char *filename, int line, const char *expr, bool
         fprintf(stdout, "[ OK ] [%s:%d]\n", filename, line);
     }
     return _test_failures;
+}
+
+void exit_error(const char *message)
+{
+    fprintf(stderr, "[ERROR] (%s:%d) %s\n", __FILE__, __LINE__, message);
+    exit(EXIT_FAILURE);
 }
 
 typedef struct
@@ -94,7 +100,8 @@ typedef struct
 
 typedef struct
 {
-    vec3 v0, v1, v2;
+    // vec3 v0, v1, v2;
+    vec3 v[3];
 } triangle_t;
 
 typedef struct
@@ -356,9 +363,9 @@ bool intersect_triangle(const ray_t *ray, const triangle_t *triangle, hit_t *hit
 {
     intersection_test_count++;
     // https://en.wikipedia.org/wiki/M%C3%B6ller%E2%80%93Trumbore_intersection_algorithm
-    vec3 v0 = triangle->v0;
-    vec3 v1 = triangle->v1;
-    vec3 v2 = triangle->v2;
+    vec3 v0 = triangle->v[0];
+    vec3 v1 = triangle->v[1];
+    vec3 v2 = triangle->v[2];
     vec3 edge1, edge2, h, s, q;
     double a, f, u, v, t;
     edge1 = sub(v1, v0);
@@ -415,7 +422,7 @@ bool intersect(const ray_t *ray, object_t *objects, size_t n, hit_t *hit)
                     min_t = local.t;
                     local.object = &objects[i];
                     local.point = point_at(ray, local.t);
-                    local.normal = cross(triangle.v0, triangle.v1);
+                    local.normal = cross(triangle.v[0], triangle.v[1]);
                 }
             }
             break;
@@ -583,9 +590,8 @@ void load_file(void *ctx, const char *filename, const int is_mtl, const char *ob
     *len = read_size;
 }
 
-bool load_obj(const char *filename, object_t *objects, size_t *num_objects)
+bool load_obj(const char *filename, mesh_t *mesh)
 {
-
     tinyobj_attrib_t attrib;
     tinyobj_shape_t *shape = NULL;
     tinyobj_material_t *material = NULL;
@@ -606,111 +612,72 @@ bool load_obj(const char *filename, object_t *objects, size_t *num_objects)
         NULL,
         TINYOBJ_FLAG_TRIANGULATE);
 
-    TEST_ASSERT(result == TINYOBJ_SUCCESS);
-    TEST_CHECK(attrib.num_faces == 36);
-    TEST_CHECK(attrib.num_face_num_verts == 12); // two triangles per side
-    TEST_CHECK(attrib.num_normals == 6);         // one per side
-    TEST_CHECK(attrib.num_vertices == 8);        // one per corner
-    TEST_CHECK(attrib.num_texcoords == 0);
+    assert(result == TINYOBJ_SUCCESS);
+    assert(attrib.num_faces == 36);
+    assert(attrib.num_normals == 6);  // one per side
+    assert(attrib.num_vertices == 8); // one per corner
+    assert(attrib.num_texcoords == 0);
+    assert(attrib.num_face_num_verts == 12); // two triangles per side
 
-    triangle_t *triangles = malloc(attrib.num_face_num_verts * sizeof(*triangles));
-    TEST_ASSERT(triangles != NULL);
+    assert(mesh != NULL);
 
+    mesh->count = attrib.num_face_num_verts;
+    mesh->triangles = malloc(mesh->count * sizeof(*mesh->triangles));
+
+    assert(mesh->triangles != NULL);
+
+    size_t face_offset = 0;
+    // iterate over all faces
     for (size_t i = 0; i < attrib.num_face_num_verts; i++)
     {
+        const int face_num_verts = attrib.face_num_verts[i]; // num verts per face
 
-        TEST_ASSERT(attrib.face_num_verts[i] % 3 == 0); // check all faces are triangles
+        assert(face_num_verts == 3);     // assert all faces are triangles
+        assert(face_num_verts % 3 == 0); // assert all faces are triangles
+        // printf("[%d] face_num_verts = %d\n", i, face_num_verts);
 
-        for (size_t f = 0; f < attrib.face_num_verts[i] / 3; f++)
+        // should only be exectued once
+        for (size_t f = 0; f < face_num_verts / 3; f++)
         {
+            tinyobj_vertex_index_t idx0 = attrib.faces[face_offset + 3 * f + 0];
+            tinyobj_vertex_index_t idx1 = attrib.faces[face_offset + 3 * f + 1];
+            tinyobj_vertex_index_t idx2 = attrib.faces[face_offset + 3 * f + 2];
+
+            triangle_t triangle;
+
+            for (int k = 0; k < 3; k++)
+            {
+                int f0 = idx0.v_idx;
+                int f1 = idx1.v_idx;
+                int f2 = idx2.v_idx;
+
+                assert(f0 >= 0);
+                assert(f1 >= 0);
+                assert(f2 >= 0);
+
+                vec3 v;
+                v.x = attrib.vertices[3 * (size_t)f0 + k];
+                v.y = attrib.vertices[3 * (size_t)f1 + k];
+                v.z = attrib.vertices[3 * (size_t)f2 + k];
+
+                triangle.v[k] = v;
+            }
+
+            // printf("triangle [%d] = {\n", i);
+            // print_vec(triangle.v[0]);
+            // print_vec(triangle.v[1]);
+            // print_vec(triangle.v[2]);
+            // printf("}\n");
         }
+
+        face_offset += (size_t)face_num_verts;
     }
 
-    if (triangles)
-    {
-        free(triangles);
-    }
+    if (shape)
+        tinyobj_shapes_free(shape, num_shapes);
 
     tinyobj_attrib_free(&attrib);
-    if (shape)
-    {
-        tinyobj_shapes_free(shape, num_shapes);
-    }
     return true;
-}
-
-void obj_parse_vector(char *line, double *vertices, size_t *num_vertices)
-{
-    int i = 0;
-    char *end, *p = line;
-    for (double f = strtod(p, &end); p != end; f = strtod(p, &end))
-    {
-        p = end;
-        assert(i < 3);
-        vertices[*num_vertices * 3 + (i++)] = f;
-    }
-    (*num_vertices)++;
-}
-
-void obj_parse_face(char *line, int *indices, size_t *num_indices)
-{
-}
-
-int obj_load(const char *filename, double *vertices, size_t *num_vertices, int *indices, size_t *num_indices, size_t *num_triangles)
-{
-    char buffer[256];
-    FILE *fd = fopen(filename, "r");
-    size_t obj_v = 0, obj_f = 0;
-
-    if (fd)
-    {
-        while (fgets(buffer, 256, fd))
-        {
-            if (buffer[1] == ' ')
-            {
-                switch (buffer[0])
-                {
-                case 'v':
-                    obj_v++;
-                    break;
-
-                case 'f':
-                    obj_f++;
-                    break;
-
-                default:
-                    break;
-                }
-            }
-        }
-
-        rewind(fd);
-
-        printf("obj_v=%ld, obj_f=%ld\n", obj_v, obj_f);
-
-        vertices = malloc(3 * obj_v * sizeof(*vertices));
-
-        while (fgets(buffer, 256, fd))
-        {
-            if (buffer[0] == 'v' && buffer[1] == ' ')
-            {
-                obj_parse_vector(buffer + 2, vertices, num_vertices);
-            }
-            else if (buffer[0] == 'f' && buffer[1] == ' ')
-            {
-                obj_parse_face(buffer + 2, indices, num_indices);
-            }
-        }
-
-        printf("num_vertices=%ld, num_indices=%ld\n", *num_vertices, *num_indices);
-
-        fclose(fd);
-        return 0;
-    }
-    else
-    {
-        return 1;
-    }
 }
 
 void render(uint8_t *framebuffer, const options_t options)
@@ -740,45 +707,33 @@ void render(uint8_t *framebuffer, const options_t options)
 
     vec3 pos = {0, 2, -3};
     vec3 size = {4, 3, 8};
-    double w = 3;
+    // double w = 3;
 
     triangle_t triangles[] = {
-        {
+        {{
             {pos.x + size.x, pos.y - size.y, pos.z - size.z}, // lower left
             {pos.x - size.x, pos.y - size.y, pos.z + size.z}, // top right
             {pos.x - size.x, pos.y - size.y, pos.z - size.z}, // lower right
-        },
-        {
+        }},
+        {{
             {pos.x + size.x, pos.y - size.y, pos.z - size.z}, // lower left
             {pos.x - size.x, pos.y - size.y, pos.z + size.z}, // top right
             {pos.x + size.x, pos.y - size.y, pos.z + size.z}, // top left
-        },
-        {
-            {pos.x + w, pos.y - w, pos.z - w}, // lower left
-            {pos.x - w, pos.y + w, pos.z - w}, // top right
-            {pos.x - w, pos.y - w, pos.z - w}, // lower right
-        },
-        {
-            {pos.x + w, pos.y - w, pos.z - w}, // lower left
-            {pos.x + w, pos.y + w, pos.z - w}, // top left
-            {pos.x - w, pos.y + w, pos.z - w}, // top right
-        },
-        {
-            {pos.x - w, pos.y - w, pos.z - w}, // top right
-            {pos.x - w, pos.y - w, pos.z + w}, // top right
-            {pos.x - w, pos.y + w, pos.z + w}, // top right
-        },
+        }},
     };
 
-    mesh_t mesh = {
-        2, triangles};
+    mesh_t mesh = {2, triangles};
+
+    mesh_t cube;
+    load_obj("assets/cube.obj", &cube);
 
     object_t scene[] = {
         {.type = SPHERE, .material = {RANDOM_COLOR, REFLECTION}, .geometry.sphere = &spheres[1]},
         {.type = SPHERE, .material = {RED, PHONG}, .geometry.sphere = &spheres[2]},
         {.type = SPHERE, .material = {RANDOM_COLOR, REFLECTION_AND_REFRACTION}, .geometry.sphere = &spheres[3]},
         {.type = SPHERE, .material = {BLUE, PHONG}, .geometry.sphere = &spheres[4]},
-        {.type = MESH, .material = {GREEN, PHONG}, .geometry.mesh = &mesh}};
+        {.type = MESH, .material = {GREEN, PHONG}, .geometry.mesh = &mesh},
+    };
 
     camera_t camera;
     init_camera(&camera, (vec3){0, 0, 1}, options);
@@ -816,47 +771,15 @@ void _test_load_obj()
 {
     const char *obj = "assets/cube.obj";
 
-    object_t *scene = NULL;
-    size_t num_objects;
+    mesh_t mesh;
 
-    TEST_CHECK(load_obj(obj, scene, &num_objects) == true);
-}
+    load_obj(obj, &mesh);
 
-void _test_load_obj_myself()
-{
-    int *indices = NULL;
-    double *vertices = NULL;
-    size_t num_vertices = 0, num_indices = 0, num_triangles;
-    int result = 0;
+    TEST_CHECK(mesh.triangles != NULL);
+    TEST_CHECK(mesh.count == 12);
 
-    result = obj_load(
-        "assets/cube.obj",
-        vertices,
-        &num_vertices,
-        indices,
-        &num_indices,
-        &num_triangles);
-
-    for (size_t i = 0; i < num_vertices; i++)
-    {
-        // printf("v[%d] = %f\n", i, vertices[i]);
-    }
-
-    TEST_CHECK(result == 0);
-    TEST_CHECK(num_indices == 12);
-    TEST_CHECK(num_triangles == 12);
-    TEST_CHECK(num_vertices == 8);
-    TEST_CHECK(indices != NULL);
-    TEST_CHECK(vertices != NULL);
-
-    if (vertices != NULL)
-    {
-        free(vertices);
-    }
-    if (indices != NULL)
-    {
-        free(indices);
-    }
+    if (mesh.triangles)
+        free(mesh.triangles);
 }
 
 void _test_intersect()
@@ -865,10 +788,11 @@ void _test_intersect()
     ray_t ray;
 
     triangle_t triangle = {
-        {1, 0, -3},
-        {0, 1, -3},
-        {-1, 0, -3},
-    };
+        {
+            {1, 0, -3},
+            {0, 1, -3},
+            {-1, 0, -3},
+        }};
 
     ray = (ray_t){{0, 0, 0}, {0, 0, -1}};
     TEST_CHECK(intersect_triangle(&ray, &triangle, &hit) == true);
@@ -885,8 +809,7 @@ void _test_intersect()
 void _test_all()
 {
     _test_intersect();
-    //_test_load_obj();
-    //_test_load_obj_myself();
+    _test_load_obj();
 }
 
 int main()
@@ -897,14 +820,18 @@ int main()
     return TEST_CHECK(true); // return number of failed tests
 #else
     options_t options = {
-        .width = 1280,
-        .height = 720,
-        .samples = 50,
+        .width = 640,
+        .height = 480,
+        .samples = 25,
         .result = "result.png",
         .obj = "assets/cube.obj"};
 
     uint8_t *framebuffer = malloc(sizeof(*framebuffer) * options.width * options.height * 3);
-    assert(framebuffer != NULL);
+    if (framebuffer == NULL)
+    {
+        fprintf(stderr, "could not allocate framebuffer\n");
+        exit(1);
+    }
 
     clock_t tic = clock();
 
@@ -919,7 +846,8 @@ int main()
     printf("rendering took %f seconds\n", time_taken);
     printf("writing result to '%s'...\n", options.result);
 
-    if (stbi_write_png(options.result, options.width, options.height, 3, framebuffer, options.width * 3) == 0)
+    int r = stbi_write_png(options.result, options.width, options.height, 3, framebuffer, options.width * 3);
+    if (r == 0)
     {
         fprintf(stderr, "failed to write");
         exit(EXIT_FAILURE);

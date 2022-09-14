@@ -1,5 +1,5 @@
 CC = gcc
-CFLAGS = --std=c99 -O3 -Wall 
+CFLAGS = --std=c99 -Wall -O3 -Wno-strict-aliasing
 LFLAGS = -lm
 
 SRC = $(wildcard *.c)
@@ -25,7 +25,7 @@ run: all
 	./$(APP)
 
 clean:
-	rm -f $(APP) $(TESTS) *.o
+	rm -f $(APP) $(TESTS) *.o *.stackdump
 
 .PHONY: all clean run
 
