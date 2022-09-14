@@ -226,6 +226,15 @@ void print_vec(const vec3 v)
     printf("(vec3) { %f, %f, %f }\n", v.x, v.y, v.z);
 }
 
+void print_triangle(const triangle_t triangle)
+{
+    printf("(triangle_t) {\n");
+    printf("   (vec3) { %f, %f, %f }\n", triangle.v[0]);
+    printf("   (vec3) { %f, %f, %f }\n", triangle.v[1]);
+    printf("   (vec3) { %f, %f, %f }\n", triangle.v[2]);
+    printf("}\n");
+}
+
 vec3 reflect(const vec3 I, const vec3 N)
 {
     return sub(I, scalar_multiply(N, 2 * dot(I, N)));
@@ -732,7 +741,7 @@ void render(uint8_t *framebuffer, const options_t options)
         {.type = SPHERE, .material = {RED, PHONG}, .geometry.sphere = &spheres[2]},
         {.type = SPHERE, .material = {RANDOM_COLOR, REFLECTION_AND_REFRACTION}, .geometry.sphere = &spheres[3]},
         {.type = SPHERE, .material = {BLUE, PHONG}, .geometry.sphere = &spheres[4]},
-        {.type = MESH, .material = {GREEN, PHONG}, .geometry.mesh = &mesh},
+        {.type = MESH, .material = {GREEN, PHONG}, .geometry.mesh = &cube},
     };
 
     camera_t camera;
@@ -777,6 +786,11 @@ void _test_load_obj()
 
     TEST_CHECK(mesh.triangles != NULL);
     TEST_CHECK(mesh.count == 12);
+
+    for (int i = 0; i < mesh.count; i++)
+    {
+        print_triangle(mesh.triangles[i]);
+    }
 
     if (mesh.triangles)
         free(mesh.triangles);
