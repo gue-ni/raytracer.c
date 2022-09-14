@@ -72,6 +72,10 @@ typedef struct
     double x, y, z;
 } vec3;
 
+typedef struct {
+    m[16];
+} mat4;
+
 typedef struct
 {
     vec3 origin, direction;
@@ -100,13 +104,12 @@ typedef struct
 
 typedef struct
 {
-    // vec3 v0, v1, v2;
     vec3 v[3];
 } triangle_t;
 
 typedef struct
 {
-    size_t count;
+    size_t num_triangles;
     triangle_t *triangles;
 } mesh_t;
 
@@ -229,9 +232,10 @@ void print_vec(const vec3 v)
 void print_triangle(const triangle_t triangle)
 {
     printf("(triangle_t) {\n");
-    printf("   (vec3) { %f, %f, %f }\n", triangle.v[0]);
-    printf("   (vec3) { %f, %f, %f }\n", triangle.v[1]);
-    printf("   (vec3) { %f, %f, %f }\n", triangle.v[2]);
+    for (size_t i = 0; i < 3; i++)
+    {
+        printf("   (vec3) { %f, %f, %f },\n", triangle.v[i].x, triangle.v[i].y, triangle.v[i].z);
+    }
     printf("}\n");
 }
 
@@ -423,7 +427,7 @@ bool intersect(const ray_t *ray, object_t *objects, size_t n, hit_t *hit)
         case MESH:
         {
             mesh_t *mesh = objects[i].geometry.mesh;
-            for (int j = 0; j < mesh->count; j++)
+            for (int j = 0; j < mesh->num_triangles; j++)
             {
                 triangle_t triangle = mesh->triangles[j];
                 if (intersect_triangle(ray, &triangle, &local) && local.t < min_t)
@@ -630,8 +634,8 @@ bool load_obj(const char *filename, mesh_t *mesh)
 
     assert(mesh != NULL);
 
-    mesh->count = attrib.num_face_num_verts;
-    mesh->triangles = malloc(mesh->count * sizeof(*mesh->triangles));
+    mesh->num_triangles = attrib.num_face_num_verts;
+    mesh->triangles = malloc(mesh->num_triangles * sizeof(*mesh->triangles));
 
     assert(mesh->triangles != NULL);
 
@@ -645,39 +649,32 @@ bool load_obj(const char *filename, mesh_t *mesh)
         assert(face_num_verts % 3 == 0); // assert all faces are triangles
         // printf("[%d] face_num_verts = %d\n", i, face_num_verts);
 
-        // should only be exectued once
-        for (size_t f = 0; f < face_num_verts / 3; f++)
+        tinyobj_vertex_index_t idx0 = attrib.faces[face_offset + 0];
+        tinyobj_vertex_index_t idx1 = attrib.faces[face_offset + 1];
+        tinyobj_vertex_index_t idx2 = attrib.faces[face_offset + 2];
+
+        triangle_t triangle;
+
+        for (int k = 0; k < 3; k++)
         {
-            tinyobj_vertex_index_t idx0 = attrib.faces[face_offset + 3 * f + 0];
-            tinyobj_vertex_index_t idx1 = attrib.faces[face_offset + 3 * f + 1];
-            tinyobj_vertex_index_t idx2 = attrib.faces[face_offset + 3 * f + 2];
+            int f0 = idx0.v_idx;
+            int f1 = idx1.v_idx;
+            int f2 = idx2.v_idx;
 
-            triangle_t triangle;
+            assert(f0 >= 0);
+            assert(f1 >= 0);
+            assert(f2 >= 0);
 
-            for (int k = 0; k < 3; k++)
-            {
-                int f0 = idx0.v_idx;
-                int f1 = idx1.v_idx;
-                int f2 = idx2.v_idx;
+            vec3 v = {
+                attrib.vertices[3 * (size_t)f0 + k],
+                attrib.vertices[3 * (size_t)f1 + k],
+                attrib.vertices[3 * (size_t)f2 + k],
+            };
 
-                assert(f0 >= 0);
-                assert(f1 >= 0);
-                assert(f2 >= 0);
-
-                vec3 v;
-                v.x = attrib.vertices[3 * (size_t)f0 + k];
-                v.y = attrib.vertices[3 * (size_t)f1 + k];
-                v.z = attrib.vertices[3 * (size_t)f2 + k];
-
-                triangle.v[k] = v;
-            }
-
-            // printf("triangle [%d] = {\n", i);
-            // print_vec(triangle.v[0]);
-            // print_vec(triangle.v[1]);
-            // print_vec(triangle.v[2]);
-            // printf("}\n");
+            triangle.v[k] = v;
         }
+
+        mesh->triangles[i] = triangle;
 
         face_offset += (size_t)face_num_verts;
     }
@@ -741,7 +738,7 @@ void render(uint8_t *framebuffer, const options_t options)
         {.type = SPHERE, .material = {RED, PHONG}, .geometry.sphere = &spheres[2]},
         {.type = SPHERE, .material = {RANDOM_COLOR, REFLECTION_AND_REFRACTION}, .geometry.sphere = &spheres[3]},
         {.type = SPHERE, .material = {BLUE, PHONG}, .geometry.sphere = &spheres[4]},
-        {.type = MESH, .material = {GREEN, PHONG}, .geometry.mesh = &cube},
+        {.type = MESH, .material = {GREEN, PHONG}, .geometry.mesh = &mesh},
     };
 
     camera_t camera;
@@ -778,16 +775,13 @@ void render(uint8_t *framebuffer, const options_t options)
 
 void _test_load_obj()
 {
-    const char *obj = "assets/cube.obj";
-
     mesh_t mesh;
+    load_obj("assets/cube.obj", &mesh);
 
-    load_obj(obj, &mesh);
-
+    TEST_CHECK(mesh.num_triangles == 12);
     TEST_CHECK(mesh.triangles != NULL);
-    TEST_CHECK(mesh.count == 12);
 
-    for (int i = 0; i < mesh.count; i++)
+    for (int i = 0; i < mesh.num_triangles; i++)
     {
         print_triangle(mesh.triangles[i]);
     }
