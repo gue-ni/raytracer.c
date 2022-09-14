@@ -789,6 +789,14 @@ void render(uint8_t *framebuffer, const options_t options)
     mesh_t cube;
     load_obj("assets/cube.obj", &cube);
 
+    vec3 new_pos = {0,0,-3};
+
+    for (size_t i = 0; i < cube.num_triangles; i++){
+        for (size_t j = 0; j < 3; j++){
+            cube.triangles[i].v[j] = add(cube.triangles[i].v[j], new_pos);
+        }
+    }
+
     object_t scene[] = {
         {.type = SPHERE, .material = {RANDOM_COLOR, REFLECTION}, .geometry.sphere = &spheres[1]},
         {.type = SPHERE, .material = {RED, PHONG}, .geometry.sphere = &spheres[2]},
