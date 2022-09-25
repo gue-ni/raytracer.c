@@ -48,7 +48,7 @@ int _test_check(int cond, const char *filename, int line, const char *expr, bool
     if (!cond)
     {
         _test_failures++;
-        fprintf(stderr, "[FAIL] [%s:%d] '%s'%s\n", filename, line, expr, exit_after_fail ? ", aborting..." : "");
+        fprintf(stderr, "[FAIL] [%s:%d] '%s'\n", filename, line, expr);
         if (exit_after_fail)
         {
             exit(_test_failures);
@@ -61,10 +61,26 @@ int _test_check(int cond, const char *filename, int line, const char *expr, bool
     return _test_failures;
 }
 
+void exit_error(const char *message)
+{
+    fprintf(stderr, "[ERROR] (%s:%d) %s\n", __FILE__, __LINE__, message);
+    exit(EXIT_FAILURE);
+}
+
 typedef struct
 {
     double x, y, z;
 } vec3;
+
+typedef struct
+{
+    double x, y, z, w;
+} vec4;
+
+typedef struct
+{
+    double m[16];
+} mat4;
 
 typedef struct
 {
@@ -94,12 +110,12 @@ typedef struct
 
 typedef struct
 {
-    vec3 v0, v1, v2;
+    vec3 v[3];
 } triangle_t;
 
 typedef struct
 {
-    size_t count;
+    size_t num_triangles;
     triangle_t *triangles;
 } mesh_t;
 
@@ -151,37 +167,32 @@ typedef struct
 
 int ray_count = 0, intersection_test_count = 0;
 
-static inline double dot(const vec3 v1, const vec3 v2) { return v1.x * v2.x + v1.y * v2.y + v1.z * v2.z; }
+inline static double dot(const vec3 v1, const vec3 v2) { return v1.x * v2.x + v1.y * v2.y + v1.z * v2.z; }
 
-static inline vec3 cross(const vec3 a, const vec3 b)
+inline static vec3 cross(const vec3 a, const vec3 b)
 {
     return (vec3){a.y * b.z - a.z * b.y, a.z * b.x - a.x * b.z, a.x * b.y - a.y * b.x};
 }
 
-static inline double length2(const vec3 v1) { return v1.x * v1.x + v1.y * v1.y + v1.z * v1.z; }
+inline static double length2(const vec3 v1) { return v1.x * v1.x + v1.y * v1.y + v1.z * v1.z; }
 
-static inline double length(const vec3 v1) { return sqrt(length2(v1)); }
+inline static double length(const vec3 v1) { return sqrt(length2(v1)); }
 
-static inline vec3 multiply(const vec3 v1, const vec3 v2)
+inline static vec3 mult(const vec3 v1, const vec3 v2)
 {
     return (vec3){v1.x * v2.x, v1.y * v2.y, v1.z * v2.z};
 }
 
-static inline vec3 divide(const vec3 v1, const vec3 v2)
-{
-    return (vec3){v1.x / v2.x, v1.y / v2.y, v1.z / v2.z};
-}
+inline static vec3 sub(const vec3 v1, const vec3 v2) { return (vec3){v1.x - v2.x, v1.y - v2.y, v1.z - v2.z}; }
 
-static inline vec3 sub(const vec3 v1, const vec3 v2) { return (vec3){v1.x - v2.x, v1.y - v2.y, v1.z - v2.z}; }
+inline static vec3 add(const vec3 v1, const vec3 v2) { return (vec3){v1.x + v2.x, v1.y + v2.y, v1.z + v2.z}; }
 
-static inline vec3 add(const vec3 v1, const vec3 v2) { return (vec3){v1.x + v2.x, v1.y + v2.y, v1.z + v2.z}; }
-
-static inline vec3 scalar_multiply(const vec3 v1, const double s)
+inline static vec3 mult_s(const vec3 v1, const double s)
 {
     return (vec3){v1.x * s, v1.y * s, v1.z * s};
 }
 
-static inline vec3 scalar_divide(const vec3 v1, const double s) { return (vec3){v1.x / s, v1.y / s, v1.z / s}; }
+inline static vec3 div_s(const vec3 v1, const double s) { return (vec3){v1.x / s, v1.y / s, v1.z / s}; }
 
 inline static bool scalar_equals(const vec3 v1, const double s) { return v1.x == s && v1.y == s && v1.z == s; }
 
@@ -192,7 +203,7 @@ inline static bool vector_equals(const vec3 v1, const vec3 v2)
 
 inline static vec3 point_at(const ray_t *ray, double t)
 {
-    return add(ray->origin, scalar_multiply(ray->direction, t));
+    return add(ray->origin, mult_s(ray->direction, t));
 }
 
 inline static bool equal_d(double a, double b) { return ABS(a - b) < EPSILON; }
@@ -206,14 +217,117 @@ inline static vec3 normalize(const vec3 v1)
     return (vec3){v1.x / m, v1.y / m, v1.z / m};
 }
 
-void print_vec(const vec3 v)
+static mat4 mult_mm(const mat4 A, const mat4 B)
+{
+    // A = N x M (N rows and M columns)
+    // B = M x P
+    mat4 C;
+    size_t N = 4, M = 4, P = 4;
+
+    for (size_t i = 0; i < N; i++)
+    {
+        for (size_t j = 0; j < P; j++)
+        {
+            C.m[i * P + j] = 0;
+            for (size_t k = 0; k < M; k++)
+            {
+                C.m[i * P + j] += (A.m[i * M + k] * B.m[k * P + j]);
+            }
+        }
+    }
+    return C;
+}
+
+static vec3 mult_mv(const mat4 A, const vec3 v)
+{
+    size_t N = 4, M = 4, P = 1;
+
+    double B[4] = {v.x, v.y, v.z, 1.0};
+    double C[4];
+
+    for (size_t i = 0; i < N; i++)
+    {
+        for (size_t j = 0; j < P; j++)
+        {
+            C[i * P + j] = 0;
+            for (size_t k = 0; k < M; k++)
+            {
+                C[i * P + j] += (A.m[i * M + k] * B[k * P + j]);
+            }
+        }
+    }
+
+    return (vec3){C[0], C[1], C[2]};
+}
+
+static mat4 translate(const vec3 v)
+{
+    mat4 m = {{
+        1, 0, 0, v.x,
+        0, 1, 0, v.y,
+        0, 0, 1, v.z,
+        0, 0, 0, 1
+    }};
+    return m;
+}
+
+
+static mat4 rotate(const vec3 R){
+    mat4 rotate_x = {{
+        1, 0, 0, 0,
+        0, cos(R.x), -sin(R.x), 0,
+        0, sin(R.x), cos(R.x), 0,
+        0,0,0,1
+    }};
+
+    mat4 rotate_y = {{
+        cos(R.y),0,sin(R.y),0,
+        0,1,0,0,
+        -sin(R.y),0,cos(R.y),0,
+        0,0,0,1,
+    }};
+
+    mat4 rotate_z = {{
+        cos(R.z),-sin(R.z),0,0,
+        sin(R.z),cos(R.z),0,0,
+        0,0,1,0,
+        0,0,0,1,
+    }};
+
+
+    return rotate_y;
+}
+
+static void print_v(const vec3 v)
 {
     printf("(vec3) { %f, %f, %f }\n", v.x, v.y, v.z);
 }
 
+static void print_t(const triangle_t triangle)
+{
+    printf("(triangle_t) {\n");
+    for (size_t i = 0; i < 3; i++)
+    {
+        printf("   (vec3) { %f, %f, %f },\n", triangle.v[i].x, triangle.v[i].y, triangle.v[i].z);
+    }
+    printf("}\n");
+}
+
+void print_m(const mat4 m)
+{
+    for (int i = 0; i < 4; i++)
+    {
+        for (int j = 0; j < 4; j++)
+        {
+            printf(" %6.1f, ", m.m[i * 4 + j]);
+        }
+        printf("\n");
+    }
+}
+
 vec3 reflect(const vec3 I, const vec3 N)
 {
-    return sub(I, scalar_multiply(N, 2 * dot(I, N)));
+    return sub(I, mult_s(N, 2 * dot(I, N)));
 }
 
 vec3 refract(const vec3 I, const vec3 N, double iot)
@@ -230,11 +344,11 @@ vec3 refract(const vec3 I, const vec3 N, double iot)
         double tmp = etai;
         etai = etat;
         etat = tmp;
-        n = scalar_multiply(N, -1);
+        n = mult_s(N, -1);
     }
     double eta = etai / etat;
     double k = 1 - eta * eta * (1 - cosi * cosi);
-    return k < 0 ? ZERO_VECTOR : add(scalar_multiply(I, eta), scalar_multiply(n, eta * cosi - sqrtf(k)));
+    return k < 0 ? ZERO_VECTOR : add(mult_s(I, eta), mult_s(n, eta * cosi - sqrtf(k)));
 }
 
 void init_camera(camera_t *camera, vec3 position, options_t options)
@@ -254,8 +368,8 @@ void init_camera(camera_t *camera, vec3 position, options_t options)
     camera->horizontal = (vec3){viewport_width, 0, 0};
     camera->vertical = (vec3){0, viewport_height, 0};
 
-    vec3 half_h = scalar_divide(camera->horizontal, 2);
-    vec3 half_v = scalar_divide(camera->vertical, 2);
+    vec3 half_h = div_s(camera->horizontal, 2);
+    vec3 half_v = div_s(camera->vertical, 2);
 
     camera->lower_left_corner = sub(sub(camera->origin, half_h), sub(half_v, (vec3){0, 0, focal_length}));
 }
@@ -266,7 +380,7 @@ ray_t get_camera_ray(const camera_t *camera, double u, double v)
         camera->origin,
         add(
             camera->lower_left_corner,
-            add(scalar_multiply(camera->horizontal, u), scalar_multiply(camera->vertical, v))));
+            add(mult_s(camera->horizontal, u), mult_s(camera->vertical, v))));
 
     direction = normalize(direction);
     assert(equal_d(length(direction), 1.0));
@@ -348,9 +462,9 @@ bool intersect_triangle(const ray_t *ray, const triangle_t *triangle, hit_t *hit
 {
     intersection_test_count++;
     // https://en.wikipedia.org/wiki/M%C3%B6ller%E2%80%93Trumbore_intersection_algorithm
-    vec3 v0 = triangle->v0;
-    vec3 v1 = triangle->v1;
-    vec3 v2 = triangle->v2;
+    vec3 v0 = triangle->v[0];
+    vec3 v1 = triangle->v[1];
+    vec3 v2 = triangle->v[2];
     vec3 edge1, edge2, h, s, q;
     double a, f, u, v, t;
     edge1 = sub(v1, v0);
@@ -399,7 +513,7 @@ bool intersect(const ray_t *ray, object_t *objects, size_t n, hit_t *hit)
         case MESH:
         {
             mesh_t *mesh = objects[i].geometry.mesh;
-            for (int j = 0; j < mesh->count; j++)
+            for (int j = 0; j < mesh->num_triangles; j++)
             {
                 triangle_t triangle = mesh->triangles[j];
                 if (intersect_triangle(ray, &triangle, &local) && local.t < min_t)
@@ -407,7 +521,7 @@ bool intersect(const ray_t *ray, object_t *objects, size_t n, hit_t *hit)
                     min_t = local.t;
                     local.object = &objects[i];
                     local.point = point_at(ray, local.t);
-                    local.normal = cross(triangle.v0, triangle.v1);
+                    local.normal = cross(triangle.v[0], triangle.v[1]);
                 }
             }
             break;
@@ -419,8 +533,8 @@ bool intersect(const ray_t *ray, object_t *objects, size_t n, hit_t *hit)
                 min_t = local.t;
                 local.object = &objects[i];
                 local.point = point_at(ray, local.t);
-                local.normal = scalar_divide(sub(local.point, objects[i].geometry.sphere->center),
-                                             objects[i].geometry.sphere->radius);
+                local.normal = div_s(sub(local.point, objects[i].geometry.sphere->center),
+                                     objects[i].geometry.sphere->radius);
             }
             break;
         }
@@ -448,16 +562,16 @@ vec3 phong_lighting(vec3 color, vec3 light_dir, vec3 normal, vec3 camera_origin,
     double alpha = 10;
 
     // ambient
-    vec3 ambient = scalar_multiply(color, ka);
+    vec3 ambient = mult_s(color, ka);
 
     // diffuse
     vec3 norm = normalize(normal);
-    vec3 diffuse = scalar_multiply(color, kd * MAX(dot(norm, light_dir), 0.0));
+    vec3 diffuse = mult_s(color, kd * MAX(dot(norm, light_dir), 0.0));
 
     // specular
     vec3 view_dir = normalize(sub(position, camera_origin));
     vec3 reflected = reflect(light_dir, norm);
-    vec3 specular = scalar_multiply(color, ks * pow(MAX(dot(view_dir, reflected), 0.0), alpha));
+    vec3 specular = mult_s(color, ks * pow(MAX(dot(view_dir, reflected), 0.0), alpha));
 
     return in_shadow ? ambient : clamp(add(add(ambient, diffuse), specular));
 }
@@ -494,7 +608,7 @@ vec3 cast_ray(const ray_t *ray, object_t *scene, size_t n_objects, int depth)
         ray_t reflected = {hit.point, normalize(reflect(ray->direction, hit.normal))};
         vec3 reflected_color = cast_ray(&reflected, scene, n_objects, depth + 1);
         double f = 0.5;
-        out_color = add(scalar_multiply(reflected_color, f), scalar_multiply(hit.object->material.color, (1 - f)));
+        out_color = add(mult_s(reflected_color, f), mult_s(hit.object->material.color, (1 - f)));
         out_color = phong_lighting(out_color, light_dir, hit.normal, ray->origin, hit.point, in_shadow);
         break;
     }
@@ -510,7 +624,7 @@ vec3 cast_ray(const ray_t *ray, object_t *scene, size_t n_objects, int depth)
 
         double kr = .8;
 
-        vec3 refracted_reflected = add(scalar_multiply(refracted_color, kr), scalar_multiply(reflected_color, (1 - kr)));
+        vec3 refracted_reflected = add(mult_s(refracted_color, kr), mult_s(reflected_color, (1 - kr)));
         out_color = refracted_reflected;
         // out_color = phong_light(out_color, light_dir, hit.normal, ray->origin, hit.point, in_shadow);
         break;
@@ -526,14 +640,14 @@ vec3 cast_ray(const ray_t *ray, object_t *scene, size_t n_objects, int depth)
     {
 
         double ks = 0.6;
-        vec3 ambient = scalar_multiply((vec3){0.5, 0.5, 0.5}, ks);
+        vec3 ambient = mult_s((vec3){0.5, 0.5, 0.5}, ks);
 
         vec3 normal = normalize(hit.normal);
         vec3 light_dir = normalize(sub(light_pos, hit.point));
         double diff = MAX(dot(normal, light_dir), 0.0);
 
-        vec3 diffuse = scalar_multiply(light_color, diff);
-        out_color = clamp(multiply(add(ambient, in_shadow ? ZERO_VECTOR : diffuse), hit.object->material.color));
+        vec3 diffuse = mult_s(light_color, diff);
+        out_color = clamp(mult(add(ambient, in_shadow ? ZERO_VECTOR : diffuse), hit.object->material.color));
         break;
     }
 
@@ -575,9 +689,8 @@ void load_file(void *ctx, const char *filename, const int is_mtl, const char *ob
     *len = read_size;
 }
 
-bool load_obj(const char *filename, object_t *objects, size_t *num_objects)
+bool load_obj(const char *filename, mesh_t *mesh)
 {
-
     tinyobj_attrib_t attrib;
     tinyobj_shape_t *shape = NULL;
     tinyobj_material_t *material = NULL;
@@ -598,111 +711,65 @@ bool load_obj(const char *filename, object_t *objects, size_t *num_objects)
         NULL,
         TINYOBJ_FLAG_TRIANGULATE);
 
-    TEST_ASSERT(result == TINYOBJ_SUCCESS);
-    TEST_CHECK(attrib.num_faces == 36);
-    TEST_CHECK(attrib.num_face_num_verts == 12); // two triangles per side
-    TEST_CHECK(attrib.num_normals == 6);         // one per side
-    TEST_CHECK(attrib.num_vertices == 8);        // one per corner
-    TEST_CHECK(attrib.num_texcoords == 0);
+    assert(result == TINYOBJ_SUCCESS);
+    assert(attrib.num_faces == 36);
+    assert(attrib.num_normals == 6);  // one per side
+    assert(attrib.num_vertices == 8); // one per corner
+    assert(attrib.num_texcoords == 0);
+    assert(attrib.num_face_num_verts == 12); // two triangles per side
 
-    triangle_t *triangles = malloc(attrib.num_face_num_verts * sizeof(*triangles));
-    TEST_ASSERT(triangles != NULL);
+    assert(mesh != NULL);
 
+    mesh->num_triangles = attrib.num_face_num_verts;
+    mesh->triangles = malloc(mesh->num_triangles * sizeof(*mesh->triangles));
+
+    assert(mesh->triangles != NULL);
+
+    size_t face_offset = 0;
+    // iterate over all faces
     for (size_t i = 0; i < attrib.num_face_num_verts; i++)
     {
+        const int face_num_verts = attrib.face_num_verts[i]; // num verts per face
 
-        TEST_ASSERT(attrib.face_num_verts[i] % 3 == 0); // check all faces are triangles
+        assert(face_num_verts == 3);     // assert all faces are triangles
+        assert(face_num_verts % 3 == 0); // assert all faces are triangles
+        // printf("[%d] face_num_verts = %d\n", i, face_num_verts);
 
-        for (size_t f = 0; f < attrib.face_num_verts[i] / 3; f++)
+        tinyobj_vertex_index_t idx0 = attrib.faces[face_offset + 0];
+        tinyobj_vertex_index_t idx1 = attrib.faces[face_offset + 1];
+        tinyobj_vertex_index_t idx2 = attrib.faces[face_offset + 2];
+
+        triangle_t triangle;
+
+        for (int k = 0; k < 3; k++)
         {
+            int f0 = idx0.v_idx;
+            int f1 = idx1.v_idx;
+            int f2 = idx2.v_idx;
+
+            assert(f0 >= 0);
+            assert(f1 >= 0);
+            assert(f2 >= 0);
+
+            vec3 v = {
+                attrib.vertices[3 * (size_t)f0 + k],
+                attrib.vertices[3 * (size_t)f1 + k],
+                attrib.vertices[3 * (size_t)f2 + k],
+            };
+
+            triangle.v[k] = v;
         }
+
+        mesh->triangles[i] = triangle;
+
+        face_offset += (size_t)face_num_verts;
     }
 
-    if (triangles)
-    {
-        free(triangles);
-    }
+    if (shape)
+        tinyobj_shapes_free(shape, num_shapes);
 
     tinyobj_attrib_free(&attrib);
-    if (shape)
-    {
-        tinyobj_shapes_free(shape, num_shapes);
-    }
     return true;
-}
-
-void obj_parse_vector(char *line, double *vertices, size_t *num_vertices)
-{
-    int i = 0;
-    char *end, *p = line;
-    for (double f = strtod(p, &end); p != end; f = strtod(p, &end))
-    {
-        p = end;
-        assert(i < 3);
-        vertices[*num_vertices * 3 + (i++)] = f;
-    }
-    (*num_vertices)++;
-}
-
-void obj_parse_face(char *line, int *indices, size_t *num_indices)
-{
-}
-
-int obj_load(const char *filename, double *vertices, size_t *num_vertices, int *indices, size_t *num_indices, size_t *num_triangles)
-{
-    char buffer[256];
-    FILE *fd = fopen(filename, "r");
-    size_t obj_v = 0, obj_f = 0;
-
-    if (fd)
-    {
-        while (fgets(buffer, 256, fd))
-        {
-            if (buffer[1] == ' ')
-            {
-                switch (buffer[0])
-                {
-                case 'v':
-                    obj_v++;
-                    break;
-
-                case 'f':
-                    obj_f++;
-                    break;
-
-                default:
-                    break;
-                }
-            }
-        }
-
-        rewind(fd);
-
-        printf("obj_v=%ld, obj_f=%ld\n", obj_v, obj_f);
-
-        vertices = malloc(3 * obj_v * sizeof(*vertices));
-
-        while (fgets(buffer, 256, fd))
-        {
-            if (buffer[0] == 'v' && buffer[1] == ' ')
-            {
-                obj_parse_vector(buffer + 2, vertices, num_vertices);
-            }
-            else if (buffer[0] == 'f' && buffer[1] == ' ')
-            {
-                obj_parse_face(buffer + 2, indices, num_indices);
-            }
-        }
-
-        printf("num_vertices=%ld, num_indices=%ld\n", *num_vertices, *num_indices);
-
-        fclose(fd);
-        return 0;
-    }
-    else
-    {
-        return 1;
-    }
 }
 
 void render(uint8_t *framebuffer, const options_t options)
@@ -732,45 +799,46 @@ void render(uint8_t *framebuffer, const options_t options)
 
     vec3 pos = {0, 2, -3};
     vec3 size = {4, 3, 8};
-    double w = 3;
+    // double w = 3;
 
     triangle_t triangles[] = {
-        {
+        {{
             {pos.x + size.x, pos.y - size.y, pos.z - size.z}, // lower left
             {pos.x - size.x, pos.y - size.y, pos.z + size.z}, // top right
             {pos.x - size.x, pos.y - size.y, pos.z - size.z}, // lower right
-        },
-        {
+        }},
+        {{
             {pos.x + size.x, pos.y - size.y, pos.z - size.z}, // lower left
             {pos.x - size.x, pos.y - size.y, pos.z + size.z}, // top right
             {pos.x + size.x, pos.y - size.y, pos.z + size.z}, // top left
-        },
-        {
-            {pos.x + w, pos.y - w, pos.z - w}, // lower left
-            {pos.x - w, pos.y + w, pos.z - w}, // top right
-            {pos.x - w, pos.y - w, pos.z - w}, // lower right
-        },
-        {
-            {pos.x + w, pos.y - w, pos.z - w}, // lower left
-            {pos.x + w, pos.y + w, pos.z - w}, // top left
-            {pos.x - w, pos.y + w, pos.z - w}, // top right
-        },
-        {
-            {pos.x - w, pos.y - w, pos.z - w}, // top right
-            {pos.x - w, pos.y - w, pos.z + w}, // top right
-            {pos.x - w, pos.y + w, pos.z + w}, // top right
-        },
+        }},
     };
 
-    mesh_t mesh = {
-        2, triangles};
+    mesh_t mesh = {2, triangles};
+
+    mesh_t cube;
+    load_obj("assets/cube.obj", &cube);
+
+    vec3 euler = {.5,.5,.5};
+    mat4 rot = rotate(euler);
+    
+    vec3 new_pos = {0,0,-3};
+    mat4 trans = translate(new_pos);
+
+    for (size_t i = 0; i < cube.num_triangles; i++){
+        for (size_t j = 0; j < 3; j++){
+            vec3 *v = &cube.triangles[i].v[j];
+            *v = mult_mv(mult_mm(trans, rot), *v);
+        }
+    }
 
     object_t scene[] = {
         {.type = SPHERE, .material = {RANDOM_COLOR, REFLECTION}, .geometry.sphere = &spheres[1]},
         {.type = SPHERE, .material = {RED, PHONG}, .geometry.sphere = &spheres[2]},
         {.type = SPHERE, .material = {RANDOM_COLOR, REFLECTION_AND_REFRACTION}, .geometry.sphere = &spheres[3]},
         {.type = SPHERE, .material = {BLUE, PHONG}, .geometry.sphere = &spheres[4]},
-        {.type = MESH, .material = {GREEN, PHONG}, .geometry.mesh = &mesh}};
+        {.type = MESH, .material = {GREEN, PHONG}, .geometry.mesh = &mesh},
+    };
 
     camera_t camera;
     init_camera(&camera, (vec3){0, 0, 1}, options);
@@ -793,8 +861,8 @@ void render(uint8_t *framebuffer, const options_t options)
                 pixel = add(pixel, cast_ray(&ray, scene, sizeof(scene) / sizeof(scene[0]), 0));
             }
 
-            pixel = scalar_divide(pixel, options.samples);
-            pixel = scalar_multiply(pixel, 255.0); // scale to range 0-255
+            pixel = div_s(pixel, options.samples);
+            pixel = mult_s(pixel, 255.0); // scale to range 0-255
 
             size_t index = (y * options.width + x) * 3;
             framebuffer[index + 0] = (uint8_t)(pixel.x);
@@ -806,49 +874,19 @@ void render(uint8_t *framebuffer, const options_t options)
 
 void _test_load_obj()
 {
-    const char *obj = "assets/cube.obj";
+    mesh_t mesh;
+    load_obj("assets/cube.obj", &mesh);
 
-    object_t *scene = NULL;
-    size_t num_objects;
+    TEST_CHECK(mesh.num_triangles == 12);
+    TEST_CHECK(mesh.triangles != NULL);
 
-    TEST_CHECK(load_obj(obj, scene, &num_objects) == true);
-}
-
-void _test_load_obj_myself()
-{
-    int *indices = NULL;
-    double *vertices = NULL;
-    size_t num_vertices = 0, num_indices = 0, num_triangles;
-    int result = 0;
-
-    result = obj_load(
-        "assets/cube.obj",
-        vertices,
-        &num_vertices,
-        indices,
-        &num_indices,
-        &num_triangles);
-
-    for (size_t i = 0; i < num_vertices; i++)
+    for (int i = 0; i < mesh.num_triangles; i++)
     {
-        // printf("v[%d] = %f\n", i, vertices[i]);
+        print_t(mesh.triangles[i]);
     }
 
-    TEST_CHECK(result == 0);
-    TEST_CHECK(num_indices == 12);
-    TEST_CHECK(num_triangles == 12);
-    TEST_CHECK(num_vertices == 8);
-    TEST_CHECK(indices != NULL);
-    TEST_CHECK(vertices != NULL);
-
-    if (vertices != NULL)
-    {
-        free(vertices);
-    }
-    if (indices != NULL)
-    {
-        free(indices);
-    }
+    if (mesh.triangles)
+        free(mesh.triangles);
 }
 
 void _test_intersect()
@@ -857,10 +895,11 @@ void _test_intersect()
     ray_t ray;
 
     triangle_t triangle = {
-        {1, 0, -3},
-        {0, 1, -3},
-        {-1, 0, -3},
-    };
+        {
+            {1, 0, -3},
+            {0, 1, -3},
+            {-1, 0, -3},
+        }};
 
     ray = (ray_t){{0, 0, 0}, {0, 0, -1}};
     TEST_CHECK(intersect_triangle(&ray, &triangle, &hit) == true);
@@ -874,11 +913,54 @@ void _test_intersect()
     TEST_CHECK(point_at(&ray, hit.t).z == -1.0);
 }
 
+void _test_math()
+{
+    // matrix * matrix
+    mat4 m0 = {{5, 7, 9, 10,
+                2, 3, 3, 8,
+                8, 10, 2, 3,
+                3, 3, 4, 8}};
+    mat4 m1 = {{3, 10, 12, 18,
+                12, 1, 4, 9,
+                9, 10, 12, 2,
+                3, 12, 4, 10}};
+    mat4 ref_m = {{
+        210.0,
+        267.0,
+        236.0,
+        271.0,
+        93.0,
+        149.0,
+        104.0,
+        149.0,
+        171.0,
+        146.0,
+        172.0,
+        268.0,
+        105.0,
+        169.0,
+        128.0,
+        169.0,
+    }};
+    mat4 res_m = mult_mm(m0, m1);
+    TEST_CHECK(memcmp(&res_m, &ref_m, sizeof(mat4)) == 0);
+
+    // matrix * vector
+    vec3 v0 = {3, 7, 5};
+    mat4 m3 = {{2, 3, 4, 0,
+                11, 8, 7, 0,
+                3, 2, 9, 0,
+                0, 0, 0, 1}};
+    vec3 ref_v = {47.0, 124.0, 68.0};
+    vec3 res_v = mult_mv(m3, v0);
+    TEST_CHECK(memcmp(&ref_v, &res_v, sizeof(vec3)) == 0);
+}
+
 void _test_all()
 {
     _test_intersect();
     //_test_load_obj();
-    //_test_load_obj_myself();
+    _test_math();
 }
 
 int main()
@@ -891,12 +973,16 @@ int main()
     options_t options = {
         .width = 640,
         .height = 480,
-        .samples = 50,
+        .samples = 25,
         .result = "result.png",
         .obj = "assets/cube.obj"};
 
     uint8_t *framebuffer = malloc(sizeof(*framebuffer) * options.width * options.height * 3);
-    assert(framebuffer != NULL);
+    if (framebuffer == NULL)
+    {
+        fprintf(stderr, "could not allocate framebuffer\n");
+        exit(1);
+    }
 
     clock_t tic = clock();
 
@@ -911,7 +997,8 @@ int main()
     printf("rendering took %f seconds\n", time_taken);
     printf("writing result to '%s'...\n", options.result);
 
-    if (stbi_write_png(options.result, options.width, options.height, 3, framebuffer, options.width * 3) == 0)
+    int r = stbi_write_png(options.result, options.width, options.height, 3, framebuffer, options.width * 3);
+    if (r == 0)
     {
         fprintf(stderr, "failed to write");
         exit(EXIT_FAILURE);

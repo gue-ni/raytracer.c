@@ -1,6 +1,8 @@
 .idea/
 cmake-*
 *.o
+*.exe
+*.exe.stackdump
 result.png
 raytracer
 raytracer_test
