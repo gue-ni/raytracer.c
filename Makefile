@@ -6,7 +6,7 @@ SRC 	= $(wildcard *.c)
 OBJ 	= $(patsubst %.c, %.o, $(SRC))
 HEADERS = $(wildcard *.h)
 
-APP 	= ray
+APP 	= raytracer
 TESTS 	= raytracer_test
 
 $(APP): $(OBJ)
