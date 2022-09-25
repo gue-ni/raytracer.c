@@ -5,4 +5,5 @@ cmake-*
 *.exe.stackdump
 result.png
 raytracer
+ray
 raytracer_test

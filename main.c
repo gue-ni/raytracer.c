@@ -14,26 +14,12 @@
 #include <string.h>
 
 #define STB_IMAGE_WRITE_IMPLEMENTATION
-#include "stb_image_write.h"
+#include "lib/stb_image_write.h"
 
 #define TINYOBJ_LOADER_C_IMPLEMENTATION
-#include "tinyobj_loader.h"
+#include "lib/tinyobj_loader.h"
 
-#define EPSILON 1e-8
-#define MAX_DEPTH 5
-#define MAX(a, b) ((a) > (b) ? (a) : (b))
-#define MIN(a, b) ((a) < (b) ? (a) : (b))
-#define CLAMP(x) (MAX(0, MIN(x, 1)))
-#define CLAMP_BETWEEN(x, min_v, max_v) (MAX(min_v, MIN(max_v, 1)))
-#define ABS(x) ((x < 0) ? (-x) : (x))
-#define RGB(r, g, b) ((vec3){r / 255.0, g / 255.0, b / 255.0})
-
-#define RED RGB(187, 52, 155)
-#define BLUE RGB(122, 94, 147)
-#define GREEN RGB(108, 69, 117)
-#define ZERO_VECTOR RGB(0, 0, 0)
-#define BACKGROUND_COLOR RGB(69, 185, 211)
-#define BLACK ZERO_VECTOR
+#include "raytracer.h"
 
 double random_double() { return (double)rand() / ((double)RAND_MAX + 1); }
 
@@ -175,50 +161,50 @@ typedef struct
 
 int ray_count = 0, intersection_test_count = 0;
 
-inline static double dot(const vec3 v1, const vec3 v2) { return v1.x * v2.x + v1.y * v2.y + v1.z * v2.z; }
+static inline double dot(const vec3 v1, const vec3 v2) { return v1.x * v2.x + v1.y * v2.y + v1.z * v2.z; }
 
-inline static vec3 cross(const vec3 a, const vec3 b)
+static inline vec3 cross(const vec3 a, const vec3 b)
 {
     return (vec3){a.y * b.z - a.z * b.y, a.z * b.x - a.x * b.z, a.x * b.y - a.y * b.x};
 }
 
-inline static double length2(const vec3 v1) { return v1.x * v1.x + v1.y * v1.y + v1.z * v1.z; }
+static inline double length2(const vec3 v1) { return v1.x * v1.x + v1.y * v1.y + v1.z * v1.z; }
 
-inline static double length(const vec3 v1) { return sqrt(length2(v1)); }
+static inline double length(const vec3 v1) { return sqrt(length2(v1)); }
 
-inline static vec3 mult(const vec3 v1, const vec3 v2)
+static inline vec3 mult(const vec3 v1, const vec3 v2)
 {
     return (vec3){v1.x * v2.x, v1.y * v2.y, v1.z * v2.z};
 }
 
-inline static vec3 sub(const vec3 v1, const vec3 v2) { return (vec3){v1.x - v2.x, v1.y - v2.y, v1.z - v2.z}; }
+static inline vec3 sub(const vec3 v1, const vec3 v2) { return (vec3){v1.x - v2.x, v1.y - v2.y, v1.z - v2.z}; }
 
-inline static vec3 add(const vec3 v1, const vec3 v2) { return (vec3){v1.x + v2.x, v1.y + v2.y, v1.z + v2.z}; }
+static inline vec3 add(const vec3 v1, const vec3 v2) { return (vec3){v1.x + v2.x, v1.y + v2.y, v1.z + v2.z}; }
 
-inline static vec3 mult_s(const vec3 v1, const double s)
+static inline vec3 mult_s(const vec3 v1, const double s)
 {
     return (vec3){v1.x * s, v1.y * s, v1.z * s};
 }
 
-inline static vec3 div_s(const vec3 v1, const double s) { return (vec3){v1.x / s, v1.y / s, v1.z / s}; }
+static inline vec3 div_s(const vec3 v1, const double s) { return (vec3){v1.x / s, v1.y / s, v1.z / s}; }
 
-inline static bool scalar_equals(const vec3 v1, const double s) { return v1.x == s && v1.y == s && v1.z == s; }
+static inline bool scalar_equals(const vec3 v1, const double s) { return v1.x == s && v1.y == s && v1.z == s; }
 
-inline static bool vector_equals(const vec3 v1, const vec3 v2)
+static inline bool vector_equals(const vec3 v1, const vec3 v2)
 {
     return v1.x == v2.x && v1.y == v2.y && v1.z == v2.z;
 }
 
-inline static vec3 point_at(const ray_t *ray, double t)
+static inline vec3 point_at(const ray_t *ray, double t)
 {
     return add(ray->origin, mult_s(ray->direction, t));
 }
 
-inline static bool equal_d(double a, double b) { return ABS(a - b) < EPSILON; }
+static inline bool equal_d(double a, double b) { return ABS(a - b) < EPSILON; }
 
-inline static vec3 clamp(const vec3 v1) { return (vec3){CLAMP(v1.x), CLAMP(v1.y), CLAMP(v1.z)}; }
+static inline vec3 clamp(const vec3 v1) { return (vec3){CLAMP(v1.x), CLAMP(v1.y), CLAMP(v1.z)}; }
 
-inline static vec3 normalize(const vec3 v1)
+static inline vec3 normalize(const vec3 v1)
 {
     double m = length(v1);
     assert(m > 0);
@@ -278,7 +264,6 @@ static mat4 translate(const vec3 v)
     }};
     return m;
 }
-
 
 static mat4 rotate(const vec3 R){
     mat4 rotate_x = {{
