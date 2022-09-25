@@ -267,7 +267,7 @@ static void show(const uint8_t *buffer, const options_t options)
   }
 }
 
-static bool intersect_sphere(const ray_t *ray, const sphere_t *sphere, hit_t *hit)
+bool intersect_sphere(const ray_t *ray, const sphere_t *sphere, hit_t *hit)
 {
   intersection_test_count++;
   double t0, t1; // solutions for t if the ray intersects
@@ -309,7 +309,7 @@ static bool intersect_sphere(const ray_t *ray, const sphere_t *sphere, hit_t *hi
   }
 }
 
-static bool intersect_triangle(const ray_t *ray, const triangle_t *triangle, hit_t *hit)
+bool intersect_triangle(const ray_t *ray, const triangle_t *triangle, hit_t *hit)
 {
   intersection_test_count++;
   // https://en.wikipedia.org/wiki/M%C3%B6ller%E2%80%93Trumbore_intersection_algorithm

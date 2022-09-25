@@ -9,11 +9,11 @@ HEADERS = $(wildcard *.h)
 APP 	= raytracer
 TESTS 	= raytracer_test
 
-$(APP): $(OBJ)
+$(APP): main.o raytracer.o 
 	$(CC) $(CFLAGS) -o $@ $^ $(LFLAGS)
 
-#$(TESTS): $(SRC)
-#	$(CC) $(CFLAGS) -o $@ $< $(LFLAGS)
+$(TESTS): test.o raytracer.o
+	$(CC) $(CFLAGS) -o $@ $^ $(LFLAGS)
 
 %.o: %.c
 	$(CC) $(CFLAGS) -c -o $@ $<

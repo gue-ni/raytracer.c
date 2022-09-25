@@ -134,6 +134,16 @@ typedef struct
   char *obj;
 } options_t;
 
+bool intersect_sphere(const ray_t *ray, const sphere_t *sphere, hit_t *hit);
+
+bool intersect_triangle(const ray_t *ray, const triangle_t *triangle, hit_t *hit);
+
+vec3 point_at(const ray_t *ray, double t);
+
+mat4 mult_mm(const mat4 A, const mat4 B);
+
+vec3 mult_mv(const mat4 A, const vec3 v);
+
 vec3 point_at(const ray_t *ray, double t);
 
 mat4 translate(const vec3 v);
