@@ -24,7 +24,7 @@ test: $(TESTS)
 	./$(TESTS)
 
 run: all 
-	./$(APP) -w 640 -h 480 -o "out.png"
+	./$(APP) -w 640 -h 480 -o "result.png"
 
 clean:
 	rm -f $(APP) $(TESTS) *.o *.stackdump
