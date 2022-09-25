@@ -20,12 +20,11 @@ $(TESTS): test.o raytracer.o
 
 all: $(APP)
 
-test: CFLAGS += -DRUN_TESTS
 test: $(TESTS)
 	./$(TESTS)
 
 run: all 
-	./$(APP)
+	./$(APP) -w 640 -h 480 -o "out.png"
 
 clean:
 	rm -f $(APP) $(TESTS) *.o *.stackdump

@@ -18,11 +18,8 @@
 
 #include "raytracer.h"
 
-
 extern int ray_count;
 extern int intersection_test_count;
-
-
 
 void exit_error(const char *message)
 {
@@ -30,21 +27,41 @@ void exit_error(const char *message)
     exit(EXIT_FAILURE);
 }
 
-
-
-int main()
+int main(int argc, char **argv)
 {
-    srand((unsigned)time(NULL));
-#ifdef RUN_TESTS
-    _test_all();
-    return TEST_CHECK(true); // return number of failed tests
-#else
+    if (argc <= 1)
+    {
+        fprintf(stderr, "Usage: %s -w <width> -h <height> -o <filename>\n", argv[0]);
+        exit(EXIT_FAILURE);
+    }
+
     options_t options = {
-        .width = 6,
-        .height = 4,
-        .samples = 5,
+        .width = 320,
+        .height = 180,
+        .samples = 50,
         .result = "result.png",
         .obj = "assets/cube.obj"};
+
+    size_t optind;
+    for (optind = 1; optind < argc; optind++)
+    {
+        switch (argv[optind][1])
+        {
+        case 'h':
+            options.height = atoi(argv[optind + 1]);
+            break;
+        case 'w':
+            options.width = atoi(argv[optind + 1]);
+            break;
+        case 'o':
+            options.result = argv[optind + 1];
+            break;
+
+        default:
+            break;
+        }
+    }
+    argv += optind;
 
     uint8_t *framebuffer = malloc(sizeof(*framebuffer) * options.width * options.height * 3);
     if (framebuffer == NULL)
@@ -52,6 +69,8 @@ int main()
         fprintf(stderr, "could not allocate framebuffer\n");
         exit(1);
     }
+
+    srand((unsigned)time(NULL));
 
     clock_t tic = clock();
 
@@ -80,5 +99,4 @@ int main()
     // show(framebuffer);
     free(framebuffer);
     return 0;
-#endif
 }
