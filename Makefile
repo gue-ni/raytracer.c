@@ -9,20 +9,22 @@ HEADERS = $(wildcard *.h)
 APP 	= raytracer
 TESTS 	= raytracer_test
 
-$(APP): $(SRC)
-	$(CC) $(CFLAGS) $(LFLAGS) -o $@ $<
+$(APP): main.o raytracer.o 
+	$(CC) $(CFLAGS) -o $@ $^ $(LFLAGS)
 
-$(TESTS): $(SRC)
-	$(CC) $(CFLAGS) $(LFLAGS) -o $@ $<
+$(TESTS): test.o raytracer.o
+	$(CC) $(CFLAGS) -o $@ $^ $(LFLAGS)
+
+%.o: %.c
+	$(CC) $(CFLAGS) -c -o $@ $<
 
 all: $(APP)
 
-test: CFLAGS += -DRUN_TESTS
 test: $(TESTS)
 	./$(TESTS)
 
 run: all 
-	./$(APP)
+	./$(APP) -w 640 -h 480 -o "out.png"
 
 clean:
 	rm -f $(APP) $(TESTS) *.o *.stackdump
