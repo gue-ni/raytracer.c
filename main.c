@@ -144,14 +144,6 @@ typedef struct
 
 typedef struct
 {
-    sphere_t *spheres;
-    size_t ns;
-    light_t *lights;
-    size_t nl;
-} render_context_t;
-
-typedef struct
-{
     int width, height, samples;
     char *result;
     char *obj;
@@ -897,8 +889,8 @@ int main()
     return TEST_CHECK(true); // return number of failed tests
 #else
     options_t options = {
-        .width = 1280,
-        .height = 720,
+        .width = 640,
+        .height = 480,
         .samples = 50,
         .result = "result.png",
         .obj = "assets/cube.obj"};
