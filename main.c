@@ -89,8 +89,8 @@ int main(int argc, char **argv)
         },
     };
 
-    vec3 pos = {0, 2, -3};
-    vec3 size = {4, 3, 8};
+    vec3 pos = {0, -.75, -3};
+    vec3 size = {4, 0, 4};
 
     triangle_t triangles[] = {
         {{
@@ -105,7 +105,7 @@ int main(int argc, char **argv)
         }},
     };
 
-    mesh_t mesh2 = {
+    mesh_t mesh = {
         .vertices = (vec3[]){
             {pos.x + size.x, pos.y - size.y, pos.z - size.z}, // lower left
             {pos.x - size.x, pos.y - size.y, pos.z + size.z}, // top right
@@ -151,7 +151,7 @@ int main(int argc, char **argv)
     */
 
     object_t scene[] = {
-        {.type = MESH, .material = {RGB(200, 200, 200), CHECKERED}, .geometry.mesh = &mesh2},
+        {.type = MESH, .material = {RGB(200, 200, 200), CHECKERED}, .geometry.mesh = &mesh},
         {.type = SPHERE, .material = {GREEN, REFLECTION}, .geometry.sphere = &spheres[1]},
         {.type = SPHERE, .material = {RED, PHONG}, .geometry.sphere = &spheres[2]},
         {.type = SPHERE, .material = {RANDOM_COLOR, REFLECTION_AND_REFRACTION}, .geometry.sphere = &spheres[3]},

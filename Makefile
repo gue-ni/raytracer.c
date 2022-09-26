@@ -6,6 +6,8 @@ SRC 	= $(wildcard *.c)
 OBJ 	= $(patsubst %.c, %.o, $(SRC))
 HEADERS = $(wildcard *.h)
 
+DATE := $(shell date "+%Y-%m-%d")
+
 APP 	= raytracer
 TESTS 	= raytracer_test
 
@@ -24,7 +26,10 @@ test: $(TESTS)
 	./$(TESTS) > tests.log 2>&1
 
 run: all 
-	./$(APP) -w 640 -h 480 -o "result.png"
+	./$(APP) -w 640 -h 480 -s 50 -o "result.png"
+
+pretty: all
+	./$(APP) -w 1920 -h 1080 -s 100 -o image-$(DATE).png
 
 memcheck: $(APP)
 	valgrind --leak-check=full --show-leak-kinds=all --track-origins=yes --verbose --log-file="valgrind.log" ./$(APP) -w 100 -h 50 -o "result-valgrind.png"
