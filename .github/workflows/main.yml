@@ -32,7 +32,7 @@ jobs:
       
     - name: perfcheck
       run: |
-        sudo apt install gprof
+        sudo apt install binutils
         make perfcheck
 
     - uses: actions/upload-artifact@v3
