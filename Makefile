@@ -26,8 +26,11 @@ test: $(TESTS)
 run: all 
 	./$(APP) -w 640 -h 480 -o "result.png"
 
+memcheck:
+	valgrind -q --leak-check=yes ./$(APP) -w 100 -h 50 -o "result-valgrind.png"
+
 clean:
 	rm -f $(APP) $(TESTS) *.o *.stackdump
 
-.PHONY: all clean run
+.PHONY: all clean run memcheck
 
