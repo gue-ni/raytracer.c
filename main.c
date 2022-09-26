@@ -31,7 +31,7 @@ int main(int argc, char **argv)
 {
     if (argc <= 1)
     {
-        fprintf(stderr, "Usage: %s -w <width> -h <height> -o <filename>\n", argv[0]);
+        fprintf(stderr, "Usage: %s -w <width> -h <height> -s <samples per pixel> -o <filename>\n", argv[0]);
         exit(EXIT_FAILURE);
     }
 
@@ -52,6 +52,9 @@ int main(int argc, char **argv)
             break;
         case 'w':
             options.width = atoi(argv[optind + 1]);
+            break;
+        case 's':
+            options.samples = atoi(argv[optind + 1]);
             break;
         case 'o':
             options.result = argv[optind + 1];
