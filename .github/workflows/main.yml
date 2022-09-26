@@ -22,10 +22,11 @@ jobs:
     - name: valgrind
       run: |
         sudo apt install valgrind
-        echo "installed valgrind"
         make memcheck
 
     - uses: actions/upload-artifact@v3
       with:
         name: render-artifact
-        path: result.png 
+        path: |
+          result.png
+          valgrind.log
