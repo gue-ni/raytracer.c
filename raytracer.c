@@ -251,7 +251,11 @@ static char rgb_to_char(uint8_t r, uint8_t g, uint8_t b)
 
 static vec3 sample_texture(double u, double v)
 {
-  return RED;
+  if (u < 0.5){
+    return (vec3) {1, 0, 0};
+  } else {
+    return (vec3) {0, 0, 1};
+  }
 }
 
 static void show(const uint8_t *buffer, const options_t options)
@@ -506,7 +510,8 @@ static vec3 cast_ray(const ray_t *ray, object_t *scene, size_t n_objects, int de
 
   case PHONG:
   {
-    out_color = phong_lighting(hit.object->material.color, light_dir, hit.normal, ray->origin, hit.point, in_shadow);
+    vec3 material_color = sample_texture(hit.u, hit.v);
+    out_color = phong_lighting(material_color, light_dir, hit.normal, ray->origin, hit.point, in_shadow);
     break;
   }
 
