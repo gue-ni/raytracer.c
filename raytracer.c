@@ -537,7 +537,7 @@ void render(uint8_t *framebuffer, object_t *objects, size_t n_objects, const opt
         v = (double)(y + random_double()) / ((double)options.height - 1.0);
 
         ray = get_camera_ray(&camera, u, v);
-        pixel = add(pixel, cast_ray(&ray, objects, n_objects,, 0));
+        pixel = add(pixel, cast_ray(&ray, objects, n_objects, 0));
       }
 
       pixel = div_s(pixel, options.samples);
