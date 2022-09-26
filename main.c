@@ -16,7 +16,6 @@
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "lib/stb_image_write.h"
 
-
 #include "raytracer.h"
 
 extern int ray_count;
@@ -27,8 +26,6 @@ void exit_error(const char *message)
     fprintf(stderr, "[ERROR] (%s:%d) %s\n", __FILE__, __LINE__, message);
     exit(EXIT_FAILURE);
 }
-
-
 
 int main(int argc, char **argv)
 {
@@ -69,93 +66,97 @@ int main(int argc, char **argv)
     }
     argv += optind;
 
-
-  sphere_t spheres[] = {
-      {
-          {0, -100, -15},
-          100,
-      },
-      {
-          {1, 0, -2},
-          .5,
-      },
-      {
-          {-0.5, 0, -5},
-          .5,
-      },
-      {
-          {0, 0, -3},
-          .75,
-      },
-      {
-          {-1.5, 0, -3},
-          .5,
-      },
-  };
-
-  vec3 pos = {0, 2, -3};
-  vec3 size = {4, 3, 8};
-  // double w = 3;
-
-  triangle_t triangles[] = {
-      {{
-          {pos.x + size.x, pos.y - size.y, pos.z - size.z}, // lower left
-          {pos.x - size.x, pos.y - size.y, pos.z + size.z}, // top right
-          {pos.x - size.x, pos.y - size.y, pos.z - size.z}, // lower right
-      }},
-      {{
-          {pos.x + size.x, pos.y - size.y, pos.z - size.z}, // lower left
-          {pos.x - size.x, pos.y - size.y, pos.z + size.z}, // top right
-          {pos.x + size.x, pos.y - size.y, pos.z + size.z}, // top left
-      }},
-  };
-
-  mesh_t mesh = {
-    .num_triangles = 2, 
-    .triangles = triangles
+    sphere_t spheres[] = {
+        {
+            {0, -100, -15},
+            100,
+        },
+        {
+            {1, 0, -2},
+            .5,
+        },
+        {
+            {-0.5, 0, -5},
+            .5,
+        },
+        {
+            {0, 0, -3},
+            .75,
+        },
+        {
+            {-1.5, 0, -3},
+            .5,
+        },
     };
 
-  mesh_t mesh2 = {
-    .vertices = (vec3[]){
-          {pos.x + size.x, pos.y - size.y, pos.z - size.z}, // lower left
-          {pos.x - size.x, pos.y - size.y, pos.z + size.z}, // top right
-          {pos.x - size.x, pos.y - size.y, pos.z - size.z}, // lower right
-          {pos.x + size.x, pos.y - size.y, pos.z + size.z}, // top left
-    },
-    .indices = (int[]){
-        0,1,2,
-        0,1,3,
-    },
-    .num_triangles = 2,
-    .triangles = NULL,
-  };
+    vec3 pos = {0, 2, -3};
+    vec3 size = {4, 3, 8};
 
-  mesh_t cube;
-  load_obj("assets/cube.obj", &cube);
+    triangle_t triangles[] = {
+        {{
+            {pos.x + size.x, pos.y - size.y, pos.z - size.z}, // lower left
+            {pos.x - size.x, pos.y - size.y, pos.z + size.z}, // top right
+            {pos.x - size.x, pos.y - size.y, pos.z - size.z}, // lower right
+        }},
+        {{
+            {pos.x + size.x, pos.y - size.y, pos.z - size.z}, // lower left
+            {pos.x - size.x, pos.y - size.y, pos.z + size.z}, // top right
+            {pos.x + size.x, pos.y - size.y, pos.z + size.z}, // top left
+        }},
+    };
 
-  vec3 euler = {.5, .5, .5};
-  mat4 rot = rotate(euler);
+    mesh_t mesh2 = {
+        .vertices = (vec3[]){
+            {pos.x + size.x, pos.y - size.y, pos.z - size.z}, // lower left
+            {pos.x - size.x, pos.y - size.y, pos.z + size.z}, // top right
+            {pos.x - size.x, pos.y - size.y, pos.z - size.z}, // lower right
+            {pos.x + size.x, pos.y - size.y, pos.z + size.z}, // top left
+        },
+        .indices = (int[]){
+            0,
+            1,
+            2,
+            0,
+            1,
+            3,
+        },
+        .tex = (vec2[]){
+            {0, 0},
+            {1, 1},
+            {1, 0},
+            {0, 1},
+        },
+        .num_triangles = 2,
+        .triangles = NULL,
+    };
 
-  vec3 new_pos = {0, 0, -3};
-  mat4 trans = translate(new_pos);
+    /*
+    mesh_t cube;
+    load_obj("assets/cube.obj", &cube);
 
-  for (size_t i = 0; i < cube.num_triangles; i++)
-  {
-    for (size_t j = 0; j < 3; j++)
+    vec3 euler = {.5, .5, .5};
+    mat4 rot = rotate(euler);
+
+    vec3 new_pos = {0, 0, -3};
+    mat4 trans = translate(new_pos);
+
+    for (size_t i = 0; i < cube.num_triangles; i++)
     {
-      vec3 *v = &cube.triangles[i].v[j];
-      *v = mult_mv(mult_mm(trans, rot), *v);
+        for (size_t j = 0; j < 3; j++)
+        {
+            vec3 *v = &cube.triangles[i].v[j];
+            *v = mult_mv(mult_mm(trans, rot), *v);
+        }
     }
-  }
+    */
 
-  object_t scene[] = {
-      {.type = SPHERE, .material = {RANDOM_COLOR, REFLECTION}, .geometry.sphere = &spheres[1]},
-      {.type = SPHERE, .material = {RED, PHONG}, .geometry.sphere = &spheres[2]},
-      {.type = SPHERE, .material = {RANDOM_COLOR, REFLECTION_AND_REFRACTION}, .geometry.sphere = &spheres[3]},
-      {.type = SPHERE, .material = {BLUE, PHONG}, .geometry.sphere = &spheres[4]},
-      {.type = MESH, .material = {GREEN, PHONG}, .geometry.mesh = &mesh2},
-  };
-
+    object_t scene[] = {
+        {.type = MESH, .material = {RGB(200, 200, 200), CHECKERED}, .geometry.mesh = &mesh2},
+        {.type = SPHERE, .material = {GREEN, REFLECTION}, .geometry.sphere = &spheres[1]},
+        {.type = SPHERE, .material = {RED, PHONG}, .geometry.sphere = &spheres[2]},
+        {.type = SPHERE, .material = {RANDOM_COLOR, REFLECTION_AND_REFRACTION}, .geometry.sphere = &spheres[3]},
+        {.type = SPHERE, .material = {BLUE, REFLECTION}, .geometry.sphere = &spheres[4]},
+    };
 
     uint8_t *framebuffer = malloc(sizeof(*framebuffer) * options.width * options.height * 3);
     if (framebuffer == NULL)

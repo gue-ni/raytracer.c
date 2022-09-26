@@ -36,6 +36,10 @@ vec3 mult_s(const vec3 v1, const double s)
 
 vec3 div_s(const vec3 v1, const double s) { return (vec3){v1.x / s, v1.y / s, v1.z / s}; }
 
+vec2 mult_s2(const vec2 v, const double s) { return (vec2){v.x * s, v.y * s}; }
+
+vec2 add_s2(const vec2 v1, const vec2 v2) { return (vec2){v1.x + v2.x, v1.y + v2.y}; }
+
 vec3 point_at(const ray_t *ray, double t)
 {
   return add(ray->origin, mult_s(ray->direction, t));
@@ -249,13 +253,12 @@ static char rgb_to_char(uint8_t r, uint8_t g, uint8_t b)
   return grey[9 - index];
 }
 
-static vec3 sample_texture(double u, double v)
+static vec3 sample_texture(vec3 color, double u, double v)
 {
-  if (u < 0.5){
-    return (vec3) {1, 0, 0};
-  } else {
-    return (vec3) {0, 0, 1};
-  }
+  double M = 10;
+  double checker = (fmod(u * M, 1.0) > 0.5) ^ (fmod(v * M, 1.0) < 0.5); 
+  double c = 0.3 * (1 - checker) + 0.7 * checker; 
+  return mult_s(color, c);
 }
 
 static void show(const uint8_t *buffer, const options_t options)
@@ -344,8 +347,19 @@ bool intersect_triangle(const ray_t *ray, const triangle_t *triangle, hit_t *hit
   if (t > EPSILON)
   {
     hit->t = t;
+
+    vec2 st0 = triangle->uv[0];
+    vec2 st1 = triangle->uv[1];
+    vec2 st2 = triangle->uv[2];
+
+    vec2 tmp = add_s2(add_s2(mult_s2(st0, 1 - u - v) , mult_s2(st1, u)), mult_s2(st2, v));
+    hit->u = tmp.x;
+    hit->v = tmp.y;
+
+    /*
     hit->u = u;
     hit->v = v;
+    */
     return true;
   }
   else
@@ -370,7 +384,8 @@ static bool intersect(const ray_t *ray, object_t *objects, size_t n, hit_t *hit)
     {
       mesh_t *mesh = objects[i].geometry.mesh;
 
-      if (mesh->triangles){
+      if (mesh->triangles)
+      {
         for (int j = 0; j < mesh->num_triangles; j++)
         {
           triangle_t triangle = mesh->triangles[j];
@@ -382,15 +397,18 @@ static bool intersect(const ray_t *ray, object_t *objects, size_t n, hit_t *hit)
             local.normal = cross(triangle.v[0], triangle.v[1]);
           }
         }
-      } else {
+      }
+      else
+      {
         for (int j = 0; j < mesh->num_triangles; j++)
         {
           triangle_t triangle;
           for (int k = 0; k < 3; k++)
           {
             triangle.v[k] = mesh->vertices[mesh->indices[(j * 3) + k]];
+            triangle.uv[k] = mesh->tex[mesh->indices[(j * 3) + k]];
           }
-          
+
           if (intersect_triangle(ray, &triangle, &local) && local.t < min_t)
           {
             min_t = local.t;
@@ -400,7 +418,6 @@ static bool intersect(const ray_t *ray, object_t *objects, size_t n, hit_t *hit)
           }
         }
       }
-
 
       break;
     }
@@ -432,7 +449,7 @@ static bool intersect(const ray_t *ray, object_t *objects, size_t n, hit_t *hit)
   return min_t < old_t;
 }
 
-static vec3 phong_lighting(vec3 color, vec3 light_dir, vec3 normal, vec3 camera_origin, vec3 position, bool in_shadow)
+static vec3 phong(vec3 color, vec3 light_dir, vec3 normal, vec3 camera_origin, vec3 position, bool in_shadow)
 {
   double ka = 0.18;
   double ks = 0.4;
@@ -487,7 +504,7 @@ static vec3 cast_ray(const ray_t *ray, object_t *scene, size_t n_objects, int de
     vec3 reflected_color = cast_ray(&reflected, scene, n_objects, depth + 1);
     double f = 0.5;
     out_color = add(mult_s(reflected_color, f), mult_s(hit.object->material.color, (1 - f)));
-    out_color = phong_lighting(out_color, light_dir, hit.normal, ray->origin, hit.point, in_shadow);
+    out_color = phong(out_color, light_dir, hit.normal, ray->origin, hit.point, in_shadow);
     break;
   }
 
@@ -510,10 +527,18 @@ static vec3 cast_ray(const ray_t *ray, object_t *scene, size_t n_objects, int de
 
   case PHONG:
   {
-    vec3 material_color = sample_texture(hit.u, hit.v);
-    out_color = phong_lighting(material_color, light_dir, hit.normal, ray->origin, hit.point, in_shadow);
+    vec3 material_color = hit.object->material.color;
+    out_color = phong(material_color, light_dir, hit.normal, ray->origin, hit.point, in_shadow);
     break;
   }
+
+  case CHECKERED:
+  {
+    vec3 material_color = sample_texture(hit.object->material.color, hit.u, hit.v);
+    out_color = phong(material_color, light_dir, hit.normal, ray->origin, hit.point, in_shadow);
+    break;
+  }
+
 
   case DIFFUSE:
   {

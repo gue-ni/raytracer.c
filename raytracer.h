@@ -21,11 +21,18 @@
 #define RGB(r, g, b) ((vec3){r / 255.0, g / 255.0, b / 255.0})
 #define EQ(a, b) (ABS((a) - (b)) < EPSILON)
 
+/*
 #define RED RGB(187, 52, 155)
 #define BLUE RGB(122, 94, 147)
 #define GREEN RGB(108, 69, 117)
-#define ZERO_VECTOR RGB(0, 0, 0)
 #define BACKGROUND_COLOR RGB(69, 185, 211)
+*/
+#define RED RGB(255, 0, 0)
+#define GREEN RGB(0, 255, 0)
+#define BLUE RGB(0, 0, 255)
+#define BACKGROUND_COLOR RGB(1, 130, 129)
+
+#define ZERO_VECTOR RGB(0, 0, 0)
 #define BLACK ZERO_VECTOR
 
 extern int ray_count;
@@ -35,6 +42,11 @@ double random_double();
 
 #define RANDOM_COLOR \
   (vec3) { random_double(), random_double(), random_double() }
+
+typedef struct
+{
+  double x, y;
+} vec2;
 
 typedef struct
 {
@@ -60,6 +72,7 @@ typedef enum
 {
   SOLID,
   PHONG,
+  CHECKERED,
   DIFFUSE,
   REFLECTION,
   REFLECTION_AND_REFRACTION,
@@ -80,12 +93,14 @@ typedef struct
 typedef struct
 {
   vec3 v[3];
+  vec2 uv[3];
 } triangle_t;
 
 typedef struct
 {
   int *indices;
   vec3 *vertices;
+  vec2 *tex;
   size_t num_triangles;
   triangle_t *triangles;
 } mesh_t;
@@ -161,6 +176,5 @@ void print_m(const mat4 m);
 void render(uint8_t *framebuffer, object_t *objects, size_t n_objects, const options_t options);
 
 bool load_obj(const char *filename, mesh_t *mesh);
-
 
 #endif /* RAYTRACER_H */

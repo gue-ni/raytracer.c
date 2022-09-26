@@ -2,6 +2,9 @@
 cmake-*
 *.o
 *.exe
+*.log
+*.out
+result*.png
 *.exe.stackdump
 result.png
 raytracer
