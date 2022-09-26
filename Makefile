@@ -27,7 +27,7 @@ run: all
 	./$(APP) -w 640 -h 480 -o "result.png"
 
 memcheck:
-	valgrind --leak-check=full --show-leak-kinds=all --track-origins=yes --verbose --log-file="valgrind.log" ./$(APP) -w 640 -h 480 -o "result-valgrind.png"
+	valgrind --leak-check=full --show-leak-kinds=all --track-origins=yes --verbose --log-file="valgrind.log" ./$(APP) -w 320 -h 180 -o "result-valgrind.png"
 
 clean:
 	rm -f $(APP) $(TESTS) *.o *.stackdump
