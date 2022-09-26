@@ -29,6 +29,10 @@ run: all
 memcheck:
 	valgrind --leak-check=full --show-leak-kinds=all --track-origins=yes --verbose --log-file="valgrind.log" ./$(APP) -w 320 -h 180 -o "result-valgrind.png"
 
+perfcheck: CFLAGS += -pg
+perfcheck: $(APP)
+	gprof $(APP) > gprof.log 2>&1
+
 clean:
 	rm -f $(APP) $(TESTS) *.o *.stackdump
 

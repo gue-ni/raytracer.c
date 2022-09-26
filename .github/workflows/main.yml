@@ -15,14 +15,25 @@ jobs:
     - uses: actions/checkout@v3
     - name: test
       run: make test
+
     - name: clean
       run: make clean
+
     - name: run
       run: make run
-    - name: valgrind
+
+    - name: memcheck
       run: |
         sudo apt install valgrind
         make memcheck
+
+    - name: clean
+      run: make clean
+      
+    - name: perfcheck
+      run: |
+        sudo apt install gprof
+        make perfcheck
 
     - uses: actions/upload-artifact@v3
       with:
@@ -32,3 +43,4 @@ jobs:
           result-valgrind.png
           valgrind.log
           tests.log
+          gprof.log
