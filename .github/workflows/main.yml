@@ -19,6 +19,11 @@ jobs:
       run: make clean
     - name: run
       run: make run
+    - name: valgrind
+      run: |
+        sudo apt install valgrind
+        echo "installed valgrind"
+        make memcheck
 
     - uses: actions/upload-artifact@v3
       with:
