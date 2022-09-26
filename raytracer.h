@@ -84,6 +84,8 @@ typedef struct
 
 typedef struct
 {
+  int *indices;
+  vec3 *vertices;
   size_t num_triangles;
   triangle_t *triangles;
 } mesh_t;

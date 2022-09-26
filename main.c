@@ -110,7 +110,25 @@ int main(int argc, char **argv)
       }},
   };
 
+  int indices[] = {};
+  vec3 vertices[] = {};
+
   mesh_t mesh = {2, triangles};
+
+  mesh_t mesh2 = {
+    .vertices = {
+          {pos.x + size.x, pos.y - size.y, pos.z - size.z}, // lower left
+          {pos.x - size.x, pos.y - size.y, pos.z + size.z}, // top right
+          {pos.x - size.x, pos.y - size.y, pos.z - size.z}, // lower right
+          {pos.x + size.x, pos.y - size.y, pos.z + size.z}, // top left
+    },
+    .indices = {
+        0,1,2,
+        0,1,3,
+    },
+    .num_triangles = 2,
+    .triangles = NULL,
+  }
 
   mesh_t cube;
   load_obj("assets/cube.obj", &cube);
@@ -135,7 +153,7 @@ int main(int argc, char **argv)
       {.type = SPHERE, .material = {RED, PHONG}, .geometry.sphere = &spheres[2]},
       {.type = SPHERE, .material = {RANDOM_COLOR, REFLECTION_AND_REFRACTION}, .geometry.sphere = &spheres[3]},
       {.type = SPHERE, .material = {BLUE, PHONG}, .geometry.sphere = &spheres[4]},
-      {.type = MESH, .material = {GREEN, PHONG}, .geometry.mesh = &mesh},
+      {.type = MESH, .material = {GREEN, PHONG}, .geometry.mesh = &mesh2},
   };
 
 

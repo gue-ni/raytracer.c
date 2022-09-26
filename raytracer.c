@@ -365,17 +365,39 @@ static bool intersect(const ray_t *ray, object_t *objects, size_t n, hit_t *hit)
     case MESH:
     {
       mesh_t *mesh = objects[i].geometry.mesh;
-      for (int j = 0; j < mesh->num_triangles; j++)
-      {
-        triangle_t triangle = mesh->triangles[j];
-        if (intersect_triangle(ray, &triangle, &local) && local.t < min_t)
+
+      if (mesh->triangles){
+        for (int j = 0; j < mesh->num_triangles; j++)
         {
-          min_t = local.t;
-          local.object = &objects[i];
-          local.point = point_at(ray, local.t);
-          local.normal = cross(triangle.v[0], triangle.v[1]);
+          triangle_t triangle = mesh->triangles[j];
+          if (intersect_triangle(ray, &triangle, &local) && local.t < min_t)
+          {
+            min_t = local.t;
+            local.object = &objects[i];
+            local.point = point_at(ray, local.t);
+            local.normal = cross(triangle.v[0], triangle.v[1]);
+          }
+        }
+      } else {
+        for (int j = 0; j < mesh->num_triangles; j++)
+        {
+          triangle_t triangle;
+          for (int k = 0; k < 3; k++)
+          {
+            triangle.v[k] = mesh->vertices[mesh->indices[(j * 3) + k]];
+          }
+          
+          if (intersect_triangle(ray, &triangle, &local) && local.t < min_t)
+          {
+            min_t = local.t;
+            local.object = &objects[i];
+            local.point = point_at(ray, local.t);
+            local.normal = cross(triangle.v[0], triangle.v[1]);
+          }
         }
       }
+
+
       break;
     }
     case SPHERE:
