@@ -31,7 +31,8 @@ memcheck:
 
 perfcheck: CFLAGS += -pg
 perfcheck: $(APP)
-	gprof $(APP) > gprof.log 2>&1
+	./$(APP) -w 320 -h 180 -o "result-prof.png"
+	gprof $(APP) gmon.out > gprof.log 2>&1
 
 clean:
 	rm -f $(APP) $(TESTS) *.o *.stackdump
