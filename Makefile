@@ -21,7 +21,7 @@ $(TESTS): test.o raytracer.o
 all: $(APP)
 
 test: $(TESTS)
-	./$(TESTS)
+	./$(TESTS) > tests.log 2>&1
 
 run: all 
 	./$(APP) -w 640 -h 480 -o "result.png"
