@@ -116,13 +116,13 @@ int main(int argc, char **argv)
   mesh_t mesh = {2, triangles};
 
   mesh_t mesh2 = {
-    .vertices = {
+    .vertices = (vec3[]){
           {pos.x + size.x, pos.y - size.y, pos.z - size.z}, // lower left
           {pos.x - size.x, pos.y - size.y, pos.z + size.z}, // top right
           {pos.x - size.x, pos.y - size.y, pos.z - size.z}, // lower right
           {pos.x + size.x, pos.y - size.y, pos.z + size.z}, // top left
     },
-    .indices = {
+    .indices = (int[]){
         0,1,2,
         0,1,3,
     },
