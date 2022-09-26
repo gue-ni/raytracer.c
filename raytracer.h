@@ -158,4 +158,7 @@ void print_m(const mat4 m);
 
 void render(uint8_t *framebuffer, object_t *objects, size_t n_objects, const options_t options);
 
+bool load_obj(const char *filename, mesh_t *mesh);
+
+
 #endif /* RAYTRACER_H */

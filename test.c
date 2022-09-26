@@ -35,7 +35,6 @@ int _test_check(int cond, const char *filename, int line, const char *expr, bool
   return test_failures_so_far;
 }
 
-/*
 void _test_load_obj()
 {
   mesh_t mesh;
@@ -52,7 +51,6 @@ void _test_load_obj()
   if (mesh.triangles)
     free(mesh.triangles);
 }
-*/
 
 void _test_intersect()
 {
@@ -124,7 +122,7 @@ void _test_math()
 void _test_all()
 {
   _test_intersect();
-  //_test_load_obj();
+  _test_load_obj();
   _test_math();
 }
 

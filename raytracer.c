@@ -1,5 +1,8 @@
-#include "raytracer.h"
 
+#define TINYOBJ_LOADER_C_IMPLEMENTATION
+#include "lib/tinyobj_loader.h"
+
+#include "raytracer.h"
 
 int ray_count = 0;
 int intersection_test_count = 0;
@@ -515,7 +518,111 @@ static vec3 cast_ray(const ray_t *ray, object_t *scene, size_t n_objects, int de
   return out_color;
 }
 
+void load_file(void *ctx, const char *filename, const int is_mtl, const char *obj, char **buffer, size_t *len)
+{
+  long string_size = 0, read_size = 0;
+  FILE *handler = fopen(filename, "r");
 
+  if (handler)
+  {
+    fseek(handler, 0, SEEK_END);
+    string_size = ftell(handler);
+    rewind(handler);
+    *buffer = (char *)malloc(sizeof(char) * (string_size + 1));
+    read_size = fread(*buffer, sizeof(char), (size_t)string_size, handler);
+    (*buffer)[string_size] = '\0';
+    if (string_size != read_size)
+    {
+      free(buffer);
+      *buffer = NULL;
+    }
+    fclose(handler);
+  }
+  *len = read_size;
+}
+
+bool load_obj(const char *filename, mesh_t *mesh)
+{
+  tinyobj_attrib_t attrib;
+  tinyobj_shape_t *shape = NULL;
+  tinyobj_material_t *material = NULL;
+
+  size_t num_shapes;
+  size_t num_materials;
+
+  tinyobj_attrib_init(&attrib);
+
+  int result = tinyobj_parse_obj(
+      &attrib,
+      &shape,
+      &num_shapes,
+      &material,
+      &num_materials,
+      filename,
+      load_file,
+      NULL,
+      TINYOBJ_FLAG_TRIANGULATE);
+
+  assert(result == TINYOBJ_SUCCESS);
+  assert(attrib.num_faces == 36);
+  assert(attrib.num_normals == 6);  // one per side
+  assert(attrib.num_vertices == 8); // one per corner
+  assert(attrib.num_texcoords == 0);
+  assert(attrib.num_face_num_verts == 12); // two triangles per side
+
+  assert(mesh != NULL);
+
+  mesh->num_triangles = attrib.num_face_num_verts;
+  mesh->triangles = malloc(mesh->num_triangles * sizeof(*mesh->triangles));
+
+  assert(mesh->triangles != NULL);
+
+  size_t face_offset = 0;
+  // iterate over all faces
+  for (size_t i = 0; i < attrib.num_face_num_verts; i++)
+  {
+    const int face_num_verts = attrib.face_num_verts[i]; // num verts per face
+
+    assert(face_num_verts == 3);     // assert all faces are triangles
+    assert(face_num_verts % 3 == 0); // assert all faces are triangles
+    // printf("[%d] face_num_verts = %d\n", i, face_num_verts);
+
+    tinyobj_vertex_index_t idx0 = attrib.faces[face_offset + 0];
+    tinyobj_vertex_index_t idx1 = attrib.faces[face_offset + 1];
+    tinyobj_vertex_index_t idx2 = attrib.faces[face_offset + 2];
+
+    triangle_t triangle;
+
+    for (int k = 0; k < 3; k++)
+    {
+      int f0 = idx0.v_idx;
+      int f1 = idx1.v_idx;
+      int f2 = idx2.v_idx;
+
+      assert(f0 >= 0);
+      assert(f1 >= 0);
+      assert(f2 >= 0);
+
+      vec3 v = {
+          attrib.vertices[3 * (size_t)f0 + k],
+          attrib.vertices[3 * (size_t)f1 + k],
+          attrib.vertices[3 * (size_t)f2 + k],
+      };
+
+      triangle.v[k] = v;
+    }
+
+    mesh->triangles[i] = triangle;
+
+    face_offset += (size_t)face_num_verts;
+  }
+
+  if (shape)
+    tinyobj_shapes_free(shape, num_shapes);
+
+  tinyobj_attrib_free(&attrib);
+  return true;
+}
 
 void render(uint8_t *framebuffer, object_t *objects, size_t n_objects, const options_t options)
 {
