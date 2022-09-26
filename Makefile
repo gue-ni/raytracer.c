@@ -29,14 +29,14 @@ run: all
 	./$(APP) -w 640 -h 480 -s 50 -o "result.png"
 
 pretty: all
-	./$(APP) -w 1920 -h 1080 -s 100 -o image-$(DATE).png
+	./$(APP) -w 1920 -h 1080 -s 500 -o image-$(DATE).png
 
 memcheck: $(APP)
-	valgrind --leak-check=full --show-leak-kinds=all --track-origins=yes --verbose --log-file="valgrind.log" ./$(APP) -w 100 -h 50 -o "result-valgrind.png"
+	valgrind --leak-check=full --show-leak-kinds=all --track-origins=yes --verbose --log-file="valgrind.log" ./$(APP) -w 100 -h 50 -s 50 -o "result-valgrind.png"
 
 perfcheck: CFLAGS += -pg
 perfcheck: $(APP)
-	./$(APP) -w 320 -h 180 -o "result-prof.png"
+	./$(APP) -w 320 -h 180 -s 50 -o "result-prof.png"
 	gprof $(APP) gmon.out > gprof.log 2>&1
 
 clean:

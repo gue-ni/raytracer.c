@@ -40,8 +40,5 @@ jobs:
       with:
         name: render-artifact
         path: |
-          result.png
-          result-valgrind.png
-          valgrind.log
-          tests.log
-          gprof.log
+          *.log
+          *.png
