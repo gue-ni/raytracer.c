@@ -128,7 +128,7 @@ int main(int argc, char **argv)
     },
     .num_triangles = 2,
     .triangles = NULL,
-  }
+  };
 
   mesh_t cube;
   load_obj("assets/cube.obj", &cube);
