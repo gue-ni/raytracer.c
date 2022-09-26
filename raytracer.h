@@ -156,8 +156,6 @@ void print_t(const triangle_t triangle);
 
 void print_m(const mat4 m);
 
-bool load_obj(const char *filename, mesh_t *mesh);
-
-void render(uint8_t *framebuffer, const options_t options);
+void render(uint8_t *framebuffer, object_t *objects, size_t n_objects, const options_t options);
 
 #endif /* RAYTRACER_H */
