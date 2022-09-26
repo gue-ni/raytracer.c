@@ -110,10 +110,10 @@ int main(int argc, char **argv)
       }},
   };
 
-  int indices[] = {};
-  vec3 vertices[] = {};
-
-  mesh_t mesh = {2, triangles};
+  mesh_t mesh = {
+    .num_triangles = 2, 
+    .triangles = triangles
+    };
 
   mesh_t mesh2 = {
     .vertices = (vec3[]){
