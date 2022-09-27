@@ -123,10 +123,21 @@ int main(int argc, char **argv)
             {{pos.x - size.x, pos.y - size.y, pos.z + size.z}, /* 1 bottom front left */    {1,1}},
             {{pos.x + size.x, pos.y - size.y, pos.z + size.z}, /* 3 bottom front right */   {0,1}},
 
-
             {{pos.x + size.x, pos.y - size.y, pos.z - size.z}, /* 0 bottom back right */    {0,0}},
             {{pos.x - size.x, pos.y - size.y, pos.z - size.z}, /* 2 bottom back left */     {1,0}},
             {{pos.x + size.x, pos.y + size.y, pos.z - size.z}, /* 4 top back right */       {0,0}},
+
+            {{pos.x - size.x, pos.y + size.y, pos.z - size.z}, /* 6 top back left */        {0,0}},
+            {{pos.x + size.x, pos.y - size.y, pos.z - size.z}, /* 0 bottom back right */    {0,0}},
+            {{pos.x - size.x, pos.y - size.y, pos.z - size.z}, /* 2 bottom back left */     {1,0}},
+
+            {{pos.x + size.x, pos.y + size.y, pos.z - size.z}, /* 4 top back right */       {0,0}},
+            {{pos.x - size.x, pos.y + size.y, pos.z + size.z}, /* 5 top front left */       {1,1}},
+            {{pos.x - size.x, pos.y + size.y, pos.z - size.z}, /* 6 top back left */        {1,0}},
+
+            {{pos.x + size.x, pos.y + size.y, pos.z - size.z}, /* 4 top back right */       {0,0}},
+            {{pos.x - size.x, pos.y + size.y, pos.z + size.z}, /* 5 top front left */       {1,1}},
+            {{pos.x + size.x, pos.y + size.y, pos.z + size.z}, /* 8 top front right */      {0,1}},
 
 
             {{pos.x + size.x, pos.y + size.y, pos.z - size.z}, /* 4 top back right */       {0,0}},
@@ -136,7 +147,7 @@ int main(int argc, char **argv)
 
 
         },
-        .num_triangles = 3,
+        .num_triangles = 6,
         .triangles = NULL,
     };
 
