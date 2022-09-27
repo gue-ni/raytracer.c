@@ -180,7 +180,7 @@ void print_t(const triangle_t triangle);
 
 void print_m(const mat4 m);
 
-void render(uint8_t *framebuffer, object_t *objects, size_t n_objects, const options_t options);
+void render(uint8_t *framebuffer, object_t *objects, size_t n_objects, options_t options);
 
 bool load_obj(const char *filename, mesh_t *mesh);
 

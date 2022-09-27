@@ -7,6 +7,10 @@
 int ray_count = 0;
 int intersection_test_count = 0;
 
+static vec3 calculate_color(const ray_t *ray, object_t *scene, size_t n_objects, int depth, hit_t hit);
+
+static vec3 cast_ray(const ray_t *ray, object_t *scene, size_t n_objects, int depth);
+
 double random_double() { return (double)rand() / ((double)RAND_MAX + 1); }
 
 static double dot(const vec3 v1, const vec3 v2) { return v1.x * v2.x + v1.y * v2.y + v1.z * v2.z; }
@@ -397,19 +401,28 @@ static bool intersect(const ray_t *ray, object_t *objects, size_t n, hit_t *hit)
       mesh_t *mesh = objects[i].geometry.mesh;
       for (int ti = 0; ti < mesh->num_triangles; ti++)
       {
-        vertex_t v0 = mesh->verts[ti+0];
-        vertex_t v1 = mesh->verts[ti+1];
-        vertex_t v2 = mesh->verts[ti+2];
+        vertex_t v0 = mesh->verts[(ti*3)+0];
+        vertex_t v1 = mesh->verts[(ti*3)+1];
+        vertex_t v2 = mesh->verts[(ti*3)+2];
+
+
+        /*
+        printf("vertex_t {\n");
+        print_v(v0.pos);
+        print_v(v1.pos);
+        print_v(v1.pos);
+        printf("}\n");
+        */
 
         if (intersect_triangle(ray, v0, v1, v2, &local) && local.t < min_t)
         {
           min_t = local.t;
           local.object = &objects[i];
           local.point = point_at(ray, local.t);
-          local.normal = cross(triangle.v[0], triangle.v[1]);
+          local.normal = cross(v0.pos, v1.pos);
         }
-
       }
+
       break;
     }
     case SPHERE:
@@ -440,12 +453,14 @@ static bool intersect(const ray_t *ray, object_t *objects, size_t n, hit_t *hit)
   return min_t < old_t;
 }
 
-static vec3 phong(vec3 color, vec3 light_dir, vec3 normal, vec3 camera_origin, vec3 position, bool in_shadow)
+static vec3 phong(vec3 color, vec3 light_dir, vec3 normal, vec3 camera_origin, vec3 position, bool in_shadow, double ka, double ks, double kd, double alpha)
 {
+  /*
   double ka = 0.18;
   double ks = 0.4;
   double kd = 0.8;
   double alpha = 10;
+  */
 
   // ambient
   vec3 ambient = mult_s(color, ka);
@@ -462,29 +477,17 @@ static vec3 phong(vec3 color, vec3 light_dir, vec3 normal, vec3 camera_origin, v
   return in_shadow ? ambient : clamp(add(add(ambient, diffuse), specular));
 }
 
-static vec3 cast_ray(const ray_t *ray, object_t *scene, size_t n_objects, int depth)
+vec3 calculate_color(const ray_t *ray, object_t *objects, size_t n_objects, int depth, hit_t hit)
 {
-  ray_count++;
-
-  if (depth > MAX_DEPTH)
-  {
-    return BACKGROUND_COLOR;
-  }
-
-  hit_t hit = {.t = DBL_MAX, .object = NULL};
-
-  if (!intersect(ray, scene, n_objects, &hit))
-  {
-    return BACKGROUND_COLOR;
-  }
-
   vec3 out_color = ZERO_VECTOR;
 
-  vec3 light_pos = {1, 3, 0};
+  vec3 light_pos = {0, 3, -1};
   vec3 light_color = {1, 1, 1};
   vec3 light_dir = normalize(sub(light_pos, hit.point));
   ray_t light_ray = {hit.point, normalize(sub(light_pos, hit.point))};
-  bool in_shadow = intersect(&light_ray, scene, n_objects, NULL);
+  bool in_shadow = intersect(&light_ray, objects, n_objects, NULL);
+
+  double ka = 0.18, ks = 0.4, kd = 0.8, alpha = 5;
 
   switch (hit.object->material.type)
   {
@@ -492,21 +495,21 @@ static vec3 cast_ray(const ray_t *ray, object_t *scene, size_t n_objects, int de
   {
     // TODO: compute fresnel equation
     ray_t reflected = {hit.point, normalize(reflect(ray->direction, hit.normal))};
-    vec3 reflected_color = cast_ray(&reflected, scene, n_objects, depth + 1);
-    double f = 0.5;
-    out_color = add(mult_s(reflected_color, f), mult_s(hit.object->material.color, (1 - f)));
-    out_color = phong(out_color, light_dir, hit.normal, ray->origin, hit.point, in_shadow);
+    vec3 reflected_color = cast_ray(&reflected, objects, n_objects, depth + 1);
+    double f = kd;
+    out_color = add(mult_s(reflected_color, (1- f)), mult_s(hit.object->material.color, (f)));
+    out_color = phong(out_color, light_dir, hit.normal, ray->origin, hit.point, in_shadow, ka, ks, kd, alpha);
     break;
   }
 
   case REFLECTION_AND_REFRACTION:
   {
     ray_t reflected = {hit.point, normalize(reflect(ray->direction, hit.normal))};
-    vec3 reflected_color = cast_ray(&reflected, scene, n_objects, depth + 1);
+    vec3 reflected_color = cast_ray(&reflected, objects, n_objects, depth + 1);
 
     double iot = 1;
     ray_t refracted = {hit.point, normalize(refract(ray->direction, hit.normal, iot))};
-    vec3 refracted_color = cast_ray(&refracted, scene, n_objects, depth + 1);
+    vec3 refracted_color = cast_ray(&refracted, objects, n_objects, depth + 1);
 
     double kr = .8;
 
@@ -519,17 +522,16 @@ static vec3 cast_ray(const ray_t *ray, object_t *scene, size_t n_objects, int de
   case PHONG:
   {
     vec3 material_color = hit.object->material.color;
-    out_color = phong(material_color, light_dir, hit.normal, ray->origin, hit.point, in_shadow);
+    out_color = phong(material_color, light_dir, hit.normal, ray->origin, hit.point, in_shadow, ka, ks, kd, alpha);
     break;
   }
 
   case CHECKERED:
   {
     vec3 material_color = sample_texture(hit.object->material.color, hit.u, hit.v);
-    out_color = phong(material_color, light_dir, hit.normal, ray->origin, hit.point, in_shadow);
+    out_color = phong(material_color, light_dir, hit.normal, ray->origin, hit.point, in_shadow, ka, ks, kd, alpha);
     break;
   }
-
 
   case DIFFUSE:
   {
@@ -558,7 +560,27 @@ static vec3 cast_ray(const ray_t *ray, object_t *scene, size_t n_objects, int de
     exit(1);
   }
   }
+
   return out_color;
+}
+
+vec3 cast_ray(const ray_t *ray, object_t *objects, size_t n_objects, int depth)
+{
+  ray_count++;
+
+  if (depth > MAX_DEPTH)
+  {
+    return BACKGROUND_COLOR;
+  }
+
+  hit_t hit = {.t = DBL_MAX, .object = NULL};
+
+  if (!intersect(ray, objects, n_objects, &hit))
+  {
+    return BACKGROUND_COLOR;
+  }
+
+  return calculate_color(ray, objects, n_objects, depth, hit);
 }
 
 void load_file(void *ctx, const char *filename, const int is_mtl, const char *obj, char **buffer, size_t *len)
@@ -667,10 +689,10 @@ bool load_obj(const char *filename, mesh_t *mesh)
   return true;
 }
 
-void render(uint8_t *framebuffer, object_t *objects, size_t n_objects, const options_t options)
+void render(uint8_t *framebuffer, object_t *objects, size_t n_objects, options_t options)
 {
   camera_t camera;
-  init_camera(&camera, (vec3){0, 0, 1}, options);
+  init_camera(&camera, (vec3){0, 0, 1.5}, options);
 
   int x, y, s;
   double u, v;

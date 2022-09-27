@@ -11,10 +11,10 @@ DATE := $(shell date "+%Y-%m-%d")
 APP 	= raytracer
 TESTS 	= raytracer_test
 
-$(APP): main.o raytracer.o 
+$(APP): main.o raytracer.o raytracer.h
 	$(CC) $(CFLAGS) -o $@ $^ $(LFLAGS)
 
-$(TESTS): test.o raytracer.o
+$(TESTS): test.o raytracer.o raytracer.h
 	$(CC) $(CFLAGS) -o $@ $^ $(LFLAGS)
 
 %.o: %.c
