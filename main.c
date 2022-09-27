@@ -118,8 +118,12 @@ int main(int argc, char **argv)
             {{pos.x + size.x, pos.y - size.y, pos.z - size.z}, {0,0}},
             {{pos.x - size.x, pos.y - size.y, pos.z + size.z},  {1,1}},
             {{pos.x - size.x, pos.y - size.y, pos.z - size.z}, {1,0}},
+
+            {{pos.x + size.x, pos.y - size.y, pos.z - size.z}, {0,0}},
+            {{pos.x - size.x, pos.y - size.y, pos.z + size.z},  {1,1}},
+            {{pos.x + size.x, pos.y - size.y, pos.z + size.z}, {0,1}},
         },
-        .num_triangles = 1,
+        .num_triangles = 2,
         .triangles = NULL,
     };
 
@@ -144,7 +148,7 @@ int main(int argc, char **argv)
     */
 
     object_t scene[] = {
-        {.type = MESH, .material = {RGB(200, 200, 200), PHONG}, .geometry.mesh = &mesh},
+        {.type = MESH, .material = {RGB(200, 200, 200), CHECKERED}, .geometry.mesh = &mesh},
         {.type = SPHERE, .material = {GREEN, REFLECTION}, .geometry.sphere = &spheres[1]},
         {.type = SPHERE, .material = {RED, PHONG}, .geometry.sphere = &spheres[2]},
         {.type = SPHERE, .material = {RANDOM_COLOR, REFLECTION_AND_REFRACTION}, .geometry.sphere = &spheres[3]},

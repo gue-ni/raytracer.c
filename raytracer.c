@@ -360,15 +360,13 @@ bool intersect_triangle(const ray_t *ray, vertex_t vertex0, vertex_t vertex1,ver
   {
     hit->t = t;
 
-    /*
-    vec2 st0 = triangle->uv[0];
-    vec2 st1 = triangle->uv[1];
-    vec2 st2 = triangle->uv[2];
+    vec2 st0 = vertex0.tex;
+    vec2 st1 = vertex1.tex;
+    vec2 st2 = vertex2.tex;
 
     vec2 tmp = add_s2(add_s2(mult_s2(st0, 1 - u - v) , mult_s2(st1, u)), mult_s2(st2, v));
     hit->u = tmp.x;
     hit->v = tmp.y;
-    */
 
     /*
     hit->u = u;
