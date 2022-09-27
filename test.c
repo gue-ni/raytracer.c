@@ -65,9 +65,9 @@ void _test_intersect()
       }};
 
   vertex_t v0, v1, v2;
-  v0.pos = {1,0,-3};
-  v1.pos = {0,1,-3};
-  v2.pos = {-1,0,-3};
+  v0.pos = (vec3){1,0,-3};
+  v1.pos = (vec3){0,1,-3};
+  v2.pos = (vec3){-1,0,-3};
 
   ray = (ray_t){{0, 0, 0}, {0, 0, -1}};
   TEST_CHECK(intersect_triangle(&ray, v0, v1, v2, &hit) == true);
