@@ -599,7 +599,8 @@ vec3 random_in_unit_sphere()
       random_range(-1, 1),
     };
     */
-   vec3 p = RANDOM_COLOR;
+
+    vec3 p = RANDOM_COLOR;
 
     if (length2(p) < 1)
     {
@@ -611,18 +612,21 @@ vec3 random_in_unit_sphere()
 
 vec3 random_in_hemisphere(vec3 normal)
 {
-  vec3 d;
+  vec3 d = random_in_unit_sphere();
 
-
-  if (dot(d, normal) < 0){
+  if (dot(d, normal) < 0)
+  {
     return mult_s(d, -1);
-  } else {
+  }
+  else
+  {
     return d;
   }
 }
 
 vec3 trace_path(ray_t *ray, object_t *objects, size_t nobj, int depth)
 {
+  // https://en.wikipedia.org/wiki/Path_tracing
   ray_count++;
 
   hit_t hit = {.t = DBL_MAX, .object = NULL};
@@ -632,23 +636,36 @@ vec3 trace_path(ray_t *ray, object_t *objects, size_t nobj, int depth)
     return BACKGROUND_COLOR;
   }
 
-  // vec3 emittance_color = hit.object->material.color;
-  vec3 emittance_color = RGB(hit.normal.x, hit.normal.y, hit.normal.z);
-  double reflectance = .5;
+#if 0
+  vec3 emittance_color = hit.object->material.color;
+#else
+  vec3 emittance_color;
+  if (hit.object->material.type == LIGHT){
+    emittance_color = RGB(255,255,255);
+  } else {
+    emittance_color = RGB(0,0,0);
+  }
+#endif
+
+  vec3 attenuation = hit.object->material.color;
 
   ray_t new_ray;
   new_ray.origin = hit.point;
-  new_ray.direction = normalize(add(hit.normal, random_in_unit_sphere()));
+  //new_ray.direction = normalize(add(hit.normal, random_in_unit_sphere()));
+  new_ray.direction = random_in_hemisphere(hit.normal);
 
   double p = 1 / (2 * PI);
 
   double cos_theta = dot(new_ray.direction, hit.normal);
-  // vec3 BRDF = reflectance / PI;
+  
+  //double reflectance = .5;
+  //vec3 BRDF = reflectance / PI;
 
   vec3 recursive_color = trace_path(&new_ray, objects, nobj, depth + 1);
 
-  //return clamp(add(emittance_color, clamp(mult_s(recursive_color, cos_theta / p))));
+  //return add(emittance_color, mult_s(recursive_color, cos_theta / p));
   return mult_s(recursive_color, 0.5);
+  //return add(emittance_color, mult(attenuation , recursive_color));
 }
 
 void load_file(void *ctx, const char *filename, const int is_mtl, const char *obj, char **buffer, size_t *len)

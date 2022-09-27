@@ -1,14 +1,14 @@
-CC 		= gcc
-CFLAGS 	= --std=c99 -Wall -g -Wno-strict-aliasing -Wno-unused-variable -Wno-unused-function -O3
+CC 			= gcc
+CFLAGS 	= --std=c99 -Wall -g -Wno-strict-aliasing -Wno-unused-variable -Wno-unused-function -O3 -ffast-math
 LFLAGS 	= -lm
 
-SRC 	= $(wildcard *.c)
-OBJ 	= $(patsubst %.c, %.o, $(SRC))
+SRC 		= $(wildcard *.c)
+OBJ 		= $(patsubst %.c, %.o, $(SRC))
 HEADERS = $(wildcard *.h)
 
-DATE := $(shell date "+%Y-%m-%d")
+DATE 		:= $(shell date "+%Y-%m-%d")
 
-APP 	= raytracer
+APP 		= raytracer
 TESTS 	= raytracer_test
 
 $(APP): main.o raytracer.o raytracer.h

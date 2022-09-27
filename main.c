@@ -90,6 +90,10 @@ int main(int argc, char **argv)
         {
             {0,3,1},
             .05,
+        },
+        {
+            {1,0,.3},
+            .05
         }
     };
 
@@ -186,8 +190,9 @@ int main(int argc, char **argv)
         {.type = MESH, .material = {RGB(200, 200, 200), CHECKERED}, .geometry.mesh = &mesh},
         {.type = SPHERE, .material = {RANDOM_COLOR, SOLID}, .geometry.sphere = &spheres[1]},
         {.type = SPHERE, .material = {RED, PHONG}, .geometry.sphere = &spheres[2]},
-        {.type = SPHERE, .material = {RANDOM_COLOR, REFLECTION_AND_REFRACTION}, .geometry.sphere = &spheres[3]},
-        {.type = SPHERE, .material = {BLUE, REFLECTION}, .geometry.sphere = &spheres[4]},
+        {.type = SPHERE, .material = {RANDOM_COLOR, PHONG}, .geometry.sphere = &spheres[3]},
+        {.type = SPHERE, .material = {BLUE, PHONG}, .geometry.sphere = &spheres[4]},
+        {.type = SPHERE, .material = {BLUE, PHONG}, .geometry.sphere = &spheres[6]},
         //{.type = SPHERE, .material = {RGB(255,255,255), SOLID}, .geometry.sphere = &spheres[5]},
     };
 
