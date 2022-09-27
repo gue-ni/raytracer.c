@@ -64,8 +64,13 @@ void _test_intersect()
           {-1, 0, -3},
       }};
 
+  vertex_t v0, v1, v2;
+  v0.pos = {1,0,-3};
+  v1.pos = {0,1,-3};
+  v2.pos = {-1,0,-3};
+
   ray = (ray_t){{0, 0, 0}, {0, 0, -1}};
-  TEST_CHECK(intersect_triangle(&ray, &triangle, &hit) == true);
+  TEST_CHECK(intersect_triangle(&ray, v0, v1, v2, &hit) == true);
   TEST_CHECK(hit.t == 3.0);
   TEST_CHECK(point_at(&ray, hit.t).z == -3.0);
 
