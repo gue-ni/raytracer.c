@@ -93,27 +93,6 @@ int main(int argc, char **argv)
     vec3 size = {4, 2, 4};
 
     mesh_t mesh = {
-        .vertices = (vec3[]){
-            {pos.x + size.x, pos.y - size.y, pos.z - size.z}, // 0 bottom back right
-            {pos.x - size.x, pos.y - size.y, pos.z + size.z}, // 1 bottom front left
-            {pos.x - size.x, pos.y - size.y, pos.z - size.z}, // 2 bottom back left
-            {pos.x + size.x, pos.y - size.y, pos.z + size.z}, // 3 bottom front right
-
-            {pos.x + size.x, pos.y + size.y, pos.z - size.z}, // 4 top back right
-            {pos.x - size.x, pos.y + size.y, pos.z + size.z}, // 5 top front left
-            {pos.x - size.x, pos.y + size.y, pos.z - size.z}, // 6 top back left
-            {pos.x + size.x, pos.y + size.y, pos.z + size.z}, // 8 top front right
-        },
-        .indices = (int[]){
-            0,1,2,
-            0,1,3,
-            0,2,4,
-        },
-        .tex = (vec2[]){
-            {0, 0},{1, 1},{1, 0},
-
-            {0, 1},
-        },
         .verts = (vertex_t[]){
             {{pos.x + size.x, pos.y - size.y, pos.z - size.z}, /* 0 bottom back right */    {0,0}},
             {{pos.x - size.x, pos.y - size.y, pos.z + size.z}, /* 1 bottom front left */    {1,1}},
@@ -132,6 +111,10 @@ int main(int argc, char **argv)
             {{pos.x - size.x, pos.y - size.y, pos.z - size.z}, /* 2 bottom back left */     {1,0}},
 
             {{pos.x + size.x, pos.y + size.y, pos.z - size.z}, /* 4 top back right */       {0,0}},
+            {{pos.x + size.x, pos.y - size.y, pos.z - size.z}, /* 0 bottom back right */    {0,0}},
+            {{pos.x - size.x, pos.y + size.y, pos.z - size.z}, /* 6 top back left */        {1,0}},
+
+            {{pos.x + size.x, pos.y + size.y, pos.z - size.z}, /* 4 top back right */       {0,0}},
             {{pos.x - size.x, pos.y + size.y, pos.z + size.z}, /* 5 top front left */       {1,1}},
             {{pos.x - size.x, pos.y + size.y, pos.z - size.z}, /* 6 top back left */        {1,0}},
 
@@ -145,10 +128,8 @@ int main(int argc, char **argv)
             {{pos.x - size.x, pos.y + size.y, pos.z - size.z}, /* 6 top back left */        {0,0}},
             {{pos.x + size.x, pos.y + size.y, pos.z + size.z}, /* 8 top front right */      {0,0}},
 
-
         },
-        .num_triangles = 5,
-        .triangles = NULL,
+        .num_triangles = 6,
     };
 
     /*

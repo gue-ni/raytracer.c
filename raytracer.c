@@ -401,11 +401,6 @@ static bool intersect(const ray_t *ray, object_t *objects, size_t n, hit_t *hit)
         vertex_t v1 = mesh->verts[ti+1];
         vertex_t v2 = mesh->verts[ti+2];
 
-        triangle_t triangle = {
-          .v =  {v0.pos,v1.pos, v2.pos},
-          .uv =  {v0.tex, v1.tex, v2.tex},
-        };
-        
         if (intersect_triangle(ray, v0, v1, v2, &local) && local.t < min_t)
         {
           min_t = local.t;
