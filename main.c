@@ -92,41 +92,29 @@ int main(int argc, char **argv)
     vec3 pos = {0, -.75, -3};
     vec3 size = {4, 0, 4};
 
-    triangle_t triangles[] = {
-        {{
-            {pos.x + size.x, pos.y - size.y, pos.z - size.z}, // lower left
-            {pos.x - size.x, pos.y - size.y, pos.z + size.z}, // top right
-            {pos.x - size.x, pos.y - size.y, pos.z - size.z}, // lower right
-        }},
-        {{
-            {pos.x + size.x, pos.y - size.y, pos.z - size.z}, // lower left
-            {pos.x - size.x, pos.y - size.y, pos.z + size.z}, // top right
-            {pos.x + size.x, pos.y - size.y, pos.z + size.z}, // top left
-        }},
-    };
-
     mesh_t mesh = {
         .vertices = (vec3[]){
-            {pos.x + size.x, pos.y - size.y, pos.z - size.z}, // lower left
-            {pos.x - size.x, pos.y - size.y, pos.z + size.z}, // top right
-            {pos.x - size.x, pos.y - size.y, pos.z - size.z}, // lower right
-            {pos.x + size.x, pos.y - size.y, pos.z + size.z}, // top left
+            {pos.x + size.x, pos.y - size.y, pos.z - size.z}, // 0 bottom back right
+            {pos.x - size.x, pos.y - size.y, pos.z + size.z}, // 1 bottom front left
+            {pos.x - size.x, pos.y - size.y, pos.z - size.z}, // 2 bottom back left
+            {pos.x + size.x, pos.y - size.y, pos.z + size.z}, // 3 bottom front right
+
+            {pos.x + size.x, pos.y + size.y, pos.z - size.z}, // 4 top back right
+            {pos.x - size.x, pos.y + size.y, pos.z + size.z}, // 5 top front left
+            {pos.x - size.x, pos.y + size.y, pos.z - size.z}, // 6 top back left
+            {pos.x + size.x, pos.y + size.y, pos.z + size.z}, // 8 top front right
         },
         .indices = (int[]){
-            0,
-            1,
-            2,
-            0,
-            1,
-            3,
+            0,1,2,
+            0,1,3,
+            0,2,4,
         },
         .tex = (vec2[]){
-            {0, 0},
-            {1, 1},
-            {1, 0},
+            {0, 0},{1, 1},{1, 0},
+
             {0, 1},
         },
-        .num_triangles = 2,
+        .num_triangles = 3,
         .triangles = NULL,
     };
 
@@ -151,7 +139,7 @@ int main(int argc, char **argv)
     */
 
     object_t scene[] = {
-        {.type = MESH, .material = {RGB(200, 200, 200), CHECKERED}, .geometry.mesh = &mesh},
+        {.type = MESH, .material = {RGB(200, 200, 200), PHONG}, .geometry.mesh = &mesh},
         {.type = SPHERE, .material = {GREEN, REFLECTION}, .geometry.sphere = &spheres[1]},
         {.type = SPHERE, .material = {RED, PHONG}, .geometry.sphere = &spheres[2]},
         {.type = SPHERE, .material = {RANDOM_COLOR, REFLECTION_AND_REFRACTION}, .geometry.sphere = &spheres[3]},

@@ -348,6 +348,7 @@ bool intersect_triangle(const ray_t *ray, const triangle_t *triangle, hit_t *hit
   {
     hit->t = t;
 
+    /*
     vec2 st0 = triangle->uv[0];
     vec2 st1 = triangle->uv[1];
     vec2 st2 = triangle->uv[2];
@@ -355,6 +356,7 @@ bool intersect_triangle(const ray_t *ray, const triangle_t *triangle, hit_t *hit
     vec2 tmp = add_s2(add_s2(mult_s2(st0, 1 - u - v) , mult_s2(st1, u)), mult_s2(st2, v));
     hit->u = tmp.x;
     hit->v = tmp.y;
+    */
 
     /*
     hit->u = u;
@@ -406,7 +408,7 @@ static bool intersect(const ray_t *ray, object_t *objects, size_t n, hit_t *hit)
           for (int k = 0; k < 3; k++)
           {
             triangle.v[k] = mesh->vertices[mesh->indices[(j * 3) + k]];
-            triangle.uv[k] = mesh->tex[mesh->indices[(j * 3) + k]];
+            //triangle.uv[k] = mesh->tex[mesh->indices[(j * 3) + k]];
           }
 
           if (intersect_triangle(ray, &triangle, &local) && local.t < min_t)
