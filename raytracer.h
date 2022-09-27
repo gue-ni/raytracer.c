@@ -160,7 +160,7 @@ typedef struct
 
 bool intersect_sphere(const ray_t *ray, const sphere_t *sphere, hit_t *hit);
 
-bool intersect_triangle(const ray_t *ray, vertex_t vertex0, vertex_t vertex1,vertex_t vertex2, hit_t *hit)
+bool intersect_triangle(const ray_t *ray, vertex_t vertex0, vertex_t vertex1,vertex_t vertex2, hit_t *hit);
 
 vec3 point_at(const ray_t *ray, double t);
 
