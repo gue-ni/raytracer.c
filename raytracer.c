@@ -278,6 +278,7 @@ static void show(const uint8_t *buffer, const options_t options)
 bool intersect_sphere(const ray_t *ray, const sphere_t *sphere, hit_t *hit)
 {
   intersection_test_count++;
+
   double t0, t1; // solutions for t if the ray intersects
   vec3 L = sub(sphere->center, ray->origin);
   double tca = dot(L, ray->direction);
@@ -309,6 +310,8 @@ bool intersect_sphere(const ray_t *ray, const sphere_t *sphere, hit_t *hit)
   if (t0 > EPSILON)
   {
     hit->t = t0;
+    hit->u = 0;
+    hit->v = 0;
     return true;
   }
   else
@@ -320,6 +323,7 @@ bool intersect_sphere(const ray_t *ray, const sphere_t *sphere, hit_t *hit)
 bool intersect_triangle(const ray_t *ray, const triangle_t *triangle, hit_t *hit)
 {
   intersection_test_count++;
+  
   // https://en.wikipedia.org/wiki/M%C3%B6ller%E2%80%93Trumbore_intersection_algorithm
   vec3 v0 = triangle->v[0];
   vec3 v1 = triangle->v[1];
