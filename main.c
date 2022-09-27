@@ -98,7 +98,7 @@ int main(int argc, char **argv)
     };
 
     vec3 pos = {0, 1, -3};
-    vec3 size = {4, 2, 4};
+    vec3 size = {8, 2, 4};
 
     mesh_t mesh = {
         .num_triangles = 2,
