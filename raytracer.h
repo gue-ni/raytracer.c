@@ -58,6 +58,12 @@ typedef struct
   double x, y, z, w;
 } vec4;
 
+typedef struct 
+{
+  vec3 pos;
+  vec2 tex;
+} vertex_t;
+
 typedef struct
 {
   double m[16];
@@ -102,6 +108,7 @@ typedef struct
   vec3 *vertices;
   vec2 *tex;
   size_t num_triangles;
+  vertex_t *verts;
   triangle_t *triangles;
 } mesh_t;
 

@@ -404,6 +404,27 @@ static bool intersect(const ray_t *ray, object_t *objects, size_t n, hit_t *hit)
           }
         }
       }
+      else if (mesh->verts)
+      {
+        for (int ti = 0; ti < mesh->num_triangles; ti++)
+        {
+          vertex_t v0 = mesh->verts[ti+0];
+          vertex_t v1 = mesh->verts[ti+1];
+          vertex_t v2 = mesh->verts[ti+3];
+          triangle_t triangle = {
+            .v = (vec3[]) {v0.pos,v1.pos, v2.pos},
+            .uv = (vec2[]) {v0.tex, v1.tex, v2.tex},
+          }
+          if (intersect_triangle(ray, &triangle, &local) && local.t < min_t)
+          {
+            min_t = local.t;
+            local.object = &objects[i];
+            local.point = point_at(ray, local.t);
+            local.normal = cross(triangle.v[0], triangle.v[1]);
+          }
+
+        }
+      }
       else
       {
         for (int j = 0; j < mesh->num_triangles; j++)

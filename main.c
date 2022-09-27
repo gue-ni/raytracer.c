@@ -114,7 +114,12 @@ int main(int argc, char **argv)
 
             {0, 1},
         },
-        .num_triangles = 3,
+        .verts = (vertex_t[]){
+            {{pos.x + size.x, pos.y - size.y, pos.z - size.z}, {0,0}},
+            {{pos.x - size.x, pos.y - size.y, pos.z + size.z},  {1,1}},
+            {{pos.x - size.x, pos.y - size.y, pos.z - size.z}, {1,0}},
+        },
+        .num_triangles = 1,
         .triangles = NULL,
     };
 
