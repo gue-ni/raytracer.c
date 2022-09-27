@@ -11,6 +11,9 @@
 #include <stdint.h>
 #include <string.h>
 
+#ifndef PI
+#define PI 3.14159265359
+#endif
 #define EPSILON 1e-8
 #define MAX_DEPTH 5
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
@@ -39,6 +42,8 @@ extern int ray_count;
 extern int intersection_test_count;
 
 double random_double();
+
+double random_range(double min, double max);
 
 #define RANDOM_COLOR \
   (vec3) { random_double(), random_double(), random_double() }
@@ -77,6 +82,7 @@ typedef struct
 typedef enum
 {
   SOLID,
+  LIGHT,
   PHONG,
   CHECKERED,
   DIFFUSE,

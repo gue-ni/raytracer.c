@@ -13,6 +13,11 @@ static vec3 cast_ray(const ray_t *ray, object_t *scene, size_t n_objects, int de
 
 double random_double() { return (double)rand() / ((double)RAND_MAX + 1); }
 
+double random_range(double min, double max)
+{
+  return (double)rand() * (max - min) + min;
+}
+
 static double dot(const vec3 v1, const vec3 v2) { return v1.x * v2.x + v1.y * v2.y + v1.z * v2.z; }
 
 double length2(const vec3 v1) { return v1.x * v1.x + v1.y * v1.y + v1.z * v1.z; }
@@ -260,8 +265,8 @@ static char rgb_to_char(uint8_t r, uint8_t g, uint8_t b)
 static vec3 sample_texture(vec3 color, double u, double v)
 {
   double M = 10;
-  double checker = (fmod(u * M, 1.0) > 0.5) ^ (fmod(v * M, 1.0) < 0.5); 
-  double c = 0.3 * (1 - checker) + 0.7 * checker; 
+  double checker = (fmod(u * M, 1.0) > 0.5) ^ (fmod(v * M, 1.0) < 0.5);
+  double c = 0.3 * (1 - checker) + 0.7 * checker;
   return mult_s(color, c);
 }
 
@@ -324,10 +329,10 @@ bool intersect_sphere(const ray_t *ray, const sphere_t *sphere, hit_t *hit)
   }
 }
 
-bool intersect_triangle(const ray_t *ray, vertex_t vertex0, vertex_t vertex1,vertex_t vertex2, hit_t *hit)
+bool intersect_triangle(const ray_t *ray, vertex_t vertex0, vertex_t vertex1, vertex_t vertex2, hit_t *hit)
 {
   intersection_test_count++;
-  
+
   // https://en.wikipedia.org/wiki/M%C3%B6ller%E2%80%93Trumbore_intersection_algorithm
   /*
   vec3 v0 = triangle->v[0];
@@ -368,7 +373,7 @@ bool intersect_triangle(const ray_t *ray, vertex_t vertex0, vertex_t vertex1,ver
     vec2 st1 = vertex1.tex;
     vec2 st2 = vertex2.tex;
 
-    vec2 tmp = add_s2(add_s2(mult_s2(st0, 1 - u - v) , mult_s2(st1, u)), mult_s2(st2, v));
+    vec2 tmp = add_s2(add_s2(mult_s2(st0, 1 - u - v), mult_s2(st1, u)), mult_s2(st2, v));
     hit->u = tmp.x;
     hit->v = tmp.y;
 
@@ -401,10 +406,9 @@ static bool intersect(const ray_t *ray, object_t *objects, size_t n, hit_t *hit)
       mesh_t *mesh = objects[i].geometry.mesh;
       for (int ti = 0; ti < mesh->num_triangles; ti++)
       {
-        vertex_t v0 = mesh->verts[(ti*3)+0];
-        vertex_t v1 = mesh->verts[(ti*3)+1];
-        vertex_t v2 = mesh->verts[(ti*3)+2];
-
+        vertex_t v0 = mesh->verts[(ti * 3) + 0];
+        vertex_t v1 = mesh->verts[(ti * 3) + 1];
+        vertex_t v2 = mesh->verts[(ti * 3) + 2];
 
         /*
         printf("vertex_t {\n");
@@ -497,7 +501,7 @@ vec3 calculate_color(const ray_t *ray, object_t *objects, size_t n_objects, int 
     ray_t reflected = {hit.point, normalize(reflect(ray->direction, hit.normal))};
     vec3 reflected_color = cast_ray(&reflected, objects, n_objects, depth + 1);
     double f = kd;
-    out_color = add(mult_s(reflected_color, (1- f)), mult_s(hit.object->material.color, (f)));
+    out_color = add(mult_s(reflected_color, (1 - f)), mult_s(hit.object->material.color, (f)));
     out_color = phong(out_color, light_dir, hit.normal, ray->origin, hit.point, in_shadow, ka, ks, kd, alpha);
     break;
   }
@@ -581,6 +585,70 @@ vec3 cast_ray(const ray_t *ray, object_t *objects, size_t n_objects, int depth)
   }
 
   return calculate_color(ray, objects, n_objects, depth, hit);
+}
+
+vec3 random_in_unit_sphere()
+{
+  int loop_counter = 0;
+  while (true)
+  {
+    /*
+    vec3 p = (vec3){
+      random_range(-1, 1),
+      random_range(-1, 1),
+      random_range(-1, 1),
+    };
+    */
+   vec3 p = RANDOM_COLOR;
+
+    if (length2(p) < 1)
+    {
+      return p;
+    }
+    assert(++loop_counter < 100);
+  }
+}
+
+vec3 random_in_hemisphere(vec3 normal)
+{
+  vec3 d;
+
+
+  if (dot(d, normal) < 0){
+    return mult_s(d, -1);
+  } else {
+    return d;
+  }
+}
+
+vec3 trace_path(ray_t *ray, object_t *objects, size_t nobj, int depth)
+{
+  ray_count++;
+
+  hit_t hit = {.t = DBL_MAX, .object = NULL};
+
+  if (depth > MAX_DEPTH || !intersect(ray, objects, nobj, &hit))
+  {
+    return BACKGROUND_COLOR;
+  }
+
+  // vec3 emittance_color = hit.object->material.color;
+  vec3 emittance_color = RGB(hit.normal.x, hit.normal.y, hit.normal.z);
+  double reflectance = .5;
+
+  ray_t new_ray;
+  new_ray.origin = hit.point;
+  new_ray.direction = normalize(add(hit.normal, random_in_unit_sphere()));
+
+  double p = 1 / (2 * PI);
+
+  double cos_theta = dot(new_ray.direction, hit.normal);
+  // vec3 BRDF = reflectance / PI;
+
+  vec3 recursive_color = trace_path(&new_ray, objects, nobj, depth + 1);
+
+  //return clamp(add(emittance_color, clamp(mult_s(recursive_color, cos_theta / p))));
+  return mult_s(recursive_color, 0.5);
 }
 
 void load_file(void *ctx, const char *filename, const int is_mtl, const char *obj, char **buffer, size_t *len)
@@ -709,7 +777,7 @@ void render(uint8_t *framebuffer, object_t *objects, size_t n_objects, options_t
         v = (double)(y + random_double()) / ((double)options.height - 1.0);
 
         ray = get_camera_ray(&camera, u, v);
-        pixel = add(pixel, cast_ray(&ray, objects, n_objects, 0));
+        pixel = add(pixel, trace_path(&ray, objects, n_objects, 0));
       }
 
       pixel = div_s(pixel, options.samples);

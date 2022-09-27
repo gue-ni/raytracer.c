@@ -93,12 +93,13 @@ int main(int argc, char **argv)
         }
     };
 
-    vec3 pos = {0, 0, -3};
+    vec3 pos = {0, 1, -3};
     vec3 size = {4, 2, 4};
 
     mesh_t mesh = {
-        .num_triangles = 4,
+        .num_triangles = 2,
         .verts = (vertex_t[]){
+            /* bottom */
             {{pos.x + size.x, pos.y - size.y, pos.z - size.z}, /* 0 bottom back right */    {0,0}},
             {{pos.x - size.x, pos.y - size.y, pos.z + size.z}, /* 1 bottom front left */    {1,1}},
             {{pos.x - size.x, pos.y - size.y, pos.z - size.z}, /* 2 bottom back left */     {1,0}},
@@ -107,6 +108,7 @@ int main(int argc, char **argv)
             {{pos.x - size.x, pos.y - size.y, pos.z + size.z}, /* 1 bottom front left */    {1,1}},
             {{pos.x + size.x, pos.y - size.y, pos.z + size.z}, /* 3 bottom front right */   {0,1}},
 
+            /* back */
             {{pos.x - size.x, pos.y - size.y, pos.z - size.z}, /* 2 bottom back left */     {0,0}},
             {{pos.x + size.x, pos.y - size.y, pos.z - size.z}, /* 0 bottom back right */    {1,0}},
             {{pos.x + size.x, pos.y + size.y, pos.z - size.z}, /* 4 top back right */       {1,1}},
@@ -115,6 +117,7 @@ int main(int argc, char **argv)
             {{pos.x - size.x, pos.y + size.y, pos.z - size.z}, /* 6 top back left */        {0,1}},
             {{pos.x + size.x, pos.y + size.y, pos.z - size.z}, /* 4 top back right */       {1,1}},
 
+            /* top */
             {{pos.x - size.x, pos.y + size.y, pos.z - size.z}, /* 6 top back left */        {1,0}},
             {{pos.x + size.x, pos.y + size.y, pos.z - size.z}, /* 4 top back right */       {0,0}},
             {{pos.x - size.x, pos.y + size.y, pos.z + size.z}, /* 5 top front left */       {1,1}},
@@ -123,37 +126,65 @@ int main(int argc, char **argv)
             {{pos.x + size.x, pos.y + size.y, pos.z + size.z}, /* 8 top front right */      {0,1}},
             {{pos.x - size.x, pos.y + size.y, pos.z + size.z}, /* 5 top front left */       {1,1}},
 
+            /* right */
+            {{pos.x - size.x, pos.y - size.y, pos.z - size.z}, /* 2 bottom back left */     {0,0}},
+            {{pos.x - size.x, pos.y - size.y, pos.z + size.z}, /* 1 bottom front left */    {1,1}},
+            {{pos.x - size.x, pos.y + size.y, pos.z - size.z}, /* 6 top back left */        {1,0}},
+
+            {{pos.x - size.x, pos.y - size.y, pos.z + size.z}, /* 1 bottom front left */    {1,1}},
+            {{pos.x - size.x, pos.y + size.y, pos.z + size.z}, /* 5 top front left */       {1,1}},
+            {{pos.x - size.x, pos.y + size.y, pos.z - size.z}, /* 6 top back left */        {1,0}},
+
+            /* left */
+            {{pos.x + size.x, pos.y - size.y, pos.z - size.z}, /* 0 bottom back right */    {1,0}},
+            {{pos.x + size.x, pos.y - size.y, pos.z + size.z}, /* 3 bottom front right */   {0,1}},
+            {{pos.x + size.x, pos.y + size.y, pos.z + size.z}, /* 8 top front right */      {0,1}},
+
+            {{pos.x + size.x, pos.y - size.y, pos.z - size.z}, /* 0 bottom back right */    {1,0}},
+            {{pos.x + size.x, pos.y + size.y, pos.z - size.z}, /* 4 top back right */       {1,1}},
+            {{pos.x + size.x, pos.y + size.y, pos.z + size.z}, /* 8 top front right */      {0,1}},
+
+            /* front */
+            {{pos.x - size.x, pos.y - size.y, pos.z + size.z}, /* 1 bottom front left */    {1,1}},
+            {{pos.x + size.x, pos.y - size.y, pos.z + size.z}, /* 3 bottom front right */   {0,1}},
+            {{pos.x + size.x, pos.y + size.y, pos.z + size.z}, /* 8 top front right */      {0,1}},
+
+
+
+
             {{pos.x + size.x, pos.y + size.y, pos.z - size.z}, /* 4 top back right */       {0,0}},
             {{pos.x - size.x, pos.y + size.y, pos.z + size.z}, /* 5 top front left */       {0,0}},
             {{pos.x - size.x, pos.y + size.y, pos.z - size.z}, /* 6 top back left */        {0,0}},
             {{pos.x + size.x, pos.y + size.y, pos.z + size.z}, /* 8 top front right */      {0,0}},
-
         },
     };
 
     /*
     mesh_t cube;
     load_obj("assets/cube.obj", &cube);
+    */
 
-    vec3 euler = {.5, .5, .5};
+    /*
+    vec3 euler = {.0, .5, .0};
     mat4 rot = rotate(euler);
 
-    vec3 new_pos = {0, 0, -3};
+    vec3 new_pos = {0, 0, 0};
     mat4 trans = translate(new_pos);
 
-    for (size_t i = 0; i < cube.num_triangles; i++)
+    for (size_t i = 0; i < mesh.num_triangles; i++)
     {
-        for (size_t j = 0; j < 3; j++)
-        {
-            vec3 *v = &cube.triangles[i].v[j];
-            *v = mult_mv(mult_mm(trans, rot), *v);
-        }
+        vertex_t *v0 = &mesh.verts[(i * 3)+0];
+        vertex_t *v1 = &mesh.verts[(i * 3)+1];
+        vertex_t *v2 = &mesh.verts[(i * 3)+2];
+        v0->pos = mult_mv(mult_mm(trans, rot), v0->pos);
+        v1->pos = mult_mv(mult_mm(trans, rot), v1->pos);
+        v2->pos = mult_mv(mult_mm(trans, rot), v2->pos);
     }
     */
 
     object_t scene[] = {
         {.type = MESH, .material = {RGB(200, 200, 200), CHECKERED}, .geometry.mesh = &mesh},
-        {.type = SPHERE, .material = {RANDOM_COLOR, REFLECTION}, .geometry.sphere = &spheres[1]},
+        {.type = SPHERE, .material = {RANDOM_COLOR, SOLID}, .geometry.sphere = &spheres[1]},
         {.type = SPHERE, .material = {RED, PHONG}, .geometry.sphere = &spheres[2]},
         {.type = SPHERE, .material = {RANDOM_COLOR, REFLECTION_AND_REFRACTION}, .geometry.sphere = &spheres[3]},
         {.type = SPHERE, .material = {BLUE, REFLECTION}, .geometry.sphere = &spheres[4]},
