@@ -89,8 +89,8 @@ int main(int argc, char **argv)
         },
     };
 
-    vec3 pos = {0, -.75, -3};
-    vec3 size = {4, 0, 4};
+    vec3 pos = {0, 0, -3};
+    vec3 size = {4, 2, 4};
 
     mesh_t mesh = {
         .vertices = (vec3[]){
