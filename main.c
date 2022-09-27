@@ -147,7 +147,7 @@ int main(int argc, char **argv)
 
 
         },
-        .num_triangles = 6,
+        .num_triangles = 5,
         .triangles = NULL,
     };
 
