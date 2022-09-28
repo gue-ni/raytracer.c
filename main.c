@@ -68,15 +68,7 @@ int main(int argc, char **argv)
 
     sphere_t spheres[] = {
         {
-            {0, -100, -15},
-            100,
-        },
-        {
             {1, 0, -2},
-            .5,
-        },
-        {
-            {-0.5, 0, -5},
             .5,
         },
         {
@@ -84,17 +76,13 @@ int main(int argc, char **argv)
             .75,
         },
         {
-            {-1.5, 0, -3},
+            {-1, 0, -4},
             .5,
         },
         {
-            {0,3,1},
-            .05,
+            {-1.5, 0, -3},
+            .5,
         },
-        {
-            {1,0,.3},
-            .05
-        }
     };
 
     vec3 pos = {0, 1, -3};
@@ -188,11 +176,11 @@ int main(int argc, char **argv)
 
     object_t scene[] = {
         {.type = MESH, .material = {RGB(200, 200, 200), CHECKERED}, .geometry.mesh = &mesh},
-        {.type = SPHERE, .material = {RANDOM_COLOR, SOLID}, .geometry.sphere = &spheres[1]},
-        {.type = SPHERE, .material = {RED, PHONG}, .geometry.sphere = &spheres[2]},
-        {.type = SPHERE, .material = {RANDOM_COLOR, PHONG}, .geometry.sphere = &spheres[3]},
-        {.type = SPHERE, .material = {BLUE, PHONG}, .geometry.sphere = &spheres[4]},
-        {.type = SPHERE, .material = {BLUE, PHONG}, .geometry.sphere = &spheres[6]},
+        {.type = SPHERE, .material = {RANDOM_COLOR, SOLID}, .geometry.sphere = &spheres[0]},
+        {.type = SPHERE, .material = {RED, PHONG}, .geometry.sphere = &spheres[1]},
+        {.type = SPHERE, .material = {RANDOM_COLOR, PHONG}, .geometry.sphere = &spheres[2]},
+        //{.type = SPHERE, .material = {BLUE, PHONG}, .geometry.sphere = &spheres[4]},
+        //{.type = SPHERE, .material = {BLUE, PHONG}, .geometry.sphere = &spheres[6]},
         //{.type = SPHERE, .material = {RGB(255,255,255), SOLID}, .geometry.sphere = &spheres[5]},
     };
 
