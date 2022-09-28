@@ -24,16 +24,11 @@
 #define RGB(r, g, b) ((vec3){r / 255.0, g / 255.0, b / 255.0})
 #define EQ(a, b) (ABS((a) - (b)) < EPSILON)
 
-/*
-#define RED RGB(187, 52, 155)
-#define BLUE RGB(122, 94, 147)
-#define GREEN RGB(108, 69, 117)
-#define BACKGROUND_COLOR RGB(69, 185, 211)
-*/
-#define RED RGB(255, 0, 0)
-#define GREEN RGB(0, 255, 0)
-#define BLUE RGB(0, 0, 255)
-#define BACKGROUND_COLOR RGB(1, 130, 129)
+#define RED         RGB(255, 0, 0)
+#define GREEN       RGB(0, 255, 0)
+#define BLUE        RGB(0, 0, 255)
+//#define BACKGROUND  RGB(1, 130, 129)
+#define BACKGROUND  RGB(150, 150, 150)
 
 #define ZERO_VECTOR RGB(0, 0, 0)
 #define BLACK ZERO_VECTOR

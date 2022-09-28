@@ -69,19 +69,15 @@ int main(int argc, char **argv)
     sphere_t spheres[] = {
         {
             {1, 0, -2},
-            .5,
+            .25,
         },
         {
-            {0, 0, -3},
+            {0, 1, -3},
             .75,
         },
         {
-            {-1, 0, -4},
-            .5,
-        },
-        {
-            {-1.5, 0, -3},
-            .5,
+            {-1, 0, -2},
+            .25,
         },
     };
 
@@ -140,14 +136,6 @@ int main(int argc, char **argv)
             {{pos.x - size.x, pos.y - size.y, pos.z + size.z}, /* 1 bottom front left */    {1,1}},
             {{pos.x + size.x, pos.y - size.y, pos.z + size.z}, /* 3 bottom front right */   {0,1}},
             {{pos.x + size.x, pos.y + size.y, pos.z + size.z}, /* 8 top front right */      {0,1}},
-
-
-
-
-            {{pos.x + size.x, pos.y + size.y, pos.z - size.z}, /* 4 top back right */       {0,0}},
-            {{pos.x - size.x, pos.y + size.y, pos.z + size.z}, /* 5 top front left */       {0,0}},
-            {{pos.x - size.x, pos.y + size.y, pos.z - size.z}, /* 6 top back left */        {0,0}},
-            {{pos.x + size.x, pos.y + size.y, pos.z + size.z}, /* 8 top front right */      {0,0}},
         },
     };
 
@@ -175,13 +163,10 @@ int main(int argc, char **argv)
     */
 
     object_t scene[] = {
-        {.type = MESH, .material = {RGB(200, 200, 200), CHECKERED}, .geometry.mesh = &mesh},
-        {.type = SPHERE, .material = {RANDOM_COLOR, SOLID}, .geometry.sphere = &spheres[0]},
-        {.type = SPHERE, .material = {RED, PHONG}, .geometry.sphere = &spheres[1]},
-        {.type = SPHERE, .material = {RANDOM_COLOR, PHONG}, .geometry.sphere = &spheres[2]},
-        //{.type = SPHERE, .material = {BLUE, PHONG}, .geometry.sphere = &spheres[4]},
-        //{.type = SPHERE, .material = {BLUE, PHONG}, .geometry.sphere = &spheres[6]},
-        //{.type = SPHERE, .material = {RGB(255,255,255), SOLID}, .geometry.sphere = &spheres[5]},
+        {.type = MESH, .material = {RGB(200, 200, 200), PHONG}, .geometry.mesh = &mesh},
+        {.type = SPHERE, .material = {BLUE, PHONG}, .geometry.sphere = &spheres[0]},
+        {.type = SPHERE, .material = {RED, LIGHT}, .geometry.sphere = &spheres[1]},
+        {.type = SPHERE, .material = {GREEN, PHONG}, .geometry.sphere = &spheres[2]},
     };
 
     uint8_t *framebuffer = malloc(sizeof(*framebuffer) * options.width * options.height * 3);
@@ -206,8 +191,7 @@ int main(int argc, char **argv)
     printf("rendering took %f seconds\n", time_taken);
     printf("writing result to '%s'...\n", options.result);
 
-    int r = stbi_write_png(options.result, options.width, options.height, 3, framebuffer, options.width * 3);
-    if (r == 0)
+    if (stbi_write_png(options.result, options.width, options.height, 3, framebuffer, options.width * 3) == 0)
     {
         fprintf(stderr, "failed to write");
         exit(EXIT_FAILURE);

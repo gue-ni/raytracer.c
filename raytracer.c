@@ -574,14 +574,14 @@ vec3 cast_ray(const ray_t *ray, object_t *objects, size_t n_objects, int depth)
 
   if (depth > MAX_DEPTH)
   {
-    return BACKGROUND_COLOR;
+    return BACKGROUND;
   }
 
   hit_t hit = {.t = DBL_MAX, .object = NULL};
 
   if (!intersect(ray, objects, n_objects, &hit))
   {
-    return BACKGROUND_COLOR;
+    return BACKGROUND;
   }
 
   return calculate_color(ray, objects, n_objects, depth, hit);
@@ -633,7 +633,7 @@ vec3 trace_path(ray_t *ray, object_t *objects, size_t nobj, int depth)
 
   if (depth > MAX_DEPTH || !intersect(ray, objects, nobj, &hit))
   {
-    return BACKGROUND_COLOR;
+    return RGB(25,25,25);
   }
 
 #if 0
@@ -641,9 +641,9 @@ vec3 trace_path(ray_t *ray, object_t *objects, size_t nobj, int depth)
 #else
   vec3 emittance_color;
   if (hit.object->material.type == LIGHT){
-    emittance_color = RGB(255,255,255);
+    emittance_color = mult_s((vec3){1,1,1}, 4);
   } else {
-    emittance_color = RGB(0,0,0);
+    emittance_color = RGB(5,5,5);
   }
 #endif
 
@@ -651,7 +651,6 @@ vec3 trace_path(ray_t *ray, object_t *objects, size_t nobj, int depth)
 
   ray_t new_ray;
   new_ray.origin = hit.point;
-  //new_ray.direction = normalize(add(hit.normal, random_in_unit_sphere()));
   new_ray.direction = random_in_hemisphere(hit.normal);
 
   double p = 1 / (2 * PI);
@@ -663,9 +662,13 @@ vec3 trace_path(ray_t *ray, object_t *objects, size_t nobj, int depth)
 
   vec3 recursive_color = trace_path(&new_ray, objects, nobj, depth + 1);
 
-  //return add(emittance_color, mult_s(recursive_color, cos_theta / p));
-  return mult_s(recursive_color, 0.5);
-  //return add(emittance_color, mult(attenuation , recursive_color));
+
+  double d = CLAMP(dot(hit.normal, new_ray.direction));
+
+  //return add(emittance_color, mult(mult_s(recursive_color, d), attenuation));
+  //return mult_s(recursive_color, 0.5);
+  return add(emittance_color, mult(attenuation, recursive_color));
+  //return add(emittance_color, mult_s(recursive_color, CLAMP(cos_theta / p)));
 }
 
 void load_file(void *ctx, const char *filename, const int is_mtl, const char *obj, char **buffer, size_t *len)
@@ -794,7 +797,7 @@ void render(uint8_t *framebuffer, object_t *objects, size_t n_objects, options_t
         v = (double)(y + random_double()) / ((double)options.height - 1.0);
 
         ray = get_camera_ray(&camera, u, v);
-        pixel = add(pixel, trace_path(&ray, objects, n_objects, 0));
+        pixel = add(pixel, clamp(trace_path(&ray, objects, n_objects, 0)));
       }
 
       pixel = div_s(pixel, options.samples);
