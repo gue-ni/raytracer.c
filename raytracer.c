@@ -639,7 +639,7 @@ vec3 trace_path_v2(ray_t *ray, object_t *objects, size_t nobj, int depth)
 
   size_t nlights = 1;
   light_t lights[nlights] = {
-    (light_t) {
+    {
       .position = (vec3) {3,3,3},
       .color = WHITE,
       .intensity = 10.0,
@@ -675,12 +675,12 @@ vec3 trace_path_v2(ray_t *ray, object_t *objects, size_t nobj, int depth)
     double theta = drand48() * PI;
     double cosTheta = cos(theta);
 
-    vec3 sample_color = trace_path_v2(new_ray, objects, nobj, depth + 1);
+    vec3 sample_color = trace_path_v2(&new_ray, objects, nobj, depth + 1);
 
     add(indirect_light, mult_s(sample_color, cosTheta));
   }
 
-  indirect_light = mult_s(indirect_light, 1.0, / (double)nsamples);
+  indirect_light = mult_s(indirect_light, 1.0 / (double)nsamples);
 
   return clamp(mult_s(mult(add(direct_light, indirect_light) , hit.object->material.color), 1 / PI));
 
@@ -859,7 +859,7 @@ void render(uint8_t *framebuffer, object_t *objects, size_t n_objects, options_t
         v = (double)(y + random_double()) / ((double)options.height - 1.0);
 
         ray = get_camera_ray(&camera, u, v);
-        pixel = add(pixel, clamp(trace_path(&ray, objects, n_objects, 0)));
+        pixel = add(pixel, clamp(trace_path_v2(&ray, objects, n_objects, 0)));
       }
 
       pixel = div_s(pixel, options.samples);
