@@ -641,7 +641,7 @@ vec3 trace_path_v2(ray_t *ray, object_t *objects, size_t nobj, int depth)
   light_t lights[1] = {
     {
       .position = (vec3) {1,10,-3},
-      .color = WHITE,
+      .color = (vec3){1,1,1},
       .intensity = 10.0,
     }
   };
@@ -657,6 +657,7 @@ vec3 trace_path_v2(ray_t *ray, object_t *objects, size_t nobj, int depth)
     hit_t tmp;
     if (intersect(&light_ray, objects, nobj, &tmp))
     {
+      printf("in shadown\n");
       continue;
     } 
 
@@ -686,7 +687,7 @@ vec3 trace_path_v2(ray_t *ray, object_t *objects, size_t nobj, int depth)
   */
 
   //return clamp(mult_s(mult(add(direct_light, indirect_light), hit.object->material.color), 1 / PI));
-  return clamp(mult(add(direct_light, indirect_light), hit.object->material.color));
+  return mult(add(direct_light, indirect_light), hit.object->material.color);
 
 }
 

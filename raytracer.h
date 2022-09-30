@@ -15,7 +15,7 @@
 #define PI 3.14159265359
 #endif
 #define EPSILON 1e-8
-#define MAX_DEPTH 5
+#define MAX_DEPTH 3
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
 #define CLAMP(x) (MAX(0, MIN(x, 1)))
