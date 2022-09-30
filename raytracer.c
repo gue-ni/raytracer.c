@@ -637,8 +637,8 @@ vec3 trace_path_v2(ray_t *ray, object_t *objects, size_t nobj, int depth)
 
   vec3 direct_light = ZERO_VECTOR, indirect_light = ZERO_VECTOR;
 
-  size_t nlights = 1;
-  light_t lights[nlights] = {
+  //size_t nlights = 1;
+  light_t lights[1] = {
     {
       .position = (vec3) {3,3,3},
       .color = WHITE,
@@ -646,7 +646,7 @@ vec3 trace_path_v2(ray_t *ray, object_t *objects, size_t nobj, int depth)
     }
   };
 
-  for (size_t i = 0; i < nlights; i++)
+  for (size_t i = 0; i < 1; i++)
   {
     light_t light = lights[i];
     vec3 light_dir = normalize(sub(hit.point, light.position));
@@ -655,7 +655,7 @@ vec3 trace_path_v2(ray_t *ray, object_t *objects, size_t nobj, int depth)
     vec3 light_color = mult_s(light.color, light.intensity);
 
     hit_t tmp;
-    if (intersect(light_ray, objects, nobj, &tmp))
+    if (intersect(&light_ray, objects, nobj, &tmp))
     {
       continue;
     } 
@@ -663,9 +663,9 @@ vec3 trace_path_v2(ray_t *ray, object_t *objects, size_t nobj, int depth)
     add(direct_light, mult_s(light_color, MAX(dot(hit.normal, light_dir), 0.0)));
   }
 
-  direct_light = mult_s(direct_light, 1.0 / (double)nlights);
+  direct_light = mult_s(direct_light, 1.0 / (double)1);
 
-  size_t nsamples = 5
+  size_t nsamples = 5;
   for (size_t i = 0; i < nsamples; i++)
   {
     ray_t new_ray;
