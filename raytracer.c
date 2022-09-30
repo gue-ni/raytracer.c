@@ -649,7 +649,7 @@ vec3 trace_path_v2(ray_t *ray, object_t *objects, size_t nobj, int depth)
   for (size_t i = 0; i < 1; i++)
   {
     light_t light = lights[i];
-    vec3 light_dir = normalize(sub(hit.point, light.position));
+    vec3 light_dir = normalize(sub(light.position, hit.point));
     ray_t light_ray = (ray_t) { .origin = hit.point, .direction = light_dir};
 
     vec3 light_color = mult_s(light.color, light.intensity);
