@@ -660,11 +660,13 @@ vec3 trace_path_v2(ray_t *ray, object_t *objects, size_t nobj, int depth)
       continue;
     } 
 
-    add(direct_light, mult_s(light_color, MAX(dot(hit.normal, light_dir), 0.0)));
+    //add(direct_light, mult_s(light_color, MAX(dot(hit.normal, light_dir), 0.0)));
+    add(direct_light, light_color);
   }
 
   direct_light = mult_s(direct_light, 1.0 / (double)1);
 
+  /*
   size_t nsamples = 5;
   for (size_t i = 0; i < nsamples; i++)
   {
@@ -681,8 +683,10 @@ vec3 trace_path_v2(ray_t *ray, object_t *objects, size_t nobj, int depth)
   }
 
   indirect_light = mult_s(indirect_light, 1.0 / (double)nsamples);
+  */
 
-  return clamp(mult_s(mult(add(direct_light, indirect_light) , hit.object->material.color), 1 / PI));
+  //return clamp(mult_s(mult(add(direct_light, indirect_light), hit.object->material.color), 1 / PI));
+  return clamp(mult(add(direct_light, indirect_light), hit.object->material.color));
 
 }
 
