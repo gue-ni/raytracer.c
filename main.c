@@ -68,13 +68,14 @@ int main(int argc, char **argv)
 
     sphere_t spheres[] = {
         {
-            {0, 0, 0},
-            .5,
-        },
-        {
             {1.1, 0, 0},
             .5,
         },
+        {
+            {0, 0, 0},
+            .5,
+        },
+
         {
             {-1.1, 0, 0},
             .5,
@@ -88,20 +89,20 @@ int main(int argc, char **argv)
         .num_triangles = 2,
         .verts = (vertex_t[]){
             /* bottom */
-            {{pos.x + size.x, pos.y - size.y, pos.z - size.z}, /* 0 bottom back right */    {0,0}},
-            {{pos.x - size.x, pos.y - size.y, pos.z + size.z}, /* 1 bottom front left */    {1,1}},
-            {{pos.x - size.x, pos.y - size.y, pos.z - size.z}, /* 2 bottom back left */     {1,0}},
-
-            {{pos.x + size.x, pos.y - size.y, pos.z - size.z}, /* 0 bottom back right */    {0,0}},
+            {{pos.x + size.x, pos.y - size.y, pos.z - size.z}, /* 0 bottom back left m */    {0,0}},
             {{pos.x - size.x, pos.y - size.y, pos.z + size.z}, /* 1 bottom front left */    {1,1}},
             {{pos.x + size.x, pos.y - size.y, pos.z + size.z}, /* 3 bottom front right */   {0,1}},
 
+            {{pos.x - size.x, pos.y - size.y, pos.z + size.z}, /* 1 bottom front left */    {1,1}},
+            {{pos.x + size.x, pos.y - size.y, pos.z - size.z}, /* 0 bottom back left */    {0,0}},
+            {{pos.x - size.x, pos.y - size.y, pos.z - size.z}, /* 2 bottom back right */     {1,0}},
+
             /* back */
-            {{pos.x - size.x, pos.y - size.y, pos.z - size.z}, /* 2 bottom back left */     {0,0}},
-            {{pos.x + size.x, pos.y - size.y, pos.z - size.z}, /* 0 bottom back right */    {1,0}},
+            {{pos.x - size.x, pos.y - size.y, pos.z - size.z}, /* 2 bottom back right */     {0,0}},
+            {{pos.x + size.x, pos.y - size.y, pos.z - size.z}, /* 0 bottom back left m */    {1,0}},
             {{pos.x + size.x, pos.y + size.y, pos.z - size.z}, /* 4 top back right */       {1,1}},
 
-            {{pos.x - size.x, pos.y - size.y, pos.z - size.z}, /* 2 bottom back left */     {0,0}},
+            {{pos.x - size.x, pos.y - size.y, pos.z - size.z}, /* 2 bottom back right */     {0,0}},
             {{pos.x - size.x, pos.y + size.y, pos.z - size.z}, /* 6 top back left */        {0,1}},
             {{pos.x + size.x, pos.y + size.y, pos.z - size.z}, /* 4 top back right */       {1,1}},
 
@@ -115,7 +116,7 @@ int main(int argc, char **argv)
             {{pos.x - size.x, pos.y + size.y, pos.z + size.z}, /* 5 top front left */       {1,1}},
 
             /* right */
-            {{pos.x - size.x, pos.y - size.y, pos.z - size.z}, /* 2 bottom back left */     {0,0}},
+            {{pos.x - size.x, pos.y - size.y, pos.z - size.z}, /* 2 bottom back right */     {0,0}},
             {{pos.x - size.x, pos.y - size.y, pos.z + size.z}, /* 1 bottom front left */    {1,1}},
             {{pos.x - size.x, pos.y + size.y, pos.z - size.z}, /* 6 top back left */        {1,0}},
 
@@ -124,11 +125,11 @@ int main(int argc, char **argv)
             {{pos.x - size.x, pos.y + size.y, pos.z - size.z}, /* 6 top back left */        {1,0}},
 
             /* left */
-            {{pos.x + size.x, pos.y - size.y, pos.z - size.z}, /* 0 bottom back right */    {1,0}},
+            {{pos.x + size.x, pos.y - size.y, pos.z - size.z}, /* 0 bottom back left m */    {1,0}},
             {{pos.x + size.x, pos.y - size.y, pos.z + size.z}, /* 3 bottom front right */   {0,1}},
             {{pos.x + size.x, pos.y + size.y, pos.z + size.z}, /* 8 top front right */      {0,1}},
 
-            {{pos.x + size.x, pos.y - size.y, pos.z - size.z}, /* 0 bottom back right */    {1,0}},
+            {{pos.x + size.x, pos.y - size.y, pos.z - size.z}, /* 0 bottom back left m */    {1,0}},
             {{pos.x + size.x, pos.y + size.y, pos.z - size.z}, /* 4 top back right */       {1,1}},
             {{pos.x + size.x, pos.y + size.y, pos.z + size.z}, /* 8 top front right */      {0,1}},
 
@@ -139,33 +140,10 @@ int main(int argc, char **argv)
         },
     };
 
-    /*
-    mesh_t cube;
-    load_obj("assets/cube.obj", &cube);
-    */
-
-    /*
-    vec3 euler = {.0, .5, .0};
-    mat4 rot = rotate(euler);
-
-    vec3 new_pos = {0, 0, 0};
-    mat4 trans = translate(new_pos);
-
-    for (size_t i = 0; i < mesh.num_triangles; i++)
-    {
-        vertex_t *v0 = &mesh.verts[(i * 3)+0];
-        vertex_t *v1 = &mesh.verts[(i * 3)+1];
-        vertex_t *v2 = &mesh.verts[(i * 3)+2];
-        v0->pos = mult_mv(mult_mm(trans, rot), v0->pos);
-        v1->pos = mult_mv(mult_mm(trans, rot), v1->pos);
-        v2->pos = mult_mv(mult_mm(trans, rot), v2->pos);
-    }
-    */
-
     object_t scene[] = {
         {.type = MESH, .material = {GREEN, CHECKERED}, .geometry.mesh = &mesh},
-        {.type = SPHERE, .material = {BLUE, PHONG}, .geometry.sphere = &spheres[0]},
-        {.type = SPHERE, .material = {RED, LIGHT}, .geometry.sphere = &spheres[1]},
+        {.type = SPHERE, .material = {RED, PHONG  }, .geometry.sphere = &spheres[0]},
+        {.type = SPHERE, .material = {RANDOM_COLOR, PHONG}, .geometry.sphere = &spheres[1]},
         {.type = SPHERE, .material = {GREEN, PHONG}, .geometry.sphere = &spheres[2]},
     };
 

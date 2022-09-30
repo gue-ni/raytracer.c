@@ -653,7 +653,7 @@ vec3 trace_path_v2(ray_t *ray, object_t *objects, size_t nobj, int depth)
   if (!intersect(&light_ray, objects, nobj, &tmp))
   {
     //direct_light = add(direct_light, light_color);
-    direct_light = add(direct_light, mult_s(light_color, MAX(dot(hit.normal, light_dir), 0.0)));
+    direct_light = add(direct_light, mult_s(light_color, MAX(dot(hit.normal, light_dir), 0)));
   }
 #endif
 
@@ -676,8 +676,8 @@ vec3 trace_path_v2(ray_t *ray, object_t *objects, size_t nobj, int depth)
     //double theta = random_range(0.0, 1.0) * PI;
     //double cosTheta = cos(theta);
 
-    vec3 sample_color = trace_path_v2(&new_ray, objects, nobj, depth + 1);
-    indirect_light = add(indirect_light, sample_color);
+    vec3 color = trace_path_v2(&new_ray, objects, nobj, depth + 1);
+    indirect_light = add(indirect_light, color);
     //indirect_light = add(indirect_light, mult_s(sample_color, cosTheta));
   }
 

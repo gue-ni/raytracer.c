@@ -25,11 +25,11 @@
 #define RGB(r, g, b) ((vec3){r / 255.0, g / 255.0, b / 255.0})
 #define EQ(a, b) (ABS((a) - (b)) < EPSILON)
 
-#define RED         RGB(255,   0,   0)
-#define GREEN       RGB(  0, 192,  48)
-#define BLUE        RGB(  0,   0, 255)
-#define WHITE       RGB(255, 255, 255)
-#define BACKGROUND  RGB(1, 130, 129)
+#define RED RGB(255, 0, 0)
+#define GREEN RGB(0, 192, 48)
+#define BLUE RGB(0, 0, 255)
+#define WHITE RGB(255, 255, 255)
+#define BACKGROUND RGB(1, 130, 129)
 //#define BACKGROUND  RGB(150, 150, 150)
 
 #define ZERO_VECTOR RGB(0, 0, 0)
@@ -60,7 +60,7 @@ typedef struct
   double x, y, z, w;
 } vec4;
 
-typedef struct 
+typedef struct
 {
   vec3 pos;
   vec2 tex;
@@ -157,13 +157,12 @@ typedef struct
 typedef struct
 {
   int width, height, samples;
-  char *result;
-  char *obj;
+  char *result, *obj;
 } options_t;
 
 bool intersect_sphere(const ray_t *ray, const sphere_t *sphere, hit_t *hit);
 
-bool intersect_triangle(const ray_t *ray, vertex_t vertex0, vertex_t vertex1,vertex_t vertex2, hit_t *hit);
+bool intersect_triangle(const ray_t *ray, vertex_t vertex0, vertex_t vertex1, vertex_t vertex2, hit_t *hit);
 
 vec3 point_at(const ray_t *ray, double t);
 
