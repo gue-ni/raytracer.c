@@ -89,13 +89,13 @@ int main(int argc, char **argv)
         .num_triangles = 2,
         .verts = (vertex_t[]){
             /* bottom */
-            {{pos.x + size.x, pos.y - size.y, pos.z - size.z}, /* 0 bottom back left m */    {0,0}},
-            {{pos.x - size.x, pos.y - size.y, pos.z + size.z}, /* 1 bottom front left */    {1,1}},
             {{pos.x + size.x, pos.y - size.y, pos.z + size.z}, /* 3 bottom front right */   {0,1}},
-
             {{pos.x - size.x, pos.y - size.y, pos.z + size.z}, /* 1 bottom front left */    {1,1}},
-            {{pos.x + size.x, pos.y - size.y, pos.z - size.z}, /* 0 bottom back left */    {0,0}},
+            {{pos.x + size.x, pos.y - size.y, pos.z - size.z}, /* 0 bottom back left m */    {0,0}},
+
             {{pos.x - size.x, pos.y - size.y, pos.z - size.z}, /* 2 bottom back right */     {1,0}},
+            {{pos.x + size.x, pos.y - size.y, pos.z - size.z}, /* 0 bottom back left */    {0,0}},
+            {{pos.x - size.x, pos.y - size.y, pos.z + size.z}, /* 1 bottom front left */    {1,1}},
 
             /* back */
             {{pos.x - size.x, pos.y - size.y, pos.z - size.z}, /* 2 bottom back right */     {0,0}},

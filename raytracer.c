@@ -335,12 +335,6 @@ bool intersect_triangle(const ray_t *ray, vertex_t vertex0, vertex_t vertex1, ve
   intersection_test_count++;
 
   // https://en.wikipedia.org/wiki/M%C3%B6ller%E2%80%93Trumbore_intersection_algorithm
-  /*
-  vec3 v0 = triangle->v[0];
-  vec3 v1 = triangle->v[1];
-  vec3 v2 = triangle->v[2];
-  */
-
   vec3 v0, v1, v2;
   v0 = vertex0.pos;
   v1 = vertex1.pos;
@@ -374,14 +368,9 @@ bool intersect_triangle(const ray_t *ray, vertex_t vertex0, vertex_t vertex1, ve
     vec2 st1 = vertex1.tex;
     vec2 st2 = vertex2.tex;
 
-    vec2 tmp = add_s2(add_s2(mult_s2(st0, 1 - u - v), mult_s2(st1, u)), mult_s2(st2, v));
-    hit->u = tmp.x;
-    hit->v = tmp.y;
-
-    /*
-    hit->u = u;
-    hit->v = v;
-    */
+    vec2 tex = add_s2(add_s2(mult_s2(st0, 1 - u - v), mult_s2(st1, u)), mult_s2(st2, v));
+    hit->u = tex.x;
+    hit->v = tex.y;
     return true;
   }
   else
@@ -424,7 +413,7 @@ static bool intersect(const ray_t *ray, object_t *objects, size_t n, hit_t *hit)
           min_t = local.t;
           local.object = &objects[i];
           local.point = point_at(ray, local.t);
-          local.normal = cross(v0.pos, v1.pos);
+          local.normal = normalize(cross(v1.pos, v0.pos));
         }
       }
 
@@ -437,8 +426,8 @@ static bool intersect(const ray_t *ray, object_t *objects, size_t n, hit_t *hit)
         min_t = local.t;
         local.object = &objects[i];
         local.point = point_at(ray, local.t);
-        local.normal = div_s(sub(local.point, objects[i].geometry.sphere->center),
-                             objects[i].geometry.sphere->radius);
+        local.normal = normalize(div_s(sub(local.point, objects[i].geometry.sphere->center),
+                             objects[i].geometry.sphere->radius));
       }
       break;
     }
