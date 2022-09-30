@@ -624,6 +624,68 @@ vec3 random_in_hemisphere(vec3 normal)
   }
 }
 
+vec3 trace_path_v2(ray_t *ray, object_t *objects, size_t nobj, int depth)
+{
+  ray_count++;
+
+  hit_t hit = {.t = DBL_MAX, .object = NULL};
+
+  if (depth > MAX_DEPTH || !intersect(ray, objects, nobj, &hit))
+  {
+    return RGB(25,25,25);
+  }
+
+  vec3 direct_light = ZERO_VECTOR, indirect_light = ZERO_VECTOR;
+
+  size_t nlights = 1;
+  light_t lights[nlights] = {
+    (light_t) {
+      .position = (vec3) {3,3,3},
+      .color = WHITE,
+      .intensity = 10.0,
+    }
+  };
+
+  for (size_t i = 0; i < nlights; i++)
+  {
+    light_t light = lights[i];
+    vec3 light_dir = normalize(sub(hit.point, light.position));
+    ray_t light_ray = (ray_t) { .origin = hit.point, .direction = light_dir};
+
+    vec3 light_color = mult_s(light.color, light.intensity);
+
+    hit_t tmp;
+    if (intersect(light_ray, objects, nobj, &tmp))
+    {
+      continue;
+    } 
+
+    add(direct_light, mult_s(light_color, MAX(dot(hit.normal, light_dir), 0.0)));
+  }
+
+  direct_light = mult_s(direct_light, 1.0 / (double)nlights);
+
+  size_t nsamples = 5
+  for (size_t i = 0; i < nsamples; i++)
+  {
+    ray_t new_ray;
+    new_ray.origin = hit.point;
+    new_ray.direction = random_in_hemisphere(hit.normal);
+
+    double theta = drand48() * PI;
+    double cosTheta = cos(theta);
+
+    vec3 sample_color = trace_path_v2(new_ray, objects, nobj, depth + 1);
+
+    add(indirect_light, mult_s(sample_color, cosTheta));
+  }
+
+  indirect_light = mult_s(indirect_light, 1.0, / (double)nsamples);
+
+  return clamp(mult_s(mult(add(direct_light, indirect_light) , hit.object->material.color), 1 / PI));
+
+}
+
 vec3 trace_path(ray_t *ray, object_t *objects, size_t nobj, int depth)
 {
   // https://en.wikipedia.org/wiki/Path_tracing
