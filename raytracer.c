@@ -1,3 +1,4 @@
+#include <omp.h>
 
 #define TINYOBJ_LOADER_C_IMPLEMENTATION
 #include "lib/tinyobj_loader.h"
@@ -216,7 +217,7 @@ static vec3 refract(const vec3 I, const vec3 N, double iot)
   return k < 0 ? ZERO_VECTOR : add(mult_s(I, eta), mult_s(n, eta * cosi - sqrtf(k)));
 }
 
-static void init_camera(camera_t *camera, vec3 position, options_t options)
+void init_camera(camera_t *camera, vec3 position, vec3 look_at, options_t options)
 {
 #if 0
     double viewport_height = 2.0;
@@ -632,67 +633,65 @@ vec3 trace_path_v2(ray_t *ray, object_t *objects, size_t nobj, int depth)
 
   if (depth > MAX_DEPTH || !intersect(ray, objects, nobj, &hit))
   {
-    return RGB(25,25,25);
+    return BACKGROUND;
   }
 
   vec3 direct_light = ZERO_VECTOR, indirect_light = ZERO_VECTOR;
 
-  //size_t nlights = 1;
-  light_t lights[1] = {
-    {
-      .position = (vec3) {1,10,-3},
-      .color = (vec3){1,1,1},
-      .intensity = 10.0,
-    }
+  light_t light = {
+      .position = (vec3){0, 10, 0},
+      .color = (vec3){1, 1, 1},
+      .intensity = 1.0,
   };
 
-  for (size_t i = 0; i < 1; i++)
+#if 1
+  vec3 light_dir = normalize(sub(light.position, hit.point));
+  ray_t light_ray = (ray_t) { .origin = hit.point, .direction = light_dir};
+  vec3 light_color = mult_s(light.color, light.intensity);
+
+  hit_t tmp;
+  if (!intersect(&light_ray, objects, nobj, &tmp))
   {
-    light_t light = lights[i];
-    vec3 light_dir = normalize(sub(light.position, hit.point));
-    ray_t light_ray = (ray_t) { .origin = hit.point, .direction = light_dir};
-
-    vec3 light_color = mult_s(light.color, light.intensity);
-
-    hit_t tmp;
-    if (intersect(&light_ray, objects, nobj, &tmp))
-    {
-      printf("in shadown\n");
-      continue;
-    } 
-    else 
-    {
-      printf("in light\n");
-    }
-
-    //add(direct_light, mult_s(light_color, MAX(dot(hit.normal, light_dir), 0.0)));
-    add(direct_light, light_color);
+    //direct_light = add(direct_light, light_color);
+    direct_light = add(direct_light, mult_s(light_color, MAX(dot(hit.normal, light_dir), 0.0)));
   }
+#endif
 
-  direct_light = mult_s(direct_light, 1.0 / (double)1);
+#if 0
+  if (hit.object->material.type == LIGHT)
+  {
+    vec3 light_dir = normalize(sub(hit.object->geometry.sphere->center, hit.point));
+    ray_t light_ray = (ray_t){.origin = hit.point, .direction = light_dir};
 
-  /*
-  size_t nsamples = 5;
+    vec3 light_color = mult_s(hit.object->material.color, light.intensity);
+    direct_light = add(direct_light, mult_s(light_color, MAX(dot(hit.normal, light_dir), 0.0)));
+  }
+#endif
+
+  size_t nsamples = 1;
   for (size_t i = 0; i < nsamples; i++)
   {
-    ray_t new_ray;
-    new_ray.origin = hit.point;
-    new_ray.direction = random_in_hemisphere(hit.normal);
+    ray_t new_ray = {.origin = hit.point, .direction = random_in_hemisphere(hit.normal)};
 
-    double theta = drand48() * PI;
-    double cosTheta = cos(theta);
+    //double theta = random_range(0.0, 1.0) * PI;
+    //double cosTheta = cos(theta);
 
     vec3 sample_color = trace_path_v2(&new_ray, objects, nobj, depth + 1);
-
-    add(indirect_light, mult_s(sample_color, cosTheta));
+    indirect_light = add(indirect_light, sample_color);
+    //indirect_light = add(indirect_light, mult_s(sample_color, cosTheta));
   }
 
-  indirect_light = mult_s(indirect_light, 1.0 / (double)nsamples);
-  */
+  indirect_light = mult_s(indirect_light, 1 / (double)nsamples);
 
-  //return clamp(mult_s(mult(add(direct_light, indirect_light), hit.object->material.color), 1 / PI));
-  return mult(add(direct_light, indirect_light), hit.object->material.color);
+  vec3 object_color = hit.object->material.color;
 
+  if (hit.object->material.type == CHECKERED){
+    object_color = sample_texture(object_color, hit.u, hit.v);
+  }
+
+  // return mult_s(indirect_light, 0.5);
+  return mult(add(direct_light, indirect_light), object_color);
+  // return clamp(mult_s(mult(add(direct_light, indirect_light), hit.object->material.color), 1 / PI));
 }
 
 vec3 trace_path(ray_t *ray, object_t *objects, size_t nobj, int depth)
@@ -704,21 +703,26 @@ vec3 trace_path(ray_t *ray, object_t *objects, size_t nobj, int depth)
 
   if (depth > MAX_DEPTH || !intersect(ray, objects, nobj, &hit))
   {
-    return RGB(25,25,25);
+    return RGB(25, 25, 25);
   }
 
 #if 0
   vec3 emittance_color = hit.object->material.color;
 #else
   vec3 emittance_color;
-  if (hit.object->material.type == LIGHT){
-    emittance_color = mult_s((vec3){1,1,1}, 4);
-  } else {
-    emittance_color = RGB(5,5,5);
+  if (hit.object->material.type == LIGHT)
+  {
+    emittance_color = mult_s((vec3){1, 1, 1}, 4);
+  }
+  else
+  {
+    emittance_color = RGB(5, 5, 5);
   }
 #endif
 
   vec3 attenuation = hit.object->material.color;
+
+
 
   ray_t new_ray;
   new_ray.origin = hit.point;
@@ -727,19 +731,18 @@ vec3 trace_path(ray_t *ray, object_t *objects, size_t nobj, int depth)
   double p = 1 / (2 * PI);
 
   double cos_theta = dot(new_ray.direction, hit.normal);
-  
-  //double reflectance = .5;
-  //vec3 BRDF = reflectance / PI;
+
+  // double reflectance = .5;
+  // vec3 BRDF = reflectance / PI;
 
   vec3 recursive_color = trace_path(&new_ray, objects, nobj, depth + 1);
 
-
   double d = CLAMP(dot(hit.normal, new_ray.direction));
 
-  //return add(emittance_color, mult(mult_s(recursive_color, d), attenuation));
-  //return mult_s(recursive_color, 0.5);
+  // return add(emittance_color, mult(mult_s(recursive_color, d), attenuation));
+  // return mult_s(recursive_color, 0.5);
   return add(emittance_color, mult(attenuation, recursive_color));
-  //return add(emittance_color, mult_s(recursive_color, CLAMP(cos_theta / p)));
+  // return add(emittance_color, mult_s(recursive_color, CLAMP(cos_theta / p)));
 }
 
 void load_file(void *ctx, const char *filename, const int is_mtl, const char *obj, char **buffer, size_t *len)
@@ -848,10 +851,8 @@ bool load_obj(const char *filename, mesh_t *mesh)
   return true;
 }
 
-void render(uint8_t *framebuffer, object_t *objects, size_t n_objects, options_t options)
+void render(uint8_t *framebuffer, object_t *objects, size_t n_objects, camera_t *camera, options_t options)
 {
-  camera_t camera;
-  init_camera(&camera, (vec3){0, 0, 1.5}, options);
 
   int x, y, s;
   double u, v;
@@ -867,7 +868,7 @@ void render(uint8_t *framebuffer, object_t *objects, size_t n_objects, options_t
         u = (double)(x + random_double()) / ((double)options.width - 1.0);
         v = (double)(y + random_double()) / ((double)options.height - 1.0);
 
-        ray = get_camera_ray(&camera, u, v);
+        ray = get_camera_ray(camera, u, v);
         pixel = add(pixel, clamp(trace_path_v2(&ray, objects, n_objects, 0)));
       }
 

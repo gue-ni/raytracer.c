@@ -68,20 +68,20 @@ int main(int argc, char **argv)
 
     sphere_t spheres[] = {
         {
-            {1, 0, -2},
-            .25,
+            {0, 0, 0},
+            .5,
         },
         {
-            {0, 0, -3},
-            .75,
+            {1.1, 0, 0},
+            .5,
         },
         {
-            {-1, 0, -2},
-            .25,
+            {-1.1, 0, 0},
+            .5,
         },
     };
 
-    vec3 pos = {0, 1, -3};
+    vec3 pos = {0, 1, 0};
     vec3 size = {8, 2, 4};
 
     mesh_t mesh = {
@@ -163,9 +163,9 @@ int main(int argc, char **argv)
     */
 
     object_t scene[] = {
-        {.type = MESH, .material = {RGB(200, 200, 200), PHONG}, .geometry.mesh = &mesh},
+        {.type = MESH, .material = {GREEN, CHECKERED}, .geometry.mesh = &mesh},
         {.type = SPHERE, .material = {BLUE, PHONG}, .geometry.sphere = &spheres[0]},
-        {.type = SPHERE, .material = {RED, PHONG}, .geometry.sphere = &spheres[1]},
+        {.type = SPHERE, .material = {RED, LIGHT}, .geometry.sphere = &spheres[1]},
         {.type = SPHERE, .material = {GREEN, PHONG}, .geometry.sphere = &spheres[2]},
     };
 
@@ -178,9 +178,12 @@ int main(int argc, char **argv)
 
     srand((unsigned)time(NULL));
 
+    camera_t camera;
+    init_camera(&camera, (vec3){0, 0, 3.5}, (vec3){0, 0, 0}, options);
+
     clock_t tic = clock();
 
-    render(framebuffer, scene, sizeof(scene) / sizeof(scene[0]), options);
+    render(framebuffer, scene, sizeof(scene) / sizeof(scene[0]), &camera, options);
 
     clock_t toc = clock();
     double time_taken = (double)(toc - tic) / CLOCKS_PER_SEC;

@@ -10,12 +10,13 @@
 #include <float.h>
 #include <stdint.h>
 #include <string.h>
+#include <omp.h>
 
 #ifndef PI
 #define PI 3.14159265359
 #endif
 #define EPSILON 1e-8
-#define MAX_DEPTH 3
+#define MAX_DEPTH 5
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
 #define CLAMP(x) (MAX(0, MIN(x, 1)))
@@ -24,12 +25,12 @@
 #define RGB(r, g, b) ((vec3){r / 255.0, g / 255.0, b / 255.0})
 #define EQ(a, b) (ABS((a) - (b)) < EPSILON)
 
-#define RED         RGB(255, 0, 0)
-#define GREEN       RGB(0, 255, 0)
-#define BLUE        RGB(0, 0, 255)
+#define RED         RGB(255,   0,   0)
+#define GREEN       RGB(  0, 192,  48)
+#define BLUE        RGB(  0,   0, 255)
 #define WHITE       RGB(255, 255, 255)
-//#define BACKGROUND  RGB(1, 130, 129)
-#define BACKGROUND  RGB(150, 150, 150)
+#define BACKGROUND  RGB(1, 130, 129)
+//#define BACKGROUND  RGB(150, 150, 150)
 
 #define ZERO_VECTOR RGB(0, 0, 0)
 #define BLACK ZERO_VECTOR
@@ -182,7 +183,9 @@ void print_t(const triangle_t triangle);
 
 void print_m(const mat4 m);
 
-void render(uint8_t *framebuffer, object_t *objects, size_t n_objects, options_t options);
+void init_camera(camera_t *camera, vec3 position, vec3 look_at, options_t options);
+
+void render(uint8_t *framebuffer, object_t *objects, size_t n_objects, camera_t *camera, options_t options);
 
 bool load_obj(const char *filename, mesh_t *mesh);
 

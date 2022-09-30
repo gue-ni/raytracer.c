@@ -1,5 +1,5 @@
 CC 			= gcc
-CFLAGS 	= --std=c99 -Wall -g -Wno-strict-aliasing -Wno-unused-variable -Wno-unused-function -O3
+CFLAGS 	= --std=c99 -Wall -g -Wno-strict-aliasing -Wno-unused-variable -Wno-unused-function -O3 -fopenmp
 LFLAGS 	= -lm
 
 SRC 		= $(wildcard *.c)
