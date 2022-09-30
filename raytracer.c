@@ -660,6 +660,10 @@ vec3 trace_path_v2(ray_t *ray, object_t *objects, size_t nobj, int depth)
       printf("in shadown\n");
       continue;
     } 
+    else 
+    {
+      printf("in light\n");
+    }
 
     //add(direct_light, mult_s(light_color, MAX(dot(hit.normal, light_dir), 0.0)));
     add(direct_light, light_color);

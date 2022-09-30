@@ -21,18 +21,18 @@ jobs:
     - name: run
       run: make run
 
-    - name: memcheck
-      run: |
-        sudo apt install valgrind
-        make memcheck
+#    - name: memcheck
+#      run: |
+#        sudo apt install valgrind
+#        make memcheck
 
-    - name: clean
-      run: make clean
+#    - name: clean
+#      run: make clean
       
-    - name: perfcheck
-      run: |
-        sudo apt install binutils
-        make perfcheck
+#    - name: perfcheck
+#      run: |
+#        sudo apt install binutils
+#        make perfcheck
 
     - uses: actions/upload-artifact@v3
       with:
