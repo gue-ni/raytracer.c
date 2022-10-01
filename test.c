@@ -12,7 +12,7 @@
 
 #define TEST_CHECK(cond) _test_check((cond), __FILE__, __LINE__, #cond, false)
 
-#define TEST_RESULT() _test_check(true, __FILE__, __LINE__, "nothing", false)
+#define TEST_RESULT() _test_check(true, __FILE__, __LINE__, "", false)
 
 #define TEST_ASSERT(cond) _test_check((cond), __FILE__, __LINE__, #cond, true)
 
@@ -43,10 +43,12 @@ void _test_load_obj()
   TEST_CHECK(mesh.num_triangles == 12);
   TEST_CHECK(mesh.triangles != NULL);
 
+  /*
   for (int i = 0; i < mesh.num_triangles; i++)
   {
     print_t(mesh.triangles[i]);
   }
+  */
 
   if (mesh.triangles)
     free(mesh.triangles);

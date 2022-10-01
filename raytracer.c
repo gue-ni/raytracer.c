@@ -630,7 +630,7 @@ vec3 trace_path_v2(ray_t *ray, object_t *objects, size_t nobj, int depth)
   light_t light = {
       .position = (vec3){0, 10, 0},
       .color = (vec3){1, 1, 1},
-      .intensity = 1.0,
+      .intensity = 0.9,
   };
 
 #if 1
