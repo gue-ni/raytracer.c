@@ -8,6 +8,26 @@
 #include <stdint.h>
 #include <string.h>
 
+#ifdef __unix__
+#define TERM_RED "\x1B[31m"
+#define TERM_GRN "\x1B[32m"
+#define TERM_YEL "\x1B[33m"
+#define TERM_BLU "\x1B[34m"
+#define TERM_MAG "\x1B[35m"
+#define TERM_CYN "\x1B[36m"
+#define TERM_WHT "\x1B[37m"
+#define TERM_RESET "\x1B[0m"
+#else 
+#define TERM_RED ""
+#define TERM_GRN ""
+#define TERM_YEL ""
+#define TERM_BLU ""
+#define TERM_MAG ""
+#define TERM_CYN ""
+#define TERM_WHT ""
+#define TERM_RESET ""
+#endif
+
 #include "raytracer.h"
 
 #define TEST_CHECK(cond) _test_check((cond), __FILE__, __LINE__, #cond, false)
@@ -19,10 +39,11 @@
 int _test_check(int cond, const char *filename, int line, const char *expr, bool exit_after_fail)
 {
   static int test_failures_so_far = 0;
+
   if (!cond)
   {
     test_failures_so_far++;
-    fprintf(stderr, "[FAIL] [%s:%d] '%s'\n", filename, line, expr);
+    fprintf(stderr, "[%sFAIL%s] [%s:%d] '%s'\n", TERM_RED, TERM_RESET, filename, line, expr);
     if (exit_after_fail)
     {
       exit(test_failures_so_far);
@@ -30,7 +51,7 @@ int _test_check(int cond, const char *filename, int line, const char *expr, bool
   }
   else
   {
-    fprintf(stdout, "[ OK ] [%s:%d]\n", filename, line);
+    fprintf(stdout, "[ %sOK%s ] [%s:%d]\n", TERM_GRN, TERM_RESET, filename, line);
   }
   return test_failures_so_far;
 }
@@ -67,9 +88,9 @@ void _test_intersect()
       }};
 
   vertex_t v0, v1, v2;
-  v0.pos = (vec3){1,0,-3};
-  v1.pos = (vec3){0,1,-3};
-  v2.pos = (vec3){-1,0,-3};
+  v0.pos = (vec3){1, 0, -3};
+  v1.pos = (vec3){0, 1, -3};
+  v2.pos = (vec3){-1, 0, -3};
 
   ray = (ray_t){{0, 0, 0}, {0, 0, -1}};
   TEST_CHECK(intersect_triangle(&ray, v0, v1, v2, &hit) == true);
