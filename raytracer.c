@@ -639,32 +639,24 @@ vec3 trace_path_v2(ray_t *ray, object_t *objects, size_t nobj, int depth)
   vec3 direct_light = ZERO_VECTOR, indirect_light = ZERO_VECTOR;
 
   light_t light = {
-      .intensity = 0.75,
+      .intensity = .75,
       .color = (vec3){1, 1, 1},
       .position = (vec3){2, 10, 2},
   };
 
-#if 1
   vec3 light_dir = normalize(sub(light.position, hit.point));
   ray_t light_ray = (ray_t) { .origin = hit.point, .direction = light_dir};
   vec3 light_color = mult_s(light.color, light.intensity);
 
+#if 1
   hit_t tmp;
   if (!intersect(&light_ray, objects, nobj, &tmp))
   {
-    //direct_light = add(direct_light, light_color);
     direct_light = add(direct_light, mult_s(light_color, MAX(dot(hit.normal, light_dir), 0)));
   }
-#endif
-
-#if 0
-  if (hit.object->material.type == LIGHT)
-  {
-    vec3 light_dir = normalize(sub(hit.object->geometry.sphere->center, hit.point));
-    ray_t light_ray = (ray_t){.origin = hit.point, .direction = light_dir};
-
-    vec3 light_color = mult_s(hit.object->material.color, light.intensity);
-    direct_light = add(direct_light, mult_s(light_color, MAX(dot(hit.normal, light_dir), 0.0)));
+#else
+  if (hit.object->material.type == LIGHT){
+    return light_color;
   }
 #endif
 
@@ -672,26 +664,25 @@ vec3 trace_path_v2(ray_t *ray, object_t *objects, size_t nobj, int depth)
   for (size_t i = 0; i < nsamples; i++)
   {
     ray_t new_ray = {.origin = hit.point, .direction = random_in_hemisphere(hit.normal)};
-
-    //double theta = random_range(0.0, 1.0) * PI;
-    //double cosTheta = cos(theta);
-
     vec3 color = trace_path_v2(&new_ray, objects, nobj, depth + 1);
+
+    double theta = random_range(0.0, 1.0) * PI;
+    double cosTheta = cos(theta);
+
     indirect_light = add(indirect_light, color);
-    //indirect_light = add(indirect_light, mult_s(sample_color, cosTheta));
+    //indirect_light = add(indirect_light, mult_s(color, cosTheta));
   }
 
   indirect_light = mult_s(indirect_light, 1 / (double)nsamples);
 
   vec3 object_color = hit.object->material.color;
-
   if (hit.object->material.type == CHECKERED){
     object_color = sample_texture(object_color, hit.u, hit.v);
   }
 
   //return mult_s(indirect_light, 0.5);
   return mult(add(direct_light, indirect_light), object_color);
-  // return clamp(mult_s(mult(add(direct_light, indirect_light), hit.object->material.color), 1 / PI));
+  //return mult_s(mult(add(direct_light, indirect_light), object_color), 1 / PI);
 }
 
 vec3 trace_path(ray_t *ray, object_t *objects, size_t nobj, int depth)
@@ -854,8 +845,7 @@ bool load_obj(const char *filename, mesh_t *mesh)
 void render(uint8_t *framebuffer, object_t *objects, size_t n_objects, camera_t *camera, options_t options)
 {
   int x, y, s;
-  double u, v;
-  double gamma = 1.0;
+  double u, v, gamma = 1.0;
   ray_t ray;
 
   for (y = 0; y < options.height; y++)
@@ -874,10 +864,16 @@ void render(uint8_t *framebuffer, object_t *objects, size_t n_objects, camera_t 
 
       pixel = div_s(pixel, options.samples);
 
-      size_t index = (y * options.width + x) * 3;
-      framebuffer[index + 0] = (uint8_t)(255.0 * pow(pixel.x, 1 / gamma));
-      framebuffer[index + 1] = (uint8_t)(255.0 * pow(pixel.y, 1 / gamma));
-      framebuffer[index + 2] = (uint8_t)(255.0 * pow(pixel.z, 1 / gamma));
+      size_t i = (y * options.width + x) * 3;
+      framebuffer[i + 0] = (uint8_t)(255.0 * pow(pixel.x, 1 / gamma));
+      framebuffer[i + 1] = (uint8_t)(255.0 * pow(pixel.y, 1 / gamma));
+      framebuffer[i + 2] = (uint8_t)(255.0 * pow(pixel.z, 1 / gamma));
+
+      /*
+      framebuffer[i + 0] = 0xff;
+      framebuffer[i + 1] = 0x0f;
+      framebuffer[i + 2] = 0xf0;
+      */
     }
   }
 }
