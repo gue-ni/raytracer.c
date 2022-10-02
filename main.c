@@ -7,7 +7,7 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <assert.h>
-#include <math.h>
+#include <tgmath.h>
 #include <time.h>
 #include <float.h>
 #include <stdint.h>

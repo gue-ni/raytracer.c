@@ -191,14 +191,14 @@ void print_m(const mat4 m)
   }
 }
 
-static vec3 reflect(const vec3 I, const vec3 N)
+static vec3 reflect(const vec3 In, const vec3 N)
 {
-  return sub(I, mult_s(N, 2 * dot(I, N)));
+  return sub(In, mult_s(N, 2 * dot(In, N)));
 }
 
-static vec3 refract(const vec3 I, const vec3 N, double iot)
+static vec3 refract(const vec3 In, const vec3 N, double iot)
 {
-  double cosi = CLAMP_BETWEEN(dot(I, N), -1, 1);
+  double cosi = CLAMP_BETWEEN(dot(In, N), -1, 1);
   double etai = 1, etat = iot;
   vec3 n = N;
   if (cosi < 0)
@@ -214,7 +214,7 @@ static vec3 refract(const vec3 I, const vec3 N, double iot)
   }
   double eta = etai / etat;
   double k = 1 - eta * eta * (1 - cosi * cosi);
-  return k < 0 ? ZERO_VECTOR : add(mult_s(I, eta), mult_s(n, eta * cosi - sqrtf(k)));
+  return k < 0 ? ZERO_VECTOR : add(mult_s(In, eta), mult_s(n, eta * cosi - sqrtf(k)));
 }
 
 void init_camera(camera_t *camera, vec3 position, vec3 target, options_t *options)
@@ -853,9 +853,9 @@ bool load_obj(const char *filename, mesh_t *mesh)
 
 void render(uint8_t *framebuffer, object_t *objects, size_t n_objects, camera_t *camera, options_t options)
 {
-
   int x, y, s;
   double u, v;
+  double gamma = 1.0;
   ray_t ray;
 
   for (y = 0; y < options.height; y++)
@@ -873,12 +873,11 @@ void render(uint8_t *framebuffer, object_t *objects, size_t n_objects, camera_t 
       }
 
       pixel = div_s(pixel, options.samples);
-      pixel = mult_s(pixel, 255.0); // scale to range 0-255
 
       size_t index = (y * options.width + x) * 3;
-      framebuffer[index + 0] = (uint8_t)(pixel.x);
-      framebuffer[index + 1] = (uint8_t)(pixel.y);
-      framebuffer[index + 2] = (uint8_t)(pixel.z);
+      framebuffer[index + 0] = (uint8_t)(255.0 * pow(pixel.x, 1 / gamma));
+      framebuffer[index + 1] = (uint8_t)(255.0 * pow(pixel.y, 1 / gamma));
+      framebuffer[index + 2] = (uint8_t)(255.0 * pow(pixel.z, 1 / gamma));
     }
   }
 }
