@@ -164,9 +164,9 @@ mat4 rotate(const vec3 R)
   return rotate_y;
 }
 
-void print_v(const vec3 v)
+void print_v(const char* msg, const vec3 v)
 {
-  printf("(vec3) { %f, %f, %f }\n", v.x, v.y, v.z);
+  printf("%s: (vec3) { %f, %f, %f }\n", msg, v.x, v.y, v.z);
 }
 
 void print_t(const triangle_t triangle)
@@ -217,39 +217,52 @@ static vec3 refract(const vec3 I, const vec3 N, double iot)
   return k < 0 ? ZERO_VECTOR : add(mult_s(I, eta), mult_s(n, eta * cosi - sqrtf(k)));
 }
 
-void init_camera(camera_t *camera, vec3 position, vec3 look_at, options_t options)
+void init_camera(camera_t *camera, vec3 position, vec3 target, options_t *options)
 {
-#if 0
-    double viewport_height = 2.0;
-#else
-  double theta = 45.0 * (3.1516 / 180);
-  double h = tan(theta / 2);
-  double viewport_height = 2.0 * h;
-#endif
-  double aspect_ratio = (double)options.width / (double)options.height;
-  double viewport_width = aspect_ratio * viewport_height;
-  double focal_length = 1.0;
+  double theta            = 60.0 * (PI / 180);
+  double h                = tan(theta / 2);
+  double viewport_height  = 2.0 * h;
+  double aspect_ratio     = (double)options->width / (double)options->height;
+  double viewport_width   = aspect_ratio * viewport_height;
 
-  camera->origin = position;
-  camera->horizontal = (vec3){viewport_width, 0, 0};
-  camera->vertical = (vec3){0, viewport_height, 0};
+  vec3 forward  = normalize(sub(target, position));
+  vec3 right    = normalize(cross((vec3){0,1,0}, forward));
+  vec3 up       = normalize(cross(forward, right));
+  
+  camera->position    = position;
+  camera->vertical    = mult_s(up, viewport_height);
+  camera->horizontal  = mult_s(right, viewport_width);
 
-  vec3 half_h = div_s(camera->horizontal, 2);
-  vec3 half_v = div_s(camera->vertical, 2);
+  vec3 half_vertical      = div_s(camera->vertical, 2);
+  vec3 half_horizontal    = div_s(camera->horizontal, 2);
 
-  camera->lower_left_corner = sub(sub(camera->origin, half_h), sub(half_v, (vec3){0, 0, focal_length}));
+  vec3 llc_old = sub(
+    sub(camera->position, half_horizontal), 
+    sub(half_vertical, (vec3){0, 0, 1})
+  );  
+
+  vec3 llc_new = sub(
+    sub(camera->position, half_horizontal), 
+    sub(half_vertical, mult_s(forward, -1))
+  );  
+
+  camera->lower_left_corner = llc_new;
 }
 
+/**
+ * 
+ */
 static ray_t get_camera_ray(const camera_t *camera, double u, double v)
 {
   vec3 direction = sub(
-      camera->origin,
-      add(
-          camera->lower_left_corner,
-          add(mult_s(camera->horizontal, u), mult_s(camera->vertical, v))));
+    camera->position,
+    add(
+      camera->lower_left_corner,
+      add(mult_s(camera->horizontal, u), mult_s(camera->vertical, v))
+    )
+  );
 
-  direction = normalize(direction);
-  return (ray_t){camera->origin, direction};
+  return (ray_t){camera->position, normalize(direction)};
 }
 
 static char rgb_to_char(uint8_t r, uint8_t g, uint8_t b)

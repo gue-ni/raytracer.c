@@ -1,6 +1,11 @@
 #ifndef RAYTRACER_H
 #define RAYTRACER_H
 
+/*==========================[internal data]==========================*/
+/*==========================[external data]==========================*/
+/*========================[internal functions]=======================*/
+/*========================[external functions]=======================*/
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
@@ -146,7 +151,7 @@ typedef struct
 
 typedef struct
 {
-  vec3 origin, horizontal, vertical, lower_left_corner;
+  vec3 position, horizontal, vertical, lower_left_corner;
 } camera_t;
 
 typedef struct
@@ -177,13 +182,13 @@ mat4 translate(const vec3 v);
 
 mat4 rotate(const vec3 R);
 
-void print_v(const vec3 v);
+void print_v(const char* msg, const vec3 v);
 
 void print_t(const triangle_t triangle);
 
 void print_m(const mat4 m);
 
-void init_camera(camera_t *camera, vec3 position, vec3 look_at, options_t options);
+void init_camera(camera_t *camera, vec3 position, vec3 target, options_t *options);
 
 void render(uint8_t *framebuffer, object_t *objects, size_t n_objects, camera_t *camera, options_t options);
 

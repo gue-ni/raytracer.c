@@ -85,7 +85,7 @@ int main(int argc, char **argv)
     };
 
     vec3 pos = {0, -2.5, 0};
-    vec3 size = {8, 2, 4};
+    vec3 size = {8, 2, 8};
 
     mesh_t mesh = {
         .num_triangles = 2,
@@ -157,9 +157,8 @@ int main(int argc, char **argv)
         exit(1);
     }
 
-
     camera_t camera;
-    init_camera(&camera, (vec3){0, 0, 3.5}, (vec3){0, 0, 0}, options);
+    init_camera(&camera, (vec3){1, 1, 3.5}, (vec3){0, 0, 0}, &options);
 
     clock_t tic = clock();
 
@@ -184,7 +183,6 @@ int main(int argc, char **argv)
         printf("done.\n");
     }
 
-    // show(framebuffer);
     free(framebuffer);
     return 0;
 }
