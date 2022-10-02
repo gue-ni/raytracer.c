@@ -141,7 +141,7 @@ int main(int argc, char **argv)
    object_t scene[] = {
         {.type = MESH, .material = {RGB(100,100,100), CHECKERED}, .geometry.mesh = &mesh},
         {.type = SPHERE, .material = {RED, PHONG  }, .geometry.sphere = &spheres[0]},
-        {.type = SPHERE, .material = {RANDOM_COLOR, LIGHT}, .geometry.sphere = &spheres[1]},
+        {.type = SPHERE, .material = {RANDOM_COLOR, PHONG}, .geometry.sphere = &spheres[1]},
         {.type = SPHERE, .material = {GREEN, PHONG}, .geometry.sphere = &spheres[2]},
     };
 

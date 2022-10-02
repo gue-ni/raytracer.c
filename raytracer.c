@@ -10,7 +10,7 @@ int intersection_test_count = 0;
 
 static vec3 calculate_color(const ray_t *ray, object_t *scene, size_t n_objects, int depth, hit_t hit);
 
-static vec3 cast_ray(const ray_t *ray, object_t *scene, size_t n_objects, int depth);
+static vec3 trace_path_v3(const ray_t *ray, object_t *scene, size_t n_objects, int depth);
 
 double random_double() { return (double)rand() / ((double)RAND_MAX + 1); }
 
@@ -500,7 +500,7 @@ vec3 calculate_color(const ray_t *ray, object_t *objects, size_t n_objects, int 
   {
     // TODO: compute fresnel equation
     ray_t reflected = {hit.point, normalize(reflect(ray->direction, hit.normal))};
-    vec3 reflected_color = cast_ray(&reflected, objects, n_objects, depth + 1);
+    vec3 reflected_color = trace_path_v3(&reflected, objects, n_objects, depth + 1);
     double f = kd;
     out_color = add(mult_s(reflected_color, (1 - f)), mult_s(hit.object->material.color, (f)));
     out_color = phong(out_color, light_dir, hit.normal, ray->origin, hit.point, in_shadow, ka, ks, kd, alpha);
@@ -510,11 +510,11 @@ vec3 calculate_color(const ray_t *ray, object_t *objects, size_t n_objects, int 
   case REFLECTION_AND_REFRACTION:
   {
     ray_t reflected = {hit.point, normalize(reflect(ray->direction, hit.normal))};
-    vec3 reflected_color = cast_ray(&reflected, objects, n_objects, depth + 1);
+    vec3 reflected_color = trace_path_v3(&reflected, objects, n_objects, depth + 1);
 
     double iot = 1;
     ray_t refracted = {hit.point, normalize(refract(ray->direction, hit.normal, iot))};
-    vec3 refracted_color = cast_ray(&refracted, objects, n_objects, depth + 1);
+    vec3 refracted_color = trace_path_v3(&refracted, objects, n_objects, depth + 1);
 
     double kr = .8;
 
@@ -569,7 +569,7 @@ vec3 calculate_color(const ray_t *ray, object_t *objects, size_t n_objects, int 
   return out_color;
 }
 
-vec3 cast_ray(const ray_t *ray, object_t *objects, size_t n_objects, int depth)
+vec3 trace_path_v3(const ray_t *ray, object_t *objects, size_t n_objects, int depth)
 {
   ray_count++;
 
@@ -685,7 +685,7 @@ vec3 trace_path_v2(ray_t *ray, object_t *objects, size_t nobj, int depth)
   //return mult_s(mult(add(direct_light, indirect_light), object_color), 1 / PI);
 }
 
-vec3 trace_path(ray_t *ray, object_t *objects, size_t nobj, int depth)
+vec3 trace_path_v1(ray_t *ray, object_t *objects, size_t nobj, int depth)
 {
   // https://en.wikipedia.org/wiki/Path_tracing
   ray_count++;
@@ -726,7 +726,7 @@ vec3 trace_path(ray_t *ray, object_t *objects, size_t nobj, int depth)
   // double reflectance = .5;
   // vec3 BRDF = reflectance / PI;
 
-  vec3 recursive_color = trace_path(&new_ray, objects, nobj, depth + 1);
+  vec3 recursive_color = trace_path_v1(&new_ray, objects, nobj, depth + 1);
 
   double d = CLAMP(dot(hit.normal, new_ray.direction));
 
@@ -868,12 +868,6 @@ void render(uint8_t *framebuffer, object_t *objects, size_t n_objects, camera_t 
       framebuffer[i + 0] = (uint8_t)(255.0 * pow(pixel.x, 1 / gamma));
       framebuffer[i + 1] = (uint8_t)(255.0 * pow(pixel.y, 1 / gamma));
       framebuffer[i + 2] = (uint8_t)(255.0 * pow(pixel.z, 1 / gamma));
-
-      /*
-      framebuffer[i + 0] = 0xff;
-      framebuffer[i + 1] = 0x0f;
-      framebuffer[i + 2] = 0xf0;
-      */
     }
   }
 }
