@@ -35,9 +35,8 @@
 #define GREEN RGB(0, 192, 48)
 #define BLUE RGB(0, 0, 255)
 #define WHITE RGB(255, 255, 255)
-#define BACKGROUND RGB(1, 130, 129)
-//#define BACKGROUND  RGB(150, 150, 150)
-
+//#define BACKGROUND RGB(1, 130, 129)
+#define BACKGROUND  RGB(150, 150, 150)
 #define ZERO_VECTOR RGB(0, 0, 0)
 #define BLACK ZERO_VECTOR
 

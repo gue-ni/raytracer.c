@@ -140,9 +140,9 @@ int main(int argc, char **argv)
 
    object_t scene[] = {
         {.type = MESH, .material = {RGB(100,100,100), CHECKERED}, .geometry.mesh = &mesh},
-        {.type = SPHERE, .material = {RED, PHONG  }, .geometry.sphere = &spheres[0]},
-        {.type = SPHERE, .material = {RANDOM_COLOR, PHONG}, .geometry.sphere = &spheres[1]},
-        {.type = SPHERE, .material = {GREEN, PHONG}, .geometry.sphere = &spheres[2]},
+        {.type = SPHERE, .material = {RANDOM_COLOR, PHONG  }, .geometry.sphere = &spheres[0]},
+        {.type = SPHERE, .material = {RED, REFLECTION_AND_REFRACTION}, .geometry.sphere = &spheres[1]},
+        {.type = SPHERE, .material = {GREEN, REFLECTION}, .geometry.sphere = &spheres[2]},
     };
 
     uint8_t *framebuffer = malloc(sizeof(*framebuffer) * options.width * options.height * 3);

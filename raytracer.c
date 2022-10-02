@@ -10,7 +10,7 @@ int intersection_test_count = 0;
 
 static vec3 calculate_color(const ray_t *ray, object_t *scene, size_t n_objects, int depth, hit_t hit);
 
-static vec3 trace_path_v3(const ray_t *ray, object_t *scene, size_t n_objects, int depth);
+static vec3 trace_path_v3(ray_t *ray, object_t *scene, size_t nobj, int depth);
 
 double random_double() { return (double)rand() / ((double)RAND_MAX + 1); }
 
@@ -247,9 +247,6 @@ void init_camera(camera_t *camera, vec3 position, vec3 target, options_t *option
   camera->lower_left_corner = llc_new;
 }
 
-/**
- *
- */
 static ray_t get_camera_ray(const camera_t *camera, double u, double v)
 {
   vec3 direction = sub(
@@ -713,7 +710,7 @@ vec3 trace_path_v2(ray_t *ray, object_t *objects, size_t nobj, int depth)
   // return mult_s(mult(add(direct_light, indirect_light), object_color), 1 / PI);
 }
 
-vec3 trace_path_v3(const ray_t *ray, object_t *objects, size_t n_objects, int depth)
+vec3 trace_path_v3(ray_t *ray, object_t *objects, size_t nobj, int depth)
 {
   ray_count++;
 
@@ -724,12 +721,12 @@ vec3 trace_path_v3(const ray_t *ray, object_t *objects, size_t n_objects, int de
 
   hit_t hit = {.t = DBL_MAX, .object = NULL};
 
-  if (!intersect(ray, objects, n_objects, &hit))
+  if (!intersect(ray, objects, nobj, &hit))
   {
     return BACKGROUND;
   }
 
-  return calculate_color(ray, objects, n_objects, depth, hit);
+  return calculate_color(ray, objects, nobj, depth, hit);
 }
 
 void load_file(void *ctx, const char *filename, const int is_mtl, const char *obj, char **buffer, size_t *len)
@@ -840,16 +837,15 @@ bool load_obj(const char *filename, mesh_t *mesh)
 
 void render(uint8_t *framebuffer, object_t *objects, size_t n_objects, camera_t *camera, options_t options)
 {
-  int x, y, s;
   double u, v, gamma = 1.0;
   ray_t ray;
 
-  for (y = 0; y < options.height; y++)
+  for (int y = 0; y < options.height; y++)
   {
-    for (x = 0; x < options.width; x++)
+    for (int x = 0; x < options.width; x++)
     {
       vec3 pixel = {0, 0, 0};
-      for (s = 0; s < options.samples; s++)
+      for (int s = 0; s < options.samples; s++)
       {
         u = (double)(x + random_double()) / ((double)options.width - 1.0);
         v = (double)(y + random_double()) / ((double)options.height - 1.0);
