@@ -249,8 +249,6 @@ static ray_t get_camera_ray(const camera_t *camera, double u, double v)
           add(mult_s(camera->horizontal, u), mult_s(camera->vertical, v))));
 
   direction = normalize(direction);
-  assert(EQ(length(direction), 1.0));
-  assert(direction.z < 0);
   return (ray_t){camera->origin, direction};
 }
 
@@ -628,9 +626,9 @@ vec3 trace_path_v2(ray_t *ray, object_t *objects, size_t nobj, int depth)
   vec3 direct_light = ZERO_VECTOR, indirect_light = ZERO_VECTOR;
 
   light_t light = {
-      .position = (vec3){0, 10, 0},
+      .intensity = 0.75,
       .color = (vec3){1, 1, 1},
-      .intensity = 0.9,
+      .position = (vec3){2, 10, 2},
   };
 
 #if 1
@@ -657,7 +655,7 @@ vec3 trace_path_v2(ray_t *ray, object_t *objects, size_t nobj, int depth)
   }
 #endif
 
-  size_t nsamples = 1;
+  size_t nsamples = MONTE_CARLO_SAMPLES;
   for (size_t i = 0; i < nsamples; i++)
   {
     ray_t new_ray = {.origin = hit.point, .direction = random_in_hemisphere(hit.normal)};
@@ -678,7 +676,7 @@ vec3 trace_path_v2(ray_t *ray, object_t *objects, size_t nobj, int depth)
     object_color = sample_texture(object_color, hit.u, hit.v);
   }
 
-  // return mult_s(indirect_light, 0.5);
+  //return mult_s(indirect_light, 0.5);
   return mult(add(direct_light, indirect_light), object_color);
   // return clamp(mult_s(mult(add(direct_light, indirect_light), hit.object->material.color), 1 / PI));
 }

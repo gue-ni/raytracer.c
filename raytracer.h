@@ -17,6 +17,7 @@
 #endif
 #define EPSILON 1e-8
 #define MAX_DEPTH 5
+#define MONTE_CARLO_SAMPLES 1
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
 #define CLAMP(x) (MAX(0, MIN(x, 1)))
