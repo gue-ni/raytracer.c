@@ -173,7 +173,7 @@ void print_m(const mat4 m);
 
 void init_camera(camera_t *camera, vec3 position, vec3 target, options_t *options);
 
-void render(uint8_t *framebuffer, object_t *objects, size_t n_objects, camera_t *camera, options_t options);
+void render(uint8_t *framebuffer, object_t *objects, size_t n_objects, camera_t *camera, options_t *options);
 
 bool load_obj(const char *filename, mesh_t *mesh);
 

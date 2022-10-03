@@ -186,28 +186,28 @@ bool intersect_triangle(const ray_t *ray, vertex_t vertex0, vertex_t vertex1, ve
   }
 }
 
-void render(uint8_t *framebuffer, object_t *objects, size_t n_objects, camera_t *camera, options_t options)
+void render(uint8_t *framebuffer, object_t *objects, size_t n_objects, camera_t *camera, options_t *options)
 {
   double u, v, gamma = 1.0;
   ray_t ray;
 
-  for (int y = 0; y < options.height; y++)
+  for (int y = 0; y < options->height; y++)
   {
-    for (int x = 0; x < options.width; x++)
+    for (int x = 0; x < options->width; x++)
     {
       vec3 pixel = {0, 0, 0};
-      for (int s = 0; s < options.samples; s++)
+      for (int s = 0; s < options->samples; s++)
       {
-        u = (double)(x + random_double()) / ((double)options.width - 1.0);
-        v = (double)(y + random_double()) / ((double)options.height - 1.0);
+        u = (double)(x + random_double()) / ((double)options->width - 1.0);
+        v = (double)(y + random_double()) / ((double)options->height - 1.0);
 
         ray = get_camera_ray(camera, u, v);
-        pixel = add(pixel, clamp(trace_path_v2(&ray, objects, n_objects, 0)));
+        pixel = add(pixel, clamp(trace_path_v3(&ray, objects, n_objects, 0)));
       }
 
-      pixel = div_s(pixel, options.samples);
+      pixel = div_s(pixel, options->samples);
 
-      size_t i = (y * options.width + x) * 3;
+      size_t i = (y * options->width + x) * 3;
       framebuffer[i + 0] = (uint8_t)(255.0 * pow(pixel.x, 1 / gamma));
       framebuffer[i + 1] = (uint8_t)(255.0 * pow(pixel.y, 1 / gamma));
       framebuffer[i + 2] = (uint8_t)(255.0 * pow(pixel.z, 1 / gamma));

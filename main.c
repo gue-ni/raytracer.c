@@ -176,7 +176,7 @@ int main(int argc, char **argv)
 
     clock_t tic = clock();
 
-    render(framebuffer, scene, sizeof(scene) / sizeof(scene[0]), &camera, options);
+    render(framebuffer, scene, sizeof(scene) / sizeof(scene[0]), &camera, &options);
 
     clock_t toc = clock();
     double time_taken = (double)(toc - tic) / CLOCKS_PER_SEC;
