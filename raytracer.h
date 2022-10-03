@@ -120,8 +120,8 @@ typedef union
 
 typedef enum
 {
-  SPHERE,
-  MESH,
+  GEOMETRY_SPHERE,
+  GEOMETRY_MESH,
 } geometry_type_t;
 
 typedef struct

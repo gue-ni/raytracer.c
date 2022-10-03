@@ -1,7 +1,6 @@
 /*==================[inclusions]============================================*/
 
 #include <omp.h>
-
 #define TINYOBJ_LOADER_C_IMPLEMENTATION
 #include "lib/tinyobj_loader.h"
 
@@ -12,19 +11,19 @@
 /*==================[external function declarations]========================*/
 /*==================[internal function declarations]========================*/
 
-static vec3 add(const vec3, const vec3);
-static vec3 sub(const vec3, const vec3);
-static vec3 mult(const vec3, const vec3);
-static vec3 cross(const vec3, const vec3);
-static vec3 clamp(const vec3);
-static vec3 normalize(const vec3);
-static double length(const vec3);
-static double length2(const vec3);
-static double dot(const vec3, const vec3);
+static inline vec3 add(const vec3, const vec3);
+static inline vec3 sub(const vec3, const vec3);
+static inline vec3 mult(const vec3, const vec3);
+static inline vec3 cross(const vec3, const vec3);
+static inline vec3 clamp(const vec3);
+static inline vec3 normalize(const vec3);
+static inline double length(const vec3);
+static inline double length2(const vec3);
+static inline double dot(const vec3, const vec3);
+static inline vec3 mult_s(const vec3, const double);
+static inline vec3 div_s(const vec3, const double);
 
-static vec3 div_s(const vec3, const double);
 static vec3 add_s(const vec3, const double);
-static vec3 mult_s(const vec3, const double);
 static vec2 mult_s2(const vec2, const double);
 static vec2 add_s2(const vec2, const vec2);
 
@@ -169,7 +168,14 @@ bool intersect_triangle(const ray_t *ray, vertex_t vertex0, vertex_t vertex1, ve
     vec2 st1 = vertex1.tex;
     vec2 st2 = vertex2.tex;
 
-    vec2 tex = add_s2(add_s2(mult_s2(st0, 1 - u - v), mult_s2(st1, u)), mult_s2(st2, v));
+    vec2 tex = add_s2(
+      add_s2(
+        mult_s2(st0, 1 - u - v), 
+        mult_s2(st1, u)
+      ), 
+      mult_s2(st2, v)
+    );
+
     hit->u = tex.x;
     hit->v = tex.y;
     return true;
@@ -245,8 +251,8 @@ vec3 add(const vec3 v1, const vec3 v2)
 vec3 mult_s(const vec3 v1, const double s)
 { return (vec3){v1.x * s, v1.y * s, v1.z * s}; }
 
-vec3 div_s(const vec3 v1, const double s) 
-{ return (vec3){v1.x / s, v1.y / s, v1.z / s}; }
+vec3 div_s(const vec3 v, const double s) 
+{ return mult_s(v, 1/s); }
 
 vec2 mult_s2(const vec2 v, const double s) 
 { return (vec2){v.x * s, v.y * s}; }
@@ -451,7 +457,7 @@ bool intersect(const ray_t *ray, object_t *objects, size_t n, hit_t *hit)
   {
     switch (objects[i].type)
     {
-    case MESH:
+    case GEOMETRY_MESH:
     {
       mesh_t *mesh = objects[i].geometry.mesh;
       for (int ti = 0; ti < mesh->num_triangles; ti++)
@@ -479,7 +485,7 @@ bool intersect(const ray_t *ray, object_t *objects, size_t n, hit_t *hit)
 
       break;
     }
-    case SPHERE:
+    case GEOMETRY_SPHERE:
     {
       if (intersect_sphere(ray, objects[i].geometry.sphere, &local) && local.t < min_t)
       {

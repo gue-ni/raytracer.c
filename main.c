@@ -44,12 +44,6 @@ void write_image(int signal)
     }
 }
 
-void exit_error(const char *message)
-{
-    fprintf(stderr, "[ERROR] (%s:%d) %s\n", __FILE__, __LINE__, message);
-    exit(EXIT_FAILURE);
-}
-
 int main(int argc, char **argv)
 {
     srand((unsigned)time(NULL));
@@ -160,10 +154,10 @@ int main(int argc, char **argv)
     };
 
    object_t scene[] = {
-        {.type = MESH, .material = {RGB(100,100,100), CHECKERED}, .geometry.mesh = &mesh},
-        {.type = SPHERE, .material = {RANDOM_COLOR, PHONG  }, .geometry.sphere = &spheres[0]},
-        {.type = SPHERE, .material = {RED, REFLECTION_AND_REFRACTION}, .geometry.sphere = &spheres[1]},
-        {.type = SPHERE, .material = {GREEN, REFLECTION}, .geometry.sphere = &spheres[2]},
+        {.type = GEOMETRY_MESH, .material = {RGB(100,100,100), CHECKERED}, .geometry.mesh = &mesh},
+        {.type = GEOMETRY_SPHERE, .material = {RANDOM_COLOR, PHONG  }, .geometry.sphere = &spheres[0]},
+        {.type = GEOMETRY_SPHERE, .material = {RED, REFLECTION_AND_REFRACTION}, .geometry.sphere = &spheres[1]},
+        {.type = GEOMETRY_SPHERE, .material = {GREEN, REFLECTION}, .geometry.sphere = &spheres[2]},
     };
 
     size_t buff_len = sizeof(*framebuffer) * options.width * options.height * 3;
