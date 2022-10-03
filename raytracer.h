@@ -1,10 +1,7 @@
 #ifndef RAYTRACER_H
 #define RAYTRACER_H
 
-/*==========================[internal data]==========================*/
-/*==========================[external data]==========================*/
-/*========================[internal functions]=======================*/
-/*========================[external functions]=======================*/
+/*==================[inclusions]============================================*/
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -17,12 +14,14 @@
 #include <string.h>
 #include <omp.h>
 
+/*==================[macros]================================================*/
+
 #ifndef PI
 #define PI 3.14159265359
 #endif
 #define EPSILON 1e-8
 #define MAX_DEPTH 3
-#define MONTE_CARLO_SAMPLES 4
+#define MONTE_CARLO_SAMPLES 1
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
 #define CLAMP(x) (MAX(0, MIN(x, 1)))
@@ -30,7 +29,6 @@
 #define ABS(x) ((x < 0) ? (-x) : (x))
 #define RGB(r, g, b) ((vec3){r / 255.0, g / 255.0, b / 255.0})
 #define EQ(a, b) (ABS((a) - (b)) < EPSILON)
-
 #define RED RGB(255, 0, 0)
 #define GREEN RGB(0, 192, 48)
 #define BLUE RGB(0, 0, 255)
@@ -39,16 +37,10 @@
 #define BACKGROUND  RGB(150, 150, 150)
 #define ZERO_VECTOR RGB(0, 0, 0)
 #define BLACK ZERO_VECTOR
-
-extern int ray_count;
-extern int intersection_test_count;
-
-double random_double();
-
-double random_range(double min, double max);
-
 #define RANDOM_COLOR \
   (vec3) { random_double(), random_double(), random_double() }
+
+/*==================[type definitions]======================================*/
 
 typedef struct
 {
@@ -165,26 +157,18 @@ typedef struct
   char *result, *obj;
 } options_t;
 
-bool intersect_sphere(const ray_t *ray, const sphere_t *sphere, hit_t *hit);
+/*==================[external function declarations]========================*/
 
+double random_double();
+
+bool intersect_sphere(const ray_t *ray, sphere_t *sphere, hit_t *hit);
 bool intersect_triangle(const ray_t *ray, vertex_t vertex0, vertex_t vertex1, vertex_t vertex2, hit_t *hit);
 
-vec3 point_at(const ray_t *ray, double t);
-
-mat4 mult_mm(const mat4 A, const mat4 B);
-
-vec3 mult_mv(const mat4 A, const vec3 v);
-
-vec3 point_at(const ray_t *ray, double t);
-
 mat4 translate(const vec3 v);
-
 mat4 rotate(const vec3 R);
 
 void print_v(const char* msg, const vec3 v);
-
 void print_t(const triangle_t triangle);
-
 void print_m(const mat4 m);
 
 void init_camera(camera_t *camera, vec3 position, vec3 target, options_t *options);
@@ -192,5 +176,13 @@ void init_camera(camera_t *camera, vec3 position, vec3 target, options_t *option
 void render(uint8_t *framebuffer, object_t *objects, size_t n_objects, camera_t *camera, options_t options);
 
 bool load_obj(const char *filename, mesh_t *mesh);
+
+/*==================[external constants]====================================*/
+/*==================[external data]=========================================*/
+
+extern int ray_count;
+extern int intersection_test_count;
+
+/*==================[end of file]===========================================*/
 
 #endif /* RAYTRACER_H */

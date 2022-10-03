@@ -1,3 +1,5 @@
+/*==================[inclusions]============================================*/
+
 #include <omp.h>
 
 #define TINYOBJ_LOADER_C_IMPLEMENTATION
@@ -5,57 +7,258 @@
 
 #include "raytracer.h"
 
+/*==================[macros]================================================*/
+/*==================[type definitions]======================================*/
+/*==================[external function declarations]========================*/
+/*==================[internal function declarations]========================*/
+
+static vec3 add(const vec3, const vec3);
+static vec3 sub(const vec3, const vec3);
+static vec3 mult(const vec3, const vec3);
+static vec3 cross(const vec3, const vec3);
+static vec3 clamp(const vec3);
+static vec3 normalize(const vec3);
+static double length(const vec3);
+static double length2(const vec3);
+static double dot(const vec3, const vec3);
+
+static vec3 div_s(const vec3, const double);
+static vec3 add_s(const vec3, const double);
+static vec3 mult_s(const vec3, const double);
+static vec2 mult_s2(const vec2, const double);
+static vec2 add_s2(const vec2, const vec2);
+
+static vec3 random_in_unit_sphere();
+static vec3 random_in_hemisphere(vec3 normal);
+
+static vec3 phong(vec3 color, vec3 light_dir, vec3 normal, vec3 camera_origin, vec3 position, bool in_shadow, double ka, double ks, double kd, double alpha);
+static vec3 calculate_color(const ray_t *ray, object_t *scene, size_t n_objects, int depth, hit_t hit);
+static ray_t get_camera_ray(const camera_t *camera, double u, double v);
+
+static vec3 trace_path_v1(ray_t *ray, object_t *scene, size_t nobj, int depth);
+static vec3 trace_path_v2(ray_t *ray, object_t *scene, size_t nobj, int depth);
+static vec3 trace_path_v3(ray_t *ray, object_t *scene, size_t nobj, int depth);
+
+static vec3 reflect(const vec3 In, const vec3 N);
+static vec3 refract(const vec3 In, const vec3 N, double iot);
+
+static vec3 sample_texture(vec3 color, double u, double v);
+
+static bool intersect(const ray_t *ray, object_t *objects, size_t n, hit_t *hit);
+
+/*==================[external constants]====================================*/
+/*==================[internal constants]====================================*/
+/*==================[external data]=========================================*/
+
 int ray_count = 0;
 int intersection_test_count = 0;
 
-static vec3 calculate_color(const ray_t *ray, object_t *scene, size_t n_objects, int depth, hit_t hit);
+/*==================[internal data]=========================================*/
+/*==================[external function definitions]=========================*/
 
-static vec3 trace_path_v3(ray_t *ray, object_t *scene, size_t nobj, int depth);
-
-double random_double() { return (double)rand() / ((double)RAND_MAX + 1); }
-
-double random_range(double min, double max)
+void init_camera(camera_t *camera, vec3 position, vec3 target, options_t *options)
 {
-  return (double)rand() * (max - min) + min;
+  double theta = 60.0 * (PI / 180);
+  double h = tan(theta / 2);
+  double viewport_height = 2.0 * h;
+  double aspect_ratio = (double)options->width / (double)options->height;
+  double viewport_width = aspect_ratio * viewport_height;
+
+  vec3 forward = normalize(sub(target, position));
+  vec3 right = normalize(cross((vec3){0, 1, 0}, forward));
+  vec3 up = normalize(cross(forward, right));
+
+  camera->position = position;
+  camera->vertical = mult_s(up, viewport_height);
+  camera->horizontal = mult_s(right, viewport_width);
+
+  vec3 half_vertical = div_s(camera->vertical, 2);
+  vec3 half_horizontal = div_s(camera->horizontal, 2);
+
+  vec3 llc_old = sub(
+      sub(camera->position, half_horizontal),
+      sub(half_vertical, (vec3){0, 0, 1}));
+
+  vec3 llc_new = sub(
+      sub(camera->position, half_horizontal),
+      sub(half_vertical, mult_s(forward, -1)));
+
+  camera->lower_left_corner = llc_new;
 }
 
-static double dot(const vec3 v1, const vec3 v2) { return v1.x * v2.x + v1.y * v2.y + v1.z * v2.z; }
+bool intersect_sphere(const ray_t *ray, sphere_t *sphere, hit_t *hit)
+{
+  intersection_test_count++;
 
-double length2(const vec3 v1) { return v1.x * v1.x + v1.y * v1.y + v1.z * v1.z; }
+  double t0, t1; // solutions for t if the ray intersects
+  vec3 L = sub(sphere->center, ray->origin);
+  double tca = dot(L, ray->direction);
+  if (tca < 0)
+    return false;
+  double d2 = dot(L, L) - tca * tca;
+  double radius2 = sphere->radius * sphere->radius;
+  if (d2 > radius2)
+    return false;
 
-double length(const vec3 v1) { return sqrt(length2(v1)); }
+  double thc = sqrt(radius2 - d2);
+  t0 = tca - thc;
+  t1 = tca + thc;
+
+  if (t0 > t1)
+  {
+    double tmp = t0;
+    t0 = t1;
+    t1 = tmp;
+  }
+
+  if (t0 < 0)
+  {
+    t0 = t1; // if t0 is negative, let's use t1 instead
+    if (t0 < 0)
+      return false; // both t0 and t1 are negative
+  }
+
+  if (t0 > EPSILON)
+  {
+    hit->t = t0;
+    hit->u = 0;
+    hit->v = 0;
+    return true;
+  }
+  else
+  {
+    return false;
+  }
+}
+
+bool intersect_triangle(const ray_t *ray, vertex_t vertex0, vertex_t vertex1, vertex_t vertex2, hit_t *hit)
+{
+  intersection_test_count++;
+
+  // https://en.wikipedia.org/wiki/M%C3%B6ller%E2%80%93Trumbore_intersection_algorithm
+  vec3 v0, v1, v2;
+  v0 = vertex0.pos;
+  v1 = vertex1.pos;
+  v2 = vertex2.pos;
+
+  vec3 edge1, edge2, h, s, q;
+  double a, f, u, v, t;
+  edge1 = sub(v1, v0);
+  edge2 = sub(v2, v0);
+  h = cross(ray->direction, edge2);
+  a = dot(edge1, h);
+  if (a > -EPSILON && a < EPSILON)
+    return false; // This ray is parallel to this triangle.
+  f = 1.0 / a;
+  s = sub(ray->origin, v0);
+  u = f * dot(s, h);
+  if (u < 0.0 || u > 1.0)
+    return false;
+  q = cross(s, edge1);
+  v = f * dot(ray->direction, q);
+  if (v < 0.0 || u + v > 1.0)
+    return false;
+  // At this stage we can compute t to find out where the intersection point is on the line.
+  t = f * dot(edge2, q);
+
+  if (t > EPSILON)
+  {
+    hit->t = t;
+
+    vec2 st0 = vertex0.tex;
+    vec2 st1 = vertex1.tex;
+    vec2 st2 = vertex2.tex;
+
+    vec2 tex = add_s2(add_s2(mult_s2(st0, 1 - u - v), mult_s2(st1, u)), mult_s2(st2, v));
+    hit->u = tex.x;
+    hit->v = tex.y;
+    return true;
+  }
+  else
+  {
+    return false;
+  }
+}
+
+void render(uint8_t *framebuffer, object_t *objects, size_t n_objects, camera_t *camera, options_t options)
+{
+  double u, v, gamma = 1.0;
+  ray_t ray;
+
+  for (int y = 0; y < options.height; y++)
+  {
+    for (int x = 0; x < options.width; x++)
+    {
+      vec3 pixel = {0, 0, 0};
+      for (int s = 0; s < options.samples; s++)
+      {
+        u = (double)(x + random_double()) / ((double)options.width - 1.0);
+        v = (double)(y + random_double()) / ((double)options.height - 1.0);
+
+        ray = get_camera_ray(camera, u, v);
+        pixel = add(pixel, clamp(trace_path_v2(&ray, objects, n_objects, 0)));
+      }
+
+      pixel = div_s(pixel, options.samples);
+
+      size_t i = (y * options.width + x) * 3;
+      framebuffer[i + 0] = (uint8_t)(255.0 * pow(pixel.x, 1 / gamma));
+      framebuffer[i + 1] = (uint8_t)(255.0 * pow(pixel.y, 1 / gamma));
+      framebuffer[i + 2] = (uint8_t)(255.0 * pow(pixel.z, 1 / gamma));
+    }
+  }
+}
+
+/*==================[internal function definitions]=========================*/
+
+double random_double() 
+{ return (double)rand() / ((double)RAND_MAX + 1); }
+
+double random_range(double min, double max)
+{ return (double)rand() * (max - min) + min; }
+
+double dot(const vec3 v1, const vec3 v2) 
+{ return v1.x * v2.x + v1.y * v2.y + v1.z * v2.z; }
+
+double length2(const vec3 v1) 
+{ return v1.x * v1.x + v1.y * v1.y + v1.z * v1.z; }
+
+double length(const vec3 v1) 
+{ return sqrt(length2(v1)); }
 
 vec3 cross(const vec3 a, const vec3 b)
-{
-  return (vec3){a.y * b.z - a.z * b.y, a.z * b.x - a.x * b.z, a.x * b.y - a.y * b.x};
+{ return (vec3){
+  a.y * b.z - a.z * b.y, 
+  a.z * b.x - a.x * b.z, 
+  a.x * b.y - a.y * b.x}; 
 }
 
 vec3 mult(const vec3 v1, const vec3 v2)
-{
-  return (vec3){v1.x * v2.x, v1.y * v2.y, v1.z * v2.z};
-}
+{ return (vec3){v1.x * v2.x, v1.y * v2.y, v1.z * v2.z}; }
 
-vec3 sub(const vec3 v1, const vec3 v2) { return (vec3){v1.x - v2.x, v1.y - v2.y, v1.z - v2.z}; }
+vec3 sub(const vec3 v1, const vec3 v2) 
+{ return (vec3){v1.x - v2.x, v1.y - v2.y, v1.z - v2.z}; }
 
-vec3 add(const vec3 v1, const vec3 v2) { return (vec3){v1.x + v2.x, v1.y + v2.y, v1.z + v2.z}; }
+vec3 add(const vec3 v1, const vec3 v2) 
+{ return (vec3){v1.x + v2.x, v1.y + v2.y, v1.z + v2.z}; }
 
 vec3 mult_s(const vec3 v1, const double s)
-{
-  return (vec3){v1.x * s, v1.y * s, v1.z * s};
-}
+{ return (vec3){v1.x * s, v1.y * s, v1.z * s}; }
 
-vec3 div_s(const vec3 v1, const double s) { return (vec3){v1.x / s, v1.y / s, v1.z / s}; }
+vec3 div_s(const vec3 v1, const double s) 
+{ return (vec3){v1.x / s, v1.y / s, v1.z / s}; }
 
-vec2 mult_s2(const vec2 v, const double s) { return (vec2){v.x * s, v.y * s}; }
+vec2 mult_s2(const vec2 v, const double s) 
+{ return (vec2){v.x * s, v.y * s}; }
 
-vec2 add_s2(const vec2 v1, const vec2 v2) { return (vec2){v1.x + v2.x, v1.y + v2.y}; }
+vec2 add_s2(const vec2 v1, const vec2 v2) 
+{ return (vec2){v1.x + v2.x, v1.y + v2.y}; }
 
 vec3 point_at(const ray_t *ray, double t)
-{
-  return add(ray->origin, mult_s(ray->direction, t));
-}
+{ return add(ray->origin, mult_s(ray->direction, t)); }
 
-vec3 clamp(const vec3 v1) { return (vec3){CLAMP(v1.x), CLAMP(v1.y), CLAMP(v1.z)}; }
+vec3 clamp(const vec3 v1) 
+{ return (vec3){CLAMP(v1.x), CLAMP(v1.y), CLAMP(v1.z)}; }
 
 vec3 normalize(const vec3 v1)
 {
@@ -191,12 +394,12 @@ void print_m(const mat4 m)
   }
 }
 
-static vec3 reflect(const vec3 In, const vec3 N)
+vec3 reflect(const vec3 In, const vec3 N)
 {
   return sub(In, mult_s(N, 2 * dot(In, N)));
 }
 
-static vec3 refract(const vec3 In, const vec3 N, double iot)
+vec3 refract(const vec3 In, const vec3 N, double iot)
 {
   double cosi = CLAMP_BETWEEN(dot(In, N), -1, 1);
   double etai = 1, etat = iot;
@@ -217,37 +420,7 @@ static vec3 refract(const vec3 In, const vec3 N, double iot)
   return k < 0 ? ZERO_VECTOR : add(mult_s(In, eta), mult_s(n, eta * cosi - sqrtf(k)));
 }
 
-void init_camera(camera_t *camera, vec3 position, vec3 target, options_t *options)
-{
-  double theta = 60.0 * (PI / 180);
-  double h = tan(theta / 2);
-  double viewport_height = 2.0 * h;
-  double aspect_ratio = (double)options->width / (double)options->height;
-  double viewport_width = aspect_ratio * viewport_height;
-
-  vec3 forward = normalize(sub(target, position));
-  vec3 right = normalize(cross((vec3){0, 1, 0}, forward));
-  vec3 up = normalize(cross(forward, right));
-
-  camera->position = position;
-  camera->vertical = mult_s(up, viewport_height);
-  camera->horizontal = mult_s(right, viewport_width);
-
-  vec3 half_vertical = div_s(camera->vertical, 2);
-  vec3 half_horizontal = div_s(camera->horizontal, 2);
-
-  vec3 llc_old = sub(
-      sub(camera->position, half_horizontal),
-      sub(half_vertical, (vec3){0, 0, 1}));
-
-  vec3 llc_new = sub(
-      sub(camera->position, half_horizontal),
-      sub(half_vertical, mult_s(forward, -1)));
-
-  camera->lower_left_corner = llc_new;
-}
-
-static ray_t get_camera_ray(const camera_t *camera, double u, double v)
+ray_t get_camera_ray(const camera_t *camera, double u, double v)
 {
   vec3 direction = sub(
       camera->position,
@@ -258,16 +431,7 @@ static ray_t get_camera_ray(const camera_t *camera, double u, double v)
   return (ray_t){camera->position, normalize(direction)};
 }
 
-static char rgb_to_char(uint8_t r, uint8_t g, uint8_t b)
-{
-  char grey[10] = " .:-=+*#%@";
-  double grayscale_value = ((r + g + b) / 3.0) * 0.999;
-  int index = (int)(sizeof(grey) * (grayscale_value / 255.0));
-  assert(0 <= index && index < 10);
-  return grey[9 - index];
-}
-
-static vec3 sample_texture(vec3 color, double u, double v)
+vec3 sample_texture(vec3 color, double u, double v)
 {
   double M = 10;
   double checker = (fmod(u * M, 1.0) > 0.5) ^ (fmod(v * M, 1.0) < 0.5);
@@ -275,115 +439,7 @@ static vec3 sample_texture(vec3 color, double u, double v)
   return mult_s(color, c);
 }
 
-static void show(const uint8_t *buffer, const options_t options)
-{
-  // TODO scale to appropriate size
-  for (int y = 0; y < options.height; y++)
-  {
-    for (int x = 0; x < options.width; x++)
-    {
-      size_t i = (y * options.width + x) * 3;
-      printf("%c", rgb_to_char(buffer[i + 0], buffer[i + 1], buffer[i + 2]));
-    }
-    printf("\n");
-  }
-}
-
-bool intersect_sphere(const ray_t *ray, const sphere_t *sphere, hit_t *hit)
-{
-  intersection_test_count++;
-
-  double t0, t1; // solutions for t if the ray intersects
-  vec3 L = sub(sphere->center, ray->origin);
-  double tca = dot(L, ray->direction);
-  if (tca < 0)
-    return false;
-  double d2 = dot(L, L) - tca * tca;
-  double radius2 = sphere->radius * sphere->radius;
-  if (d2 > radius2)
-    return false;
-
-  double thc = sqrt(radius2 - d2);
-  t0 = tca - thc;
-  t1 = tca + thc;
-
-  if (t0 > t1)
-  {
-    double tmp = t0;
-    t0 = t1;
-    t1 = tmp;
-  }
-
-  if (t0 < 0)
-  {
-    t0 = t1; // if t0 is negative, let's use t1 instead
-    if (t0 < 0)
-      return false; // both t0 and t1 are negative
-  }
-
-  if (t0 > EPSILON)
-  {
-    hit->t = t0;
-    hit->u = 0;
-    hit->v = 0;
-    return true;
-  }
-  else
-  {
-    return false;
-  }
-}
-
-bool intersect_triangle(const ray_t *ray, vertex_t vertex0, vertex_t vertex1, vertex_t vertex2, hit_t *hit)
-{
-  intersection_test_count++;
-
-  // https://en.wikipedia.org/wiki/M%C3%B6ller%E2%80%93Trumbore_intersection_algorithm
-  vec3 v0, v1, v2;
-  v0 = vertex0.pos;
-  v1 = vertex1.pos;
-  v2 = vertex2.pos;
-
-  vec3 edge1, edge2, h, s, q;
-  double a, f, u, v, t;
-  edge1 = sub(v1, v0);
-  edge2 = sub(v2, v0);
-  h = cross(ray->direction, edge2);
-  a = dot(edge1, h);
-  if (a > -EPSILON && a < EPSILON)
-    return false; // This ray is parallel to this triangle.
-  f = 1.0 / a;
-  s = sub(ray->origin, v0);
-  u = f * dot(s, h);
-  if (u < 0.0 || u > 1.0)
-    return false;
-  q = cross(s, edge1);
-  v = f * dot(ray->direction, q);
-  if (v < 0.0 || u + v > 1.0)
-    return false;
-  // At this stage we can compute t to find out where the intersection point is on the line.
-  t = f * dot(edge2, q);
-
-  if (t > EPSILON)
-  {
-    hit->t = t;
-
-    vec2 st0 = vertex0.tex;
-    vec2 st1 = vertex1.tex;
-    vec2 st2 = vertex2.tex;
-
-    vec2 tex = add_s2(add_s2(mult_s2(st0, 1 - u - v), mult_s2(st1, u)), mult_s2(st2, v));
-    hit->u = tex.x;
-    hit->v = tex.y;
-    return true;
-  }
-  else
-  {
-    return false;
-  }
-}
-
-static bool intersect(const ray_t *ray, object_t *objects, size_t n, hit_t *hit)
+bool intersect(const ray_t *ray, object_t *objects, size_t n, hit_t *hit)
 {
   // ray_count++;
   double old_t = hit != NULL ? hit->t : DBL_MAX;
@@ -451,7 +507,7 @@ static bool intersect(const ray_t *ray, object_t *objects, size_t n, hit_t *hit)
   return min_t < old_t;
 }
 
-static vec3 phong(vec3 color, vec3 light_dir, vec3 normal, vec3 camera_origin, vec3 position, bool in_shadow, double ka, double ks, double kd, double alpha)
+vec3 phong(vec3 color, vec3 light_dir, vec3 normal, vec3 camera_origin, vec3 position, bool in_shadow, double ka, double ks, double kd, double alpha)
 {
   /*
   double ka = 0.18;
@@ -729,6 +785,7 @@ vec3 trace_path_v3(ray_t *ray, object_t *objects, size_t nobj, int depth)
   return calculate_color(ray, objects, nobj, depth, hit);
 }
 
+#if 0
 void load_file(void *ctx, const char *filename, const int is_mtl, const char *obj, char **buffer, size_t *len)
 {
   long string_size = 0, read_size = 0;
@@ -834,32 +891,6 @@ bool load_obj(const char *filename, mesh_t *mesh)
   tinyobj_attrib_free(&attrib);
   return true;
 }
+#endif
 
-void render(uint8_t *framebuffer, object_t *objects, size_t n_objects, camera_t *camera, options_t options)
-{
-  double u, v, gamma = 1.0;
-  ray_t ray;
-
-  for (int y = 0; y < options.height; y++)
-  {
-    for (int x = 0; x < options.width; x++)
-    {
-      vec3 pixel = {0, 0, 0};
-      for (int s = 0; s < options.samples; s++)
-      {
-        u = (double)(x + random_double()) / ((double)options.width - 1.0);
-        v = (double)(y + random_double()) / ((double)options.height - 1.0);
-
-        ray = get_camera_ray(camera, u, v);
-        pixel = add(pixel, clamp(trace_path_v2(&ray, objects, n_objects, 0)));
-      }
-
-      pixel = div_s(pixel, options.samples);
-
-      size_t i = (y * options.width + x) * 3;
-      framebuffer[i + 0] = (uint8_t)(255.0 * pow(pixel.x, 1 / gamma));
-      framebuffer[i + 1] = (uint8_t)(255.0 * pow(pixel.y, 1 / gamma));
-      framebuffer[i + 2] = (uint8_t)(255.0 * pow(pixel.z, 1 / gamma));
-    }
-  }
-}
+/*==================[end of file]===========================================*/

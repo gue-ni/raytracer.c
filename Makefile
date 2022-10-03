@@ -1,5 +1,5 @@
 CC 			= gcc
-CFLAGS 	= --std=c99 -Wall -g -Wno-strict-aliasing -Wno-unused-variable -Wno-unused-function -O3 -fopenmp
+CFLAGS 	= --std=c99 -Wall -g -Wno-strict-aliasing -Wno-unused-variable -Wno-unused-function -fopenmp -O3
 LFLAGS 	= -lm
 
 SRC 		= $(wildcard *.c)
@@ -22,7 +22,7 @@ $(TESTS): bin/test.o bin/raytracer.o raytracer.h
 bin/%.o: %.c
 	$(CC) $(CFLAGS) -c -o $@ $<
 
-all: $(APP) $(TESTS)
+all: $(APP)
 
 test: $(TESTS)
 	./$(TESTS) | tee tests.log 2>&1

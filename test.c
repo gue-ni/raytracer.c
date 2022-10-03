@@ -43,7 +43,7 @@ int _test_check(int cond, const char *filename, int line, const char *expr, bool
   if (!cond)
   {
     test_failures_so_far++;
-    fprintf(stderr, "[%sFAIL%s] [%s:%d] '%s'\n", TERM_RED, TERM_RESET, filename, line, expr);
+    fprintf(stderr, "[%sFAIL%s] [%s:%04d] '%s'\n", TERM_RED, TERM_RESET, filename, line, expr);
     if (exit_after_fail)
     {
       exit(test_failures_so_far);
@@ -51,7 +51,7 @@ int _test_check(int cond, const char *filename, int line, const char *expr, bool
   }
   else
   {
-    fprintf(stdout, "[ %sOK%s ] [%s:%d]\n", TERM_GRN, TERM_RESET, filename, line);
+    fprintf(stdout, "[ %sOK%s ] [%s:%04d]\n", TERM_GRN, TERM_RESET, filename, line);
   }
   return test_failures_so_far;
 }

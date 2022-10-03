@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <signal.h>
 #include <stdlib.h>
 #include <stdbool.h>
 #include <assert.h>
@@ -13,8 +14,35 @@
 
 #include "raytracer.h"
 
+options_t options = {
+    .width = 320,
+    .height = 180,
+    .samples = 50,
+    .result = "result.png",
+    .obj = "assets/cube.obj"};
+
+uint8_t *framebuffer = NULL;
+
 extern int ray_count;
 extern int intersection_test_count;
+
+void write_image(int signal)
+{
+    printf("on exit\n");
+    if (framebuffer != NULL)
+    {
+        if (stbi_write_png(options.result, options.width, options.height, 3, framebuffer, options.width * 3) == 0)
+        {
+            fprintf(stderr, "failed to write");
+            exit(EXIT_FAILURE);
+        }
+        else
+        {
+            printf("done.\n");
+        }
+        free(framebuffer);
+    }
+}
 
 void exit_error(const char *message)
 {
@@ -31,13 +59,6 @@ int main(int argc, char **argv)
         fprintf(stderr, "Usage: %s -w <width> -h <height> -s <samples per pixel> -o <filename>\n", argv[0]);
         exit(EXIT_FAILURE);
     }
-
-    options_t options = {
-        .width = 320,
-        .height = 180,
-        .samples = 50,
-        .result = "result.png",
-        .obj = "assets/cube.obj"};
 
     size_t optind;
     for (optind = 1; optind < argc; optind++)
@@ -145,12 +166,16 @@ int main(int argc, char **argv)
         {.type = SPHERE, .material = {GREEN, REFLECTION}, .geometry.sphere = &spheres[2]},
     };
 
-    uint8_t *framebuffer = malloc(sizeof(*framebuffer) * options.width * options.height * 3);
+    size_t buff_len = sizeof(*framebuffer) * options.width * options.height * 3;
+    framebuffer = malloc(buff_len);
     if (framebuffer == NULL)
     {
         fprintf(stderr, "could not allocate framebuffer\n");
         exit(1);
     }
+
+    memset(framebuffer, 0x0,buff_len);
+    signal(SIGINT, &write_image);
 
     camera_t camera;
     init_camera(&camera, (vec3){1, 1, 3.5}, (vec3){0, 0, 0}, &options);
@@ -167,17 +192,6 @@ int main(int argc, char **argv)
     printf("checked %d possible intersections\n", intersection_test_count);
     printf("rendering took %f seconds\n", time_taken);
     printf("writing result to '%s'...\n", options.result);
-
-    if (stbi_write_png(options.result, options.width, options.height, 3, framebuffer, options.width * 3) == 0)
-    {
-        fprintf(stderr, "failed to write");
-        exit(EXIT_FAILURE);
-    }
-    else
-    {
-        printf("done.\n");
-    }
-
-    free(framebuffer);
+    write_image(0);
     return 0;
 }
