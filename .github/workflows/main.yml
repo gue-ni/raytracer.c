@@ -12,8 +12,8 @@ jobs:
     steps:
     - uses: actions/checkout@v3
 
-    - name: test
-      run: make test
+#    - name: test
+#      run: make test
 
     - name: clean
       run: make clean
