@@ -12,14 +12,13 @@ APP 		= raytracer
 TESTS 	= raytracer_test
 
 $(APP): bin/main.o bin/raytracer.o raytracer.h
-	@mkdir -p bin/
 	$(CC) $(CFLAGS) -o $@ $^ $(LFLAGS)
 
 $(TESTS): bin/test.o bin/raytracer.o raytracer.h
-	@mkdir -p bin/
 	$(CC) $(CFLAGS) -o $@ $^ $(LFLAGS)
 
 bin/%.o: %.c
+	mkdir -p bin/
 	$(CC) $(CFLAGS) -c -o $@ $<
 
 all: $(APP)

@@ -80,16 +80,16 @@ int main(int argc, char **argv)
 
     sphere_t spheres[] = {
         {
-            {1.1, 0, 0},
+            {1.1, 0, -1},
             .5,
         },
         {
             {0, 0, 0},
-            .5,
+            .75,
         },
 
         {
-            {-1.1, 0, 0},
+            {-1.1, 0, 1},
             .5,
         },
     };
@@ -172,7 +172,7 @@ int main(int argc, char **argv)
     signal(SIGINT, &write_image);
 
     camera_t camera;
-    init_camera(&camera, (vec3){1, 1, 3.5}, (vec3){0, 0, 0}, &options);
+    init_camera(&camera, (vec3){0, 0.5, 3.5}, (vec3){0, 0, 0}, &options);
 
     clock_t tic = clock();
 
