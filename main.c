@@ -99,7 +99,7 @@ int main(int argc, char **argv)
 
     mesh_t mesh = {
         .num_triangles = 2,
-        .verts = (vertex_t[]){
+        .vertices = (vertex_t[]){
             /* top */
             {{pos.x - size.x, pos.y + size.y, pos.z - size.z}, /* 6 top back left */        {1,0}},
             {{pos.x + size.x, pos.y + size.y, pos.z - size.z}, /* 4 top back right */       {0,0}},

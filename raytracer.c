@@ -8,6 +8,9 @@
 
 /*==================[macros]================================================*/
 /*==================[type definitions]======================================*/
+
+
+
 /*==================[external function declarations]========================*/
 /*==================[internal function declarations]========================*/
 
@@ -54,6 +57,49 @@ int intersection_test_count = 0;
 
 /*==================[internal data]=========================================*/
 /*==================[external function definitions]=========================*/
+
+vec3 mult_mv(const mat4 A, const vec3 v)
+{
+  size_t N = 4, M = 4, P = 1;
+
+  double B[4] = {v.x, v.y, v.z, 1.0};
+  double C[4];
+
+  for (size_t i = 0; i < N; i++)
+  {
+    for (size_t j = 0; j < P; j++)
+    {
+      C[i * P + j] = 0;
+      for (size_t k = 0; k < M; k++)
+      {
+        C[i * P + j] += (A.m[i * M + k] * B[k * P + j]);
+      }
+    }
+  }
+
+  return (vec3){C[0], C[1], C[2]};
+}
+
+mat4 mult_mm(const mat4 A, const mat4 B)
+{
+  // A = N x M (N rows and M columns)
+  // B = M x P
+  mat4 C;
+  size_t N = 4, M = 4, P = 4;
+
+  for (size_t i = 0; i < N; i++)
+  {
+    for (size_t j = 0; j < P; j++)
+    {
+      C.m[i * P + j] = 0;
+      for (size_t k = 0; k < M; k++)
+      {
+        C.m[i * P + j] += (A.m[i * M + k] * B.m[k * P + j]);
+      }
+    }
+  }
+  return C;
+}
 
 void init_camera(camera_t *camera, vec3 position, vec3 target, options_t *options)
 {
@@ -273,48 +319,7 @@ vec3 normalize(const vec3 v1)
   return (vec3){v1.x / m, v1.y / m, v1.z / m};
 }
 
-mat4 mult_mm(const mat4 A, const mat4 B)
-{
-  // A = N x M (N rows and M columns)
-  // B = M x P
-  mat4 C;
-  size_t N = 4, M = 4, P = 4;
 
-  for (size_t i = 0; i < N; i++)
-  {
-    for (size_t j = 0; j < P; j++)
-    {
-      C.m[i * P + j] = 0;
-      for (size_t k = 0; k < M; k++)
-      {
-        C.m[i * P + j] += (A.m[i * M + k] * B.m[k * P + j]);
-      }
-    }
-  }
-  return C;
-}
-
-vec3 mult_mv(const mat4 A, const vec3 v)
-{
-  size_t N = 4, M = 4, P = 1;
-
-  double B[4] = {v.x, v.y, v.z, 1.0};
-  double C[4];
-
-  for (size_t i = 0; i < N; i++)
-  {
-    for (size_t j = 0; j < P; j++)
-    {
-      C[i * P + j] = 0;
-      for (size_t k = 0; k < M; k++)
-      {
-        C[i * P + j] += (A.m[i * M + k] * B[k * P + j]);
-      }
-    }
-  }
-
-  return (vec3){C[0], C[1], C[2]};
-}
 
 mat4 translate(const vec3 v)
 {
@@ -376,16 +381,6 @@ mat4 rotate(const vec3 R)
 void print_v(const char *msg, const vec3 v)
 {
   printf("%s: (vec3) { %f, %f, %f }\n", msg, v.x, v.y, v.z);
-}
-
-void print_t(const triangle_t triangle)
-{
-  printf("(triangle_t) {\n");
-  for (size_t i = 0; i < 3; i++)
-  {
-    printf("   (vec3) { %f, %f, %f },\n", triangle.v[i].x, triangle.v[i].y, triangle.v[i].z);
-  }
-  printf("}\n");
 }
 
 void print_m(const mat4 m)
@@ -462,9 +457,9 @@ bool intersect(const ray_t *ray, object_t *objects, size_t n, hit_t *hit)
       mesh_t *mesh = objects[i].geometry.mesh;
       for (int ti = 0; ti < mesh->num_triangles; ti++)
       {
-        vertex_t v0 = mesh->verts[(ti * 3) + 0];
-        vertex_t v1 = mesh->verts[(ti * 3) + 1];
-        vertex_t v2 = mesh->verts[(ti * 3) + 2];
+        vertex_t v0 = mesh->vertices[(ti * 3) + 0];
+        vertex_t v1 = mesh->vertices[(ti * 3) + 1];
+        vertex_t v2 = mesh->vertices[(ti * 3) + 2];
 
         /*
         printf("vertex_t {\n");

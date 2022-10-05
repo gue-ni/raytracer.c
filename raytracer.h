@@ -98,18 +98,8 @@ typedef struct
 
 typedef struct
 {
-  vec3 v[3];
-  vec2 uv[3];
-} triangle_t;
-
-typedef struct
-{
-  int *indices;
-  vec3 *vertices;
-  vec2 *tex;
   size_t num_triangles;
-  vertex_t *verts;
-  triangle_t *triangles;
+  vertex_t *vertices;
 } mesh_t;
 
 typedef union
@@ -161,6 +151,11 @@ typedef struct
 
 double random_double();
 
+vec3 point_at(const ray_t *ray, double t);
+
+vec3 mult_mv(const mat4, const vec3);
+mat4 mult_mm(const mat4, const mat4);
+
 bool intersect_sphere(const ray_t *ray, sphere_t *sphere, hit_t *hit);
 bool intersect_triangle(const ray_t *ray, vertex_t vertex0, vertex_t vertex1, vertex_t vertex2, hit_t *hit);
 
@@ -168,7 +163,6 @@ mat4 translate(const vec3 v);
 mat4 rotate(const vec3 R);
 
 void print_v(const char* msg, const vec3 v);
-void print_t(const triangle_t triangle);
 void print_m(const mat4 m);
 
 void init_camera(camera_t *camera, vec3 position, vec3 target, options_t *options);

@@ -56,36 +56,10 @@ int _test_check(int cond, const char *filename, int line, const char *expr, bool
   return test_failures_so_far;
 }
 
-void _test_load_obj()
-{
-  mesh_t mesh;
-  load_obj("assets/cube.obj", &mesh);
-
-  TEST_CHECK(mesh.num_triangles == 12);
-  TEST_CHECK(mesh.triangles != NULL);
-
-  /*
-  for (int i = 0; i < mesh.num_triangles; i++)
-  {
-    print_t(mesh.triangles[i]);
-  }
-  */
-
-  if (mesh.triangles)
-    free(mesh.triangles);
-}
-
 void _test_intersect()
 {
   hit_t hit;
   ray_t ray;
-
-  triangle_t triangle = {
-      {
-          {1, 0, -3},
-          {0, 1, -3},
-          {-1, 0, -3},
-      }};
 
   vertex_t v0, v1, v2;
   v0.pos = (vec3){1, 0, -3};
@@ -150,7 +124,6 @@ void _test_math()
 void _test_all()
 {
   _test_intersect();
-  _test_load_obj();
   _test_math();
 }
 
