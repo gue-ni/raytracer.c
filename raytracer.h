@@ -78,6 +78,7 @@ typedef enum
   SOLID,
   LIGHT,
   PHONG,
+  NORMAL,
   CHECKERED,
   DIFFUSE,
   REFLECTION,
@@ -155,6 +156,19 @@ vec3 point_at(const ray_t *ray, double t);
 
 vec3 mult_mv(const mat4, const vec3);
 mat4 mult_mm(const mat4, const mat4);
+
+vec3 add(const vec3, const vec3);
+vec3 sub(const vec3, const vec3);
+vec3 mult(const vec3, const vec3);
+vec3 clamp(const vec3);
+double length(const vec3);
+double length2(const vec3);
+double dot(const vec3, const vec3);
+
+vec3 calculate_surface_normal(vec3 v0, vec3 v1, vec3 v2);
+
+vec3 cross(const vec3, const vec3);
+vec3 normalize(const vec3);
 
 bool intersect_sphere(const ray_t *ray, sphere_t *sphere, hit_t *hit);
 bool intersect_triangle(const ray_t *ray, vertex_t vertex0, vertex_t vertex1, vertex_t vertex2, hit_t *hit);

@@ -31,9 +31,7 @@
 #include "raytracer.h"
 
 #define TEST_CHECK(cond) _test_check((cond), __FILE__, __LINE__, #cond, false)
-
 #define TEST_RESULT() _test_check(true, __FILE__, __LINE__, "", false)
-
 #define TEST_ASSERT(cond) _test_check((cond), __FILE__, __LINE__, #cond, true)
 
 int _test_check(int cond, const char *filename, int line, const char *expr, bool exit_after_fail)
@@ -56,7 +54,7 @@ int _test_check(int cond, const char *filename, int line, const char *expr, bool
   return test_failures_so_far;
 }
 
-void _test_intersect()
+void test_intersect()
 {
   hit_t hit;
   ray_t ray;
@@ -78,7 +76,7 @@ void _test_intersect()
   TEST_CHECK(point_at(&ray, hit.t).z == -1.0);
 }
 
-void _test_math()
+void test_math()
 {
   // matrix * matrix
   mat4 m0 = {{5, 7, 9, 10,
@@ -121,14 +119,46 @@ void _test_math()
   TEST_CHECK(memcmp(&ref_v, &res_v, sizeof(vec3)) == 0);
 }
 
-void _test_all()
+
+
+bool compare_vector(vec3 a, vec3 b)
 {
-  _test_intersect();
-  _test_math();
+  return a.x == b.x && a.y == b.y && a.z == b.z;
+}
+
+void  test_normal()
+{
+  {
+    vec3 a = {2,3,4};
+    vec3 b = {5,6,7};
+    vec3 c = cross(a,b);
+    TEST_CHECK(compare_vector(c, (vec3){-3, 6, -3}));
+  }
+  
+  const double X = 1, Y = 1, Z = 1;
+  {
+    vec3 v0 = {-X, -Y, -Z};
+    vec3 v1 = {+X, -Y, -Z};
+    vec3 v2 = {+X, +Y, -Z};
+    vec3 normal = calculate_surface_normal(v0, v1, v2);
+  }
+  {
+    vec3 v0 = {-X, +Y, +Z};
+    vec3 v1 = {+X, +Y, +Z};
+    vec3 v2 = {+X, +Y, -Z};
+    vec3 normal = calculate_surface_normal(v0, v1, v2);
+    TEST_CHECK(compare_vector(normal, (vec3){0, 1, 0}));
+    TEST_CHECK(0);
+  }
 }
 
 int main()
 {
-  _test_all();
-  return TEST_RESULT(); // return number of failed tests
+  /*
+  test_intersect();
+  test_math();
+  */
+
+  test_normal();
+  return 0;
 }

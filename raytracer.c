@@ -1,6 +1,7 @@
 /*==================[inclusions]============================================*/
 
 #include <omp.h>
+#include <stdarg.h>
 #define TINYOBJ_LOADER_C_IMPLEMENTATION
 #include "lib/tinyobj_loader.h"
 
@@ -14,21 +15,13 @@
 /*==================[external function declarations]========================*/
 /*==================[internal function declarations]========================*/
 
-static inline vec3 add(const vec3, const vec3);
-static inline vec3 sub(const vec3, const vec3);
-static inline vec3 mult(const vec3, const vec3);
-static inline vec3 cross(const vec3, const vec3);
-static inline vec3 clamp(const vec3);
-static inline vec3 normalize(const vec3);
-static inline double length(const vec3);
-static inline double length2(const vec3);
-static inline double dot(const vec3, const vec3);
 static inline vec3 mult_s(const vec3, const double);
 static inline vec3 div_s(const vec3, const double);
 
 static vec3 add_s(const vec3, const double);
 static vec2 mult_s2(const vec2, const double);
 static vec2 add_s2(const vec2, const vec2);
+static vec3 add_variadic(int n, ...);
 
 static vec3 random_in_unit_sphere();
 static vec3 random_in_hemisphere(vec3 normal);
@@ -57,6 +50,13 @@ int intersection_test_count = 0;
 
 /*==================[internal data]=========================================*/
 /*==================[external function definitions]=========================*/
+
+vec3 calculate_surface_normal(vec3 v0, vec3 v1, vec3 v2)
+{ 
+  vec3 U = sub(v1, v0);
+  vec3 V = sub(v2, v0);
+  return normalize(cross(U, V)); 
+}
 
 vec3 mult_mv(const mat4 A, const vec3 v)
 {
@@ -263,6 +263,22 @@ void render(uint8_t *framebuffer, object_t *objects, size_t n_objects, camera_t 
 
 /*==================[internal function definitions]=========================*/
 
+static vec3 add_variadic(int n, ...)
+{
+  vec3 sum;
+  va_list args;  
+
+  va_start(args, n);
+
+  for (int i = 0; i < n; i++)
+  {
+    sum = add(sum, va_arg(args, vec3));
+  }
+
+  va_end(args);
+  return sum;
+}
+
 double random_double() 
 { return (double)rand() / ((double)RAND_MAX + 1); }
 
@@ -318,8 +334,6 @@ vec3 normalize(const vec3 v1)
   assert(m > 0);
   return (vec3){v1.x / m, v1.y / m, v1.z / m};
 }
-
-
 
 mat4 translate(const vec3 v)
 {
@@ -474,7 +488,9 @@ bool intersect(const ray_t *ray, object_t *objects, size_t n, hit_t *hit)
           min_t = local.t;
           local.object = &objects[i];
           local.point = point_at(ray, local.t);
-          local.normal = normalize(cross(v1.pos, v0.pos));
+          local.normal = calculate_surface_normal(v0.pos, v1.pos, v2.pos);
+          //print_v("normal", local.normal);
+          //exit(1);
         }
       }
 
@@ -609,6 +625,13 @@ vec3 calculate_color(const ray_t *ray, object_t *objects, size_t n_objects, int 
     break;
   }
 
+  case NORMAL:
+  {
+    vec3 normal = hit.normal;
+    //out_color = (vec3){ABS(normal.x), ABS(normal.y), ABS(normal.z)};
+    out_color = add((vec3){0.5, 0.5, 0.5}, mult(hit.normal, (vec3){ .5, .5, .5}));
+    break;
+  }
   default:
   {
     puts("no material type set");

@@ -44,6 +44,8 @@ void write_image(int signal)
     }
 }
 
+
+
 int main(int argc, char **argv)
 {
     srand((unsigned)time(NULL));
@@ -78,36 +80,20 @@ int main(int argc, char **argv)
     }
     argv += optind;
 
-    sphere_t spheres[] = {
-        {
-            {1.1, 0, -1},
-            .5,
-        },
-        {
-            {0, 0, 0},
-            .75,
-        },
-
-        {
-            {-1.1, 0, 1},
-            .5,
-        },
-    };
-
-    vec3 pos = {0, -2.5, 0};
-    vec3 size = {8, 2, 8};
+    vec3 pos = {0, 0, 0};
+    vec3 size = {1, 1, 1.5};
 
     mesh_t mesh = {
-        .num_triangles = 2,
+        .num_triangles = 12,
         .vertices = (vertex_t[]){
             /* top */
-            {{pos.x - size.x, pos.y + size.y, pos.z - size.z}, /* 6 top back left */        {1,0}},
-            {{pos.x + size.x, pos.y + size.y, pos.z - size.z}, /* 4 top back right */       {0,0}},
             {{pos.x - size.x, pos.y + size.y, pos.z + size.z}, /* 5 top front left */       {1,1}},
+            {{pos.x + size.x, pos.y + size.y, pos.z - size.z}, /* 4 top back right */       {0,0}},
+            {{pos.x - size.x, pos.y + size.y, pos.z - size.z}, /* 6 top back left */        {1,0}},
 
+            {{pos.x - size.x, pos.y + size.y, pos.z + size.z}, /* 5 top front left */       {1,1}},
             {{pos.x + size.x, pos.y + size.y, pos.z - size.z}, /* 4 top back right */       {0,0}},
             {{pos.x + size.x, pos.y + size.y, pos.z + size.z}, /* 8 top front right */      {0,1}},
-            {{pos.x - size.x, pos.y + size.y, pos.z + size.z}, /* 5 top front left */       {1,1}},
 
             /* bottom */
             {{pos.x + size.x, pos.y - size.y, pos.z + size.z}, /* 3 bottom front right */   {0,1}},
@@ -118,14 +104,23 @@ int main(int argc, char **argv)
             {{pos.x + size.x, pos.y - size.y, pos.z - size.z}, /* 0 bottom back left */    {0,0}},
             {{pos.x - size.x, pos.y - size.y, pos.z + size.z}, /* 1 bottom front left */    {1,1}},
 
-            /* back */
-            {{pos.x - size.x, pos.y - size.y, pos.z - size.z}, /* 2 bottom back right */     {0,0}},
+            /* back, normal works */
             {{pos.x + size.x, pos.y - size.y, pos.z - size.z}, /* 0 bottom back left m */    {1,0}},
+            {{pos.x - size.x, pos.y - size.y, pos.z - size.z}, /* 2 bottom back right */     {0,0}},
             {{pos.x + size.x, pos.y + size.y, pos.z - size.z}, /* 4 top back right */       {1,1}},
 
             {{pos.x - size.x, pos.y - size.y, pos.z - size.z}, /* 2 bottom back right */     {0,0}},
             {{pos.x - size.x, pos.y + size.y, pos.z - size.z}, /* 6 top back left */        {0,1}},
             {{pos.x + size.x, pos.y + size.y, pos.z - size.z}, /* 4 top back right */       {1,1}},
+
+            /* front */
+            {{pos.x + size.x, pos.y - size.y, pos.z + size.z}, /* 0 bottom back left m */    {1,0}},
+            {{pos.x - size.x, pos.y - size.y, pos.z + size.z}, /* 2 bottom back right */     {0,0}},
+            {{pos.x + size.x, pos.y + size.y, pos.z + size.z}, /* 4 top back right */       {1,1}},
+
+            {{pos.x - size.x, pos.y - size.y, pos.z + size.z}, /* 2 bottom back right */     {0,0}},
+            {{pos.x - size.x, pos.y + size.y, pos.z + size.z}, /* 6 top back left */        {0,1}},
+            {{pos.x + size.x, pos.y + size.y, pos.z + size.z}, /* 4 top back right */       {1,1}},
 
 
             /* right */
@@ -145,19 +140,14 @@ int main(int argc, char **argv)
             {{pos.x + size.x, pos.y - size.y, pos.z - size.z}, /* 0 bottom back left m */    {1,0}},
             {{pos.x + size.x, pos.y + size.y, pos.z - size.z}, /* 4 top back right */       {1,1}},
             {{pos.x + size.x, pos.y + size.y, pos.z + size.z}, /* 8 top front right */      {0,1}},
-
-            /* front */
-            {{pos.x - size.x, pos.y - size.y, pos.z + size.z}, /* 1 bottom front left */    {1,1}},
-            {{pos.x + size.x, pos.y - size.y, pos.z + size.z}, /* 3 bottom front right */   {0,1}},
-            {{pos.x + size.x, pos.y + size.y, pos.z + size.z}, /* 8 top front right */      {0,1}},
         },
     };
 
    object_t scene[] = {
-        {.type = GEOMETRY_MESH, .material = {RGB(100,100,100), CHECKERED}, .geometry.mesh = &mesh},
-        {.type = GEOMETRY_SPHERE, .material = {RANDOM_COLOR, PHONG  }, .geometry.sphere = &spheres[0]},
-        {.type = GEOMETRY_SPHERE, .material = {RED, REFLECTION_AND_REFRACTION}, .geometry.sphere = &spheres[1]},
-        {.type = GEOMETRY_SPHERE, .material = {GREEN, REFLECTION}, .geometry.sphere = &spheres[2]},
+        {.type = GEOMETRY_MESH, .material = {RGB(100,100,100), NORMAL}, .geometry.mesh = &mesh},
+        //{.type = GEOMETRY_SPHERE, .material = {RANDOM_COLOR, PHONG  }, .geometry.sphere = &(sphere_t){ {1.1, 0, -1}, 0.5 }},
+        //{.type = GEOMETRY_SPHERE, .material = {RED, REFLECTION_AND_REFRACTION}, .geometry.sphere = &(sphere_t){ {0, 0, 0}, 0.75}},
+        //{.type = GEOMETRY_SPHERE, .material = {GREEN, REFLECTION}, .geometry.sphere = &(sphere_t){{-1.1, 0, 1}, 0.5}},
     };
 
     size_t buff_len = sizeof(*framebuffer) * options.width * options.height * 3;
@@ -172,7 +162,7 @@ int main(int argc, char **argv)
     signal(SIGINT, &write_image);
 
     camera_t camera;
-    init_camera(&camera, (vec3){0, 0.5, 3.5}, (vec3){0, 0, 0}, &options);
+    init_camera(&camera, (vec3){3.5, 3, 3}, (vec3){0, 0, 0}, &options);
 
     clock_t tic = clock();
 

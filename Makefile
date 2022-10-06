@@ -18,7 +18,7 @@ $(TESTS): bin/test.o bin/raytracer.o raytracer.h
 	$(CC) $(CFLAGS) -o $@ $^ $(LFLAGS)
 
 bin/%.o: %.c
-	mkdir -p bin/
+	@mkdir -p bin/
 	$(CC) $(CFLAGS) -c -o $@ $<
 
 all: $(APP)
