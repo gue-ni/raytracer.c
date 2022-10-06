@@ -44,7 +44,14 @@ void write_image(int signal)
     }
 }
 
-
+void apply_matrix(mesh_t* mesh, mat4 matrix)
+{
+    #pragma omp parallel for
+    for (int i = 0; i < mesh->num_triangles * 3; i++)
+    {
+        mesh->vertices[i].pos = mult_mv(matrix, mesh->vertices[i].pos);
+    }
+}
 
 int main(int argc, char **argv)
 {
@@ -82,6 +89,53 @@ int main(int argc, char **argv)
 
     vec3 pos = {0, 0, 0};
     vec3 size = {1, 1, 1.5};
+
+    mesh_t mesh_2 = {
+        .num_triangles = 12,
+        .vertices = (vertex_t[]){
+            {{ -0.5f, -0.5f, -0.5f,},{    0.0f, 0.0f,  }},
+            {{ 0.5f, -0.5f, -0.5f, },{   1.0f, 0.0f,   }},
+            {{ 0.5f,  0.5f, -0.5f, },{   1.0f, 1.0f,   }},
+            {{ 0.5f,  0.5f, -0.5f, },{   1.0f, 1.0f,   }},
+            {{ -0.5f,  0.5f, -0.5f,},{    0.0f, 1.0f,  }},
+            {{ -0.5f, -0.5f, -0.5f,},{    0.0f, 0.0f,  }},
+            {{ -0.5f, -0.5f,  0.5f,},{    0.0f, 0.0f,  }},
+            {{ 0.5f, -0.5f,  0.5f, },{   1.0f, 0.0f,   }},
+            {{ 0.5f,  0.5f,  0.5f, },{   1.0f, 1.0f,   }},
+            {{ 0.5f,  0.5f,  0.5f, },{   1.0f, 1.0f,   }},
+            {{ -0.5f,  0.5f,  0.5f,},{    0.0f, 1.0f,  }},
+            {{ -0.5f, -0.5f,  0.5f,},{    0.0f, 0.0f,  }},
+            {{ -0.5f,  0.5f,  0.5f,},{    1.0f, 0.0f,  }},
+            {{ -0.5f,  0.5f, -0.5f,},{    1.0f, 1.0f,  }},
+            {{ -0.5f, -0.5f, -0.5f,},{    0.0f, 1.0f,  }},
+            {{ -0.5f, -0.5f, -0.5f,},{    0.0f, 1.0f,  }},
+            {{ -0.5f, -0.5f,  0.5f,},{    0.0f, 0.0f,  }},
+            {{ -0.5f,  0.5f,  0.5f,},{    1.0f, 0.0f,  }},
+            {{ 0.5f,  0.5f,  0.5f, },{   1.0f, 0.0f,   }},
+            {{ 0.5f,  0.5f, -0.5f, },{   1.0f, 1.0f,   }},
+            {{ 0.5f, -0.5f, -0.5f, },{   0.0f, 1.0f,   }},
+            {{ 0.5f, -0.5f, -0.5f, },{   0.0f, 1.0f,   }},
+            {{ 0.5f, -0.5f,  0.5f, },{   0.0f, 0.0f,   }},
+            {{ 0.5f,  0.5f,  0.5f, },{   1.0f, 0.0f,   }},
+            {{ -0.5f, -0.5f, -0.5f,},{    0.0f, 1.0f,  }},
+            {{ 0.5f, -0.5f, -0.5f, },{   1.0f, 1.0f,   }},
+            {{ 0.5f, -0.5f,  0.5f, },{   1.0f, 0.0f,   }},
+            {{ 0.5f, -0.5f,  0.5f, },{   1.0f, 0.0f,   }},
+            {{ -0.5f, -0.5f,  0.5f,},{    0.0f, 0.0f,  }},
+            {{ -0.5f, -0.5f, -0.5f,},{    0.0f, 1.0f,  }},
+            {{ -0.5f,  0.5f, -0.5f,},{    0.0f, 1.0f,  }},
+            {{ 0.5f,  0.5f, -0.5f, },{   1.0f, 1.0f,   }},
+            {{ 0.5f,  0.5f,  0.5f, },{   1.0f, 0.0f,   }},
+            {{ 0.5f,  0.5f,  0.5f, },{   1.0f, 0.0f,   }},
+            {{ -0.5f,  0.5f,  0.5f,},{    0.0f, 0.0f,  }},
+            {{ -0.5f,  0.5f, -0.5f,},{    0.0f, 1.0f   }},
+        }
+    };
+
+    mat4 t = translate((vec3){0,-1,0});
+    mat4 s = scale((vec3){8,.5,8});
+    //mat4 transform = mult_mm(s, t);
+    apply_matrix(&mesh_2, s);
 
     mesh_t mesh = {
         .num_triangles = 12,
@@ -144,10 +198,10 @@ int main(int argc, char **argv)
     };
 
    object_t scene[] = {
-        {.type = GEOMETRY_MESH, .material = {RGB(100,100,100), NORMAL}, .geometry.mesh = &mesh},
-        //{.type = GEOMETRY_SPHERE, .material = {RANDOM_COLOR, PHONG  }, .geometry.sphere = &(sphere_t){ {1.1, 0, -1}, 0.5 }},
-        //{.type = GEOMETRY_SPHERE, .material = {RED, REFLECTION_AND_REFRACTION}, .geometry.sphere = &(sphere_t){ {0, 0, 0}, 0.75}},
-        //{.type = GEOMETRY_SPHERE, .material = {GREEN, REFLECTION}, .geometry.sphere = &(sphere_t){{-1.1, 0, 1}, 0.5}},
+        {.type = GEOMETRY_MESH, .material = {RGB(100,100,100), CHECKERED}, .geometry.mesh = &mesh_2},
+        {.type = GEOMETRY_SPHERE, .material = {RANDOM_COLOR, PHONG  }, .geometry.sphere = &(sphere_t){ {1.1, 1, -1}, 0.5 }},
+        {.type = GEOMETRY_SPHERE, .material = {RED, REFLECTION_AND_REFRACTION}, .geometry.sphere = &(sphere_t){ {0, 1, 0}, 0.75}},
+        {.type = GEOMETRY_SPHERE, .material = {GREEN, REFLECTION}, .geometry.sphere = &(sphere_t){{-1.1, 1, 1}, 0.5}},
     };
 
     size_t buff_len = sizeof(*framebuffer) * options.width * options.height * 3;
@@ -162,7 +216,7 @@ int main(int argc, char **argv)
     signal(SIGINT, &write_image);
 
     camera_t camera;
-    init_camera(&camera, (vec3){3.5, 3, 3}, (vec3){0, 0, 0}, &options);
+    init_camera(&camera, (vec3){.5, .5, 3.5}, (vec3){0, 0, 0}, &options);
 
     clock_t tic = clock();
 

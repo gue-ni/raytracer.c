@@ -33,8 +33,8 @@
 #define GREEN RGB(0, 192, 48)
 #define BLUE RGB(0, 0, 255)
 #define WHITE RGB(255, 255, 255)
-//#define BACKGROUND RGB(1, 130, 129)
-#define BACKGROUND  RGB(150, 150, 150)
+#define BACKGROUND RGB(1, 130, 129)
+//#define BACKGROUND  RGB(150, 150, 150)
 #define ZERO_VECTOR RGB(0, 0, 0)
 #define BLACK ZERO_VECTOR
 #define RANDOM_COLOR \
@@ -154,8 +154,8 @@ double random_double();
 
 vec3 point_at(const ray_t *ray, double t);
 
-vec3 mult_mv(const mat4, const vec3);
-mat4 mult_mm(const mat4, const mat4);
+vec3 mult_mv(mat4, vec3);
+mat4 mult_mm(mat4, mat4);
 
 vec3 add(const vec3, const vec3);
 vec3 sub(const vec3, const vec3);
@@ -173,8 +173,9 @@ vec3 normalize(const vec3);
 bool intersect_sphere(const ray_t *ray, sphere_t *sphere, hit_t *hit);
 bool intersect_triangle(const ray_t *ray, vertex_t vertex0, vertex_t vertex1, vertex_t vertex2, hit_t *hit);
 
-mat4 translate(const vec3 v);
-mat4 rotate(const vec3 R);
+mat4 translate(vec3);
+mat4 rotate(vec3);
+mat4 scale(vec3);
 
 void print_v(const char* msg, const vec3 v);
 void print_m(const mat4 m);

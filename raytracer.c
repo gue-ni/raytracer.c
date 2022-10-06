@@ -57,7 +57,7 @@ vec3 calculate_surface_normal(vec3 v0, vec3 v1, vec3 v2)
   return normalize(cross(U, V)); 
 }
 
-vec3 mult_mv(const mat4 A, const vec3 v)
+vec3 mult_mv(mat4 A, vec3 v)
 {
   size_t N = 4, M = 4, P = 1;
 
@@ -79,7 +79,7 @@ vec3 mult_mv(const mat4 A, const vec3 v)
   return (vec3){C[0], C[1], C[2]};
 }
 
-mat4 mult_mm(const mat4 A, const mat4 B)
+mat4 mult_mm(mat4 A, mat4 B)
 {
   // A = N x M (N rows and M columns)
   // B = M x P
@@ -334,7 +334,7 @@ vec3 normalize(const vec3 v1)
   return (vec3){v1.x / m, v1.y / m, v1.z / m};
 }
 
-mat4 translate(const vec3 v)
+mat4 translate(vec3 v)
 {
   mat4 m = {{1, 0, 0, v.x,
              0, 1, 0, v.y,
@@ -343,25 +343,25 @@ mat4 translate(const vec3 v)
   return m;
 }
 
-mat4 rotate(const vec3 R)
+mat4 rotate(vec3 v)
 {
   mat4 rotate_x = {{1, 0, 0, 0,
-                    0, cos(R.x), -sin(R.x), 0,
-                    0, sin(R.x), cos(R.x), 0,
+                    0, cos(v.x), -sin(v.x), 0,
+                    0, sin(v.x), cos(v.x), 0,
                     0, 0, 0, 1}};
 
   mat4 rotate_y = {{
-      cos(R.y),
+      cos(v.y),
       0,
-      sin(R.y),
+      sin(v.y),
       0,
       0,
       1,
       0,
       0,
-      -sin(R.y),
+      -sin(v.y),
       0,
-      cos(R.y),
+      cos(v.y),
       0,
       0,
       0,
@@ -370,12 +370,12 @@ mat4 rotate(const vec3 R)
   }};
 
   mat4 rotate_z = {{
-      cos(R.z),
-      -sin(R.z),
+      cos(v.z),
+      -sin(v.z),
       0,
       0,
-      sin(R.z),
-      cos(R.z),
+      sin(v.z),
+      cos(v.z),
       0,
       0,
       0,
@@ -389,6 +389,18 @@ mat4 rotate(const vec3 R)
   }};
 
   return rotate_y;
+}
+
+mat4 scale(const vec3 v)
+{
+  mat4 sm = {{
+    v.x, 0, 0,0,
+    0, v.y, 0,0,
+    0, 0, v.z,0,
+    0,0,0,1
+  }};
+
+  return sm;
 }
 
 void print_v(const char *msg, const vec3 v)
@@ -722,7 +734,7 @@ vec3 cast_ray_v3(ray_t *ray, object_t *objects, size_t nobj, int depth)
     ray_t reflected = {hit.point, normalize(reflect(ray->direction, hit.normal))};
     vec3 reflected_color = cast_ray_v3(&reflected, objects, nobj, depth + 1);
 
-    double iot = 1;
+    double iot = .25;
     ray_t refracted = {hit.point, normalize(refract(ray->direction, hit.normal, iot))};
     vec3 refracted_color = cast_ray_v3(&refracted, objects, nobj, depth + 1);
 
@@ -730,7 +742,6 @@ vec3 cast_ray_v3(ray_t *ray, object_t *objects, size_t nobj, int depth)
 
     vec3 refracted_reflected = add(mult_s(refracted_color, kr), mult_s(reflected_color, (1 - kr)));
     out_color = refracted_reflected;
-    // out_color = phong_light(out_color, light_dir, hit.normal, ray->origin, hit.point, in_shadow);
     break;
   }
 
