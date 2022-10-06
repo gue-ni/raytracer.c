@@ -27,7 +27,6 @@ static vec3 random_in_unit_sphere();
 static vec3 random_in_hemisphere(vec3 normal);
 
 static vec3 phong(vec3 color, vec3 light_dir, vec3 normal, vec3 camera_origin, vec3 position, bool in_shadow, double ka, double ks, double kd, double alpha);
-static vec3 calculate_color(const ray_t *ray, object_t *scene, size_t n_objects, int depth, hit_t hit);
 static ray_t get_camera_ray(const camera_t *camera, double u, double v);
 
 static vec3 cast_ray_v1(ray_t *ray, object_t *scene, size_t nobj, int depth);
@@ -475,22 +474,12 @@ bool intersect(const ray_t *ray, object_t *objects, size_t n, hit_t *hit)
         vertex_t v1 = mesh->vertices[(ti * 3) + 1];
         vertex_t v2 = mesh->vertices[(ti * 3) + 2];
 
-        /*
-        printf("vertex_t {\n");
-        print_v(v0.pos);
-        print_v(v1.pos);
-        print_v(v1.pos);
-        printf("}\n");
-        */
-
         if (intersect_triangle(ray, v0, v1, v2, &local) && local.t < min_t)
         {
           min_t = local.t;
           local.object = &objects[i];
           local.point = point_at(ray, local.t);
           local.normal = calculate_surface_normal(v0.pos, v1.pos, v2.pos);
-          //print_v("normal", local.normal);
-          //exit(1);
         }
       }
 
@@ -546,100 +535,6 @@ vec3 phong(vec3 color, vec3 light_dir, vec3 normal, vec3 camera_origin, vec3 pos
   vec3 specular = mult_s(color, ks * pow(MAX(dot(view_dir, reflected), 0.0), alpha));
 
   return in_shadow ? ambient : clamp(add(add(ambient, diffuse), specular));
-}
-
-vec3 calculate_color(const ray_t *ray, object_t *objects, size_t n_objects, int depth, hit_t hit)
-{
-  vec3 out_color = ZERO_VECTOR;
-
-  vec3 light_pos = {0, 3, -1};
-  vec3 light_color = {1, 1, 1};
-  vec3 light_dir = normalize(sub(light_pos, hit.point));
-  ray_t light_ray = {hit.point, normalize(sub(light_pos, hit.point))};
-  bool in_shadow = intersect(&light_ray, objects, n_objects, NULL);
-
-  double ka = 0.18, ks = 0.4, kd = 0.8, alpha = 5;
-
-  switch (hit.object->material.type)
-  {
-  case REFLECTION:
-  {
-    // TODO: compute fresnel equation
-    ray_t reflected = {hit.point, normalize(reflect(ray->direction, hit.normal))};
-    vec3 reflected_color = cast_ray_v3(&reflected, objects, n_objects, depth + 1);
-    double f = kd;
-    out_color = add(mult_s(reflected_color, (1 - f)), mult_s(hit.object->material.color, (f)));
-    out_color = phong(out_color, light_dir, hit.normal, ray->origin, hit.point, in_shadow, ka, ks, kd, alpha);
-    break;
-  }
-
-  case REFLECTION_AND_REFRACTION:
-  {
-    ray_t reflected = {hit.point, normalize(reflect(ray->direction, hit.normal))};
-    vec3 reflected_color = cast_ray_v3(&reflected, objects, n_objects, depth + 1);
-
-    double iot = 1;
-    ray_t refracted = {hit.point, normalize(refract(ray->direction, hit.normal, iot))};
-    vec3 refracted_color = cast_ray_v3(&refracted, objects, n_objects, depth + 1);
-
-    double kr = .8;
-
-    vec3 refracted_reflected = add(mult_s(refracted_color, kr), mult_s(reflected_color, (1 - kr)));
-    out_color = refracted_reflected;
-    // out_color = phong_light(out_color, light_dir, hit.normal, ray->origin, hit.point, in_shadow);
-    break;
-  }
-
-  case PHONG:
-  {
-    vec3 material_color = hit.object->material.color;
-    out_color = phong(material_color, light_dir, hit.normal, ray->origin, hit.point, in_shadow, ka, ks, kd, alpha);
-    break;
-  }
-
-  case CHECKERED:
-  {
-    vec3 material_color = sample_texture(hit.object->material.color, hit.u, hit.v);
-    out_color = phong(material_color, light_dir, hit.normal, ray->origin, hit.point, in_shadow, ka, ks, kd, alpha);
-    break;
-  }
-
-  case DIFFUSE:
-  {
-
-    double ks = 0.6;
-    vec3 ambient = mult_s((vec3){0.5, 0.5, 0.5}, ks);
-
-    vec3 normal = normalize(hit.normal);
-    vec3 light_dir = normalize(sub(light_pos, hit.point));
-    double diff = MAX(dot(normal, light_dir), 0.0);
-
-    vec3 diffuse = mult_s(light_color, diff);
-    out_color = clamp(mult(add(ambient, in_shadow ? ZERO_VECTOR : diffuse), hit.object->material.color));
-    break;
-  }
-
-  case SOLID:
-  {
-    out_color = hit.object->material.color;
-    break;
-  }
-
-  case NORMAL:
-  {
-    vec3 normal = hit.normal;
-    //out_color = (vec3){ABS(normal.x), ABS(normal.y), ABS(normal.z)};
-    out_color = add((vec3){0.5, 0.5, 0.5}, mult(hit.normal, (vec3){ .5, .5, .5}));
-    break;
-  }
-  default:
-  {
-    puts("no material type set");
-    exit(1);
-  }
-  }
-
-  return out_color;
 }
 
 vec3 random_in_unit_sphere()
@@ -793,20 +688,103 @@ vec3 cast_ray_v2(ray_t *ray, object_t *objects, size_t nobj, int depth)
 vec3 cast_ray_v3(ray_t *ray, object_t *objects, size_t nobj, int depth)
 {
   ray_count++;
-
-  if (depth > MAX_DEPTH)
-  {
-    return BACKGROUND;
-  }
-
   hit_t hit = {.t = DBL_MAX, .object = NULL};
 
-  if (!intersect(ray, objects, nobj, &hit))
+  if (depth > MAX_DEPTH || !intersect(ray, objects, nobj, &hit))
   {
     return BACKGROUND;
   }
 
-  return calculate_color(ray, objects, nobj, depth, hit);
+  vec3 out_color = ZERO_VECTOR;
+  vec3 light_pos = {0, 3, -1};
+  vec3 light_color = {1, 1, 1};
+  vec3 light_dir = normalize(sub(light_pos, hit.point));
+  ray_t light_ray = {hit.point, normalize(sub(light_pos, hit.point))};
+  bool in_shadow = intersect(&light_ray, objects, nobj, NULL);
+
+  double ka = 0.18, ks = 0.4, kd = 0.8, alpha = 5;
+
+  switch (hit.object->material.type)
+  {
+  case REFLECTION:
+  {
+    // TODO: compute fresnel equation
+    ray_t reflected = {hit.point, normalize(reflect(ray->direction, hit.normal))};
+    vec3 reflected_color = cast_ray_v3(&reflected, objects, nobj, depth + 1);
+    double f = kd;
+    out_color = add(mult_s(reflected_color, (1 - f)), mult_s(hit.object->material.color, (f)));
+    out_color = phong(out_color, light_dir, hit.normal, ray->origin, hit.point, in_shadow, ka, ks, kd, alpha);
+    break;
+  }
+
+  case REFLECTION_AND_REFRACTION:
+  {
+    ray_t reflected = {hit.point, normalize(reflect(ray->direction, hit.normal))};
+    vec3 reflected_color = cast_ray_v3(&reflected, objects, nobj, depth + 1);
+
+    double iot = 1;
+    ray_t refracted = {hit.point, normalize(refract(ray->direction, hit.normal, iot))};
+    vec3 refracted_color = cast_ray_v3(&refracted, objects, nobj, depth + 1);
+
+    double kr = .8;
+
+    vec3 refracted_reflected = add(mult_s(refracted_color, kr), mult_s(reflected_color, (1 - kr)));
+    out_color = refracted_reflected;
+    // out_color = phong_light(out_color, light_dir, hit.normal, ray->origin, hit.point, in_shadow);
+    break;
+  }
+
+  case PHONG:
+  {
+    vec3 material_color = hit.object->material.color;
+    out_color = phong(material_color, light_dir, hit.normal, ray->origin, hit.point, in_shadow, ka, ks, kd, alpha);
+    break;
+  }
+
+  case CHECKERED:
+  {
+    vec3 material_color = sample_texture(hit.object->material.color, hit.u, hit.v);
+    out_color = phong(material_color, light_dir, hit.normal, ray->origin, hit.point, in_shadow, ka, ks, kd, alpha);
+    break;
+  }
+
+  case DIFFUSE:
+  {
+
+    double ks = 0.6;
+    vec3 ambient = mult_s((vec3){0.5, 0.5, 0.5}, ks);
+
+    vec3 normal = normalize(hit.normal);
+    vec3 light_dir = normalize(sub(light_pos, hit.point));
+    double diff = MAX(dot(normal, light_dir), 0.0);
+
+    vec3 diffuse = mult_s(light_color, diff);
+    out_color = clamp(mult(add(ambient, in_shadow ? ZERO_VECTOR : diffuse), hit.object->material.color));
+    break;
+  }
+
+  case SOLID:
+  {
+    out_color = hit.object->material.color;
+    break;
+  }
+
+  case NORMAL:
+  {
+    out_color = add((vec3){0.5, 0.5, 0.5}, mult(hit.normal, (vec3){ .5, .5, .5}));
+    break;
+  }
+  default:
+  {
+    puts("no material type set");
+    exit(1);
+  }
+  }
+
+  return out_color;
+
+
+
 }
 
 #if 0
