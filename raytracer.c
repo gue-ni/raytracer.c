@@ -238,6 +238,14 @@ void render(uint8_t *framebuffer, object_t *objects, size_t n_objects, camera_t 
   #pragma omp parallel for
   for (int y = 0; y < options->height; y++)
   {
+    if (omp_get_thread_num() == 0)
+    {
+      if (y % 10 == 0)
+      {
+        printf("%3.02f \n", ((double)y * omp_get_num_threads() /(double)options->height) * 100.0);
+      }
+    }
+
     for (int x = 0; x < options->width; x++)
     {
       ray_t ray;
@@ -723,7 +731,7 @@ vec3 cast_ray_v3(ray_t *ray, object_t *objects, size_t nobj, int depth)
     // TODO: compute fresnel equation
     ray_t reflected = {hit.point, normalize(reflect(ray->direction, hit.normal))};
     vec3 reflected_color = cast_ray_v3(&reflected, objects, nobj, depth + 1);
-    double f = kd;
+    double f = 0.2;
     out_color = add(mult_s(reflected_color, (1 - f)), mult_s(hit.object->material.color, (f)));
     out_color = phong(out_color, light_dir, hit.normal, ray->origin, hit.point, in_shadow, ka, ks, kd, alpha);
     break;
@@ -734,7 +742,7 @@ vec3 cast_ray_v3(ray_t *ray, object_t *objects, size_t nobj, int depth)
     ray_t reflected = {hit.point, normalize(reflect(ray->direction, hit.normal))};
     vec3 reflected_color = cast_ray_v3(&reflected, objects, nobj, depth + 1);
 
-    double iot = .25;
+    double iot = 0.5;
     ray_t refracted = {hit.point, normalize(refract(ray->direction, hit.normal, iot))};
     vec3 refracted_color = cast_ray_v3(&refracted, objects, nobj, depth + 1);
 
