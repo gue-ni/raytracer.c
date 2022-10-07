@@ -203,22 +203,34 @@ int main(int argc, char **argv)
    object_t scene[] = {
         {
             .type = GEOMETRY_MESH, 
-            .material = { .color = RGB(100,100,100), .type = CHECKERED}, 
+            .material = { 
+                .color = RGB(100,100,100), 
+                .type = PHONG
+            }, 
             .geometry.mesh = &mesh_2
         },
         {
             .type = GEOMETRY_SPHERE, 
-            .material = { .color = RANDOM_COLOR, .type = WIKIPEDIA_ALGORITHM  }, 
+            .material = { 
+                .color = RANDOM_COLOR, 
+                .type = WIKIPEDIA_ALGORITHM  
+            }, 
             .geometry.sphere = &(sphere_t){ {1.1, 1, -1}, 0.5 }
         },
         {
             .type = GEOMETRY_SPHERE, 
-            .material = { .color = RED, .type = WIKIPEDIA_ALGORITHM}, 
+            .material = { 
+                .color = RED, 
+                .type = WIKIPEDIA_ALGORITHM
+            }, 
             .geometry.sphere = &(sphere_t){ {0, 1, 0}, 0.75}
         },
         {
             .type = GEOMETRY_SPHERE, 
-            .material = { .color = GREEN, .type = WIKIPEDIA_ALGORITHM}, 
+            .material = { 
+                .color = GREEN, 
+                .type = WIKIPEDIA_ALGORITHM
+            }, 
             .geometry.sphere = &(sphere_t){{-1.1, 1, 1}, 0.5}
         },
     };

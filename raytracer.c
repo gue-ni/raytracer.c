@@ -54,7 +54,7 @@ vec3 calculate_surface_normal(vec3 v0, vec3 v1, vec3 v2)
 { 
   vec3 U = sub(v1, v0);
   vec3 V = sub(v2, v0);
-  return normalize(cross(U, V)); 
+  return normalize(cross(V, U)); 
 }
 
 vec3 mult_mv(mat4 A, vec3 v)
@@ -323,6 +323,11 @@ vec3 sub(const vec3 v1, const vec3 v2)
 vec3 add(const vec3 v1, const vec3 v2) 
 { return (vec3){v1.x + v2.x, v1.y + v2.y, v1.z + v2.z}; }
 
+double mix(double a, double b, double mix) 
+{ 
+    return b * mix + a * (1 - mix); 
+} 
+
 vec3 mult_s(const vec3 v1, const double s)
 { return (vec3){v1.x * s, v1.y * s, v1.z * s}; }
 
@@ -506,7 +511,6 @@ bool intersect(const ray_t *ray, object_t *objects, size_t n, hit_t *hit)
           local.object = &objects[i];
           local.point = point_at(ray, local.t);
           local.normal = calculate_surface_normal(v0.pos, v1.pos, v2.pos);
-          local.normal.y = -local.normal.y; /* TODO remove this ugly hack */
         }
       }
 
@@ -614,7 +618,6 @@ vec3 cast_ray_1(ray_t *ray, object_t *objects, size_t nobj, int depth)
 
   switch (hit.object->material.type)
   {
-
   case CHECKERED: /* fall through */
   {
     object_color = sample_texture(object_color, hit.u, hit.v);
@@ -627,10 +630,6 @@ vec3 cast_ray_1(ray_t *ray, object_t *objects, size_t nobj, int depth)
     ka = 0.25;
     kd = 0.5;
     ks = 0.8;
-    kt = 1.0;
-    kr = 0.2;
-
-    vec3 result = ZERO_VECTOR;
 
     /* ambient */
     vec3 ambient = mult_s(light_color, ka);
@@ -643,7 +642,7 @@ vec3 cast_ray_1(ray_t *ray, object_t *objects, size_t nobj, int depth)
     vec3 view_dir = normalize(sub(hit.point, ray->origin));
     vec3 specular = mult_s(light_color, ks * pow(MAX(dot(view_dir, reflected), 0.0), alpha));
 
-    vec3 blinn_phong = mult(
+    vec3 surface = mult(
       add(
         ambient, 
         mult_s(
@@ -653,11 +652,28 @@ vec3 cast_ray_1(ray_t *ray, object_t *objects, size_t nobj, int depth)
       ), 
       object_color
     );
-
-    out_color = add(out_color, blinn_phong);
-
+    
     vec3 reflection = cast_ray_1(&(ray_t){ hit.point, normalize(reflect(ray->direction, hit.normal)) }, objects, nobj, depth + 1);
-    out_color = add(out_color, mult_s(reflection, kr));
+    vec3 refraction = cast_ray_1(&(ray_t){ hit.point, normalize(refract(ray->direction, hit.normal, 1.0))}, objects, nobj, depth + 1);
+
+    double transparency = 0.5;
+
+    double facingratio = -dot(ray->direction, hit.normal);
+    double fresnel = mix(pow(1 - facingratio, 3), 1, 0.05);
+
+    kr = fresnel;
+    kt = (1 - fresnel) * transparency;
+
+    out_color = add(out_color, surface);
+
+    out_color = add(
+      out_color, 
+      add(
+        mult_s(reflection, kr),
+        mult_s(refraction, kt)
+      ) 
+    );
+
     break;
   }
 
@@ -735,7 +751,6 @@ vec3 cast_ray_1(ray_t *ray, object_t *objects, size_t nobj, int depth)
     exit(1);
   }
   }
-
   return out_color;
 }
 
