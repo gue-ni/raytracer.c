@@ -203,7 +203,7 @@ int main(int argc, char **argv)
    object_t scene[] = {
         {
             .type = GEOMETRY_MESH, 
-            .material = { .color = RGB(100,100,100), .type = CHECKERED}, 
+            .material = { .color = RGB(100,100,100), .type = WIKIPEDIA_ALGORITHM}, 
             .geometry.mesh = &mesh_2
         },
         {
