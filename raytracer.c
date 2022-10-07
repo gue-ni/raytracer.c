@@ -609,11 +609,17 @@ vec3 cast_ray_1(ray_t *ray, object_t *objects, size_t nobj, int depth)
   vec3 light_dir = normalize(sub(light_pos, hit.point));
   ray_t light_ray = {hit.point, light_dir};
   bool in_shadow = intersect(&light_ray, objects, nobj, NULL);
-
+  vec3 object_color = hit.object->material.color;
   double ka = 0.1, ks = 0.4, kd = 0.5, alpha = 5;
 
   switch (hit.object->material.type)
   {
+
+  case CHECKERED: /* fall through */
+  {
+    object_color = sample_texture(object_color, hit.u, hit.v);
+  }
+
   case WIKIPEDIA_ALGORITHM:
   {
     double ka, kd, ks, kt, kr;
@@ -622,11 +628,9 @@ vec3 cast_ray_1(ray_t *ray, object_t *objects, size_t nobj, int depth)
     kd = 0.5;
     ks = 0.8;
     kt = 1.0;
-    kr = 0.5;
-
+    kr = 0.2;
 
     vec3 result = ZERO_VECTOR;
-    vec3 color = hit.object->material.color;
 
     /* ambient */
     vec3 ambient = mult_s(light_color, ka);
@@ -647,13 +651,13 @@ vec3 cast_ray_1(ray_t *ray, object_t *objects, size_t nobj, int depth)
           in_shadow ? 0 : 1
         ) 
       ), 
-      color
+      object_color
     );
 
     out_color = add(out_color, blinn_phong);
 
-    vec3 reflected_color = cast_ray_1(&(ray_t){ hit.point, normalize(reflect(ray->direction, hit.normal)) }, objects, nobj, depth + 1);
-    out_color = add(out_color, mult_s(reflected_color, kr));
+    vec3 reflection = cast_ray_1(&(ray_t){ hit.point, normalize(reflect(ray->direction, hit.normal)) }, objects, nobj, depth + 1);
+    out_color = add(out_color, mult_s(reflection, kr));
     break;
   }
 
@@ -691,12 +695,14 @@ vec3 cast_ray_1(ray_t *ray, object_t *objects, size_t nobj, int depth)
     break;
   }
 
+  /*
   case CHECKERED:
   {
     vec3 material_color = sample_texture(hit.object->material.color, hit.u, hit.v);
     out_color = phong(material_color, light_dir, hit.normal, ray->origin, hit.point, in_shadow, ka, ks, kd, alpha);
     break;
   }
+  */
 
   case DIFFUSE:
   {

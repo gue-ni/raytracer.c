@@ -30,7 +30,7 @@ run: all
 	./$(APP) -w 640 -h 480 -s 50 -o "result.png"
 
 pretty: all
-	./$(APP) -w 1920 -h 1080 -s 500 -o image-$(DATE).png
+	./$(APP) -w 1920 -h 1080 -s 100 -o image-$(DATE).png
 
 memcheck: $(APP)
 	valgrind --leak-check=full \
