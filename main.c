@@ -201,10 +201,26 @@ int main(int argc, char **argv)
     };
 
    object_t scene[] = {
-        {.type = GEOMETRY_MESH, .material = {RGB(100,100,100), CHECKERED}, .geometry.mesh = &mesh_2},
-        {.type = GEOMETRY_SPHERE, .material = {RANDOM_COLOR, PHONG  }, .geometry.sphere = &(sphere_t){ {1.1, 1, -1}, 0.5 }},
-        {.type = GEOMETRY_SPHERE, .material = {RED, REFLECTION_AND_REFRACTION}, .geometry.sphere = &(sphere_t){ {0, 1, 0}, 0.75}},
-        {.type = GEOMETRY_SPHERE, .material = {GREEN, REFLECTION}, .geometry.sphere = &(sphere_t){{-1.1, 1, 1}, 0.5}},
+        {
+            .type = GEOMETRY_MESH, 
+            .material = {RGB(100,100,100), WIKIPEDIA_ALGORITHM}, 
+            .geometry.mesh = &mesh_2
+        },
+        {
+            .type = GEOMETRY_SPHERE, 
+            .material = {RANDOM_COLOR, WIKIPEDIA_ALGORITHM  }, 
+            .geometry.sphere = &(sphere_t){ {1.1, 1, -1}, 0.5 }
+        },
+        {
+            .type = GEOMETRY_SPHERE, 
+            .material = {RED, WIKIPEDIA_ALGORITHM}, 
+            .geometry.sphere = &(sphere_t){ {0, 1, 0}, 0.75}
+        },
+        {
+            .type = GEOMETRY_SPHERE, 
+            .material = {GREEN, WIKIPEDIA_ALGORITHM}, 
+            .geometry.sphere = &(sphere_t){{-1.1, 1, 1}, 0.5}
+        },
     };
 
     size_t buff_len = sizeof(*framebuffer) * options.width * options.height * 3;
@@ -219,7 +235,7 @@ int main(int argc, char **argv)
     signal(SIGINT, &write_image);
 
     camera_t camera;
-    init_camera(&camera, (vec3){.5, .5, 3.5}, (vec3){0, 0, 0}, &options);
+    init_camera(&camera, (vec3){0.0, 1, 3.5}, (vec3){0, 1, 0}, &options);
 
     clock_t tic = clock();
 

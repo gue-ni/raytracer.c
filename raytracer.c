@@ -29,9 +29,9 @@ static vec3 random_in_hemisphere(vec3 normal);
 static vec3 phong(vec3 color, vec3 light_dir, vec3 normal, vec3 camera_origin, vec3 position, bool in_shadow, double ka, double ks, double kd, double alpha);
 static ray_t get_camera_ray(const camera_t *camera, double u, double v);
 
-static vec3 cast_ray_v1(ray_t *ray, object_t *scene, size_t nobj, int depth);
-static vec3 cast_ray_v2(ray_t *ray, object_t *scene, size_t nobj, int depth);
-static vec3 cast_ray_v3(ray_t *ray, object_t *scene, size_t nobj, int depth);
+static vec3 cast_ray_2(ray_t *ray, object_t *scene, size_t nobj, int depth);
+static vec3 cast_ray_3(ray_t *ray, object_t *scene, size_t nobj, int depth);
+static vec3 cast_ray_1(ray_t *ray, object_t *scene, size_t nobj, int depth);
 
 static vec3 reflect(const vec3 In, const vec3 N);
 static vec3 refract(const vec3 In, const vec3 N, double iot);
@@ -233,7 +233,11 @@ bool intersect_triangle(const ray_t *ray, vertex_t vertex0, vertex_t vertex1, ve
 
 void render(uint8_t *framebuffer, object_t *objects, size_t n_objects, camera_t *camera, options_t *options)
 {
-  double gamma = 2.0;
+  const double gamma = 2.0;
+
+  const int str_len = 40;
+  const char* done = "========================================";
+  const char* todo = "                                        ";
 
   #pragma omp parallel for
   for (int y = 0; y < options->height; y++)
@@ -242,7 +246,9 @@ void render(uint8_t *framebuffer, object_t *objects, size_t n_objects, camera_t 
     {
       if (y % 10 == 0)
       {
-        printf("%3.02f \n", ((double)y * omp_get_num_threads() /(double)options->height) * 100.0);
+        double percentage = ((double)y * omp_get_num_threads() /(double)options->height) * 100.0;
+        int p = str_len - (percentage / 100.0) * str_len;
+        printf("[%s%s] %0.02f %%\n", done + (p), todo + (str_len - p), percentage);
       }
     }
 
@@ -255,7 +261,7 @@ void render(uint8_t *framebuffer, object_t *objects, size_t n_objects, camera_t 
         double u = (double)(x + random_double()) / ((double)options->width - 1.0);
         double v = (double)(y + random_double()) / ((double)options->height - 1.0);
         ray = get_camera_ray(camera, u, v);
-        pixel = add(pixel, clamp(cast_ray_v3(&ray, objects, n_objects, 0)));
+        pixel = add(pixel, clamp(cast_ray_1(&ray, objects, n_objects, 0)));
       }
 
       pixel = mult_s(pixel, 1.0 / options->samples);
@@ -500,6 +506,7 @@ bool intersect(const ray_t *ray, object_t *objects, size_t n, hit_t *hit)
           local.object = &objects[i];
           local.point = point_at(ray, local.t);
           local.normal = calculate_surface_normal(v0.pos, v1.pos, v2.pos);
+          local.normal.y = -local.normal.y; /* TODO remove this ugly hack */
         }
       }
 
@@ -535,26 +542,18 @@ bool intersect(const ray_t *ray, object_t *objects, size_t n, hit_t *hit)
 
 vec3 phong(vec3 color, vec3 light_dir, vec3 normal, vec3 camera_origin, vec3 position, bool in_shadow, double ka, double ks, double kd, double alpha)
 {
-  /*
-  double ka = 0.18;
-  double ks = 0.4;
-  double kd = 0.8;
-  double alpha = 10;
-  */
-
   // ambient
   vec3 ambient = mult_s(color, ka);
 
   // diffuse
-  vec3 norm = normalize(normal);
-  vec3 diffuse = mult_s(color, kd * MAX(dot(norm, light_dir), 0.0));
+  vec3 diffuse = mult_s(color, kd * MAX(dot(normal, light_dir), 0.0));
 
   // specular
   vec3 view_dir = normalize(sub(position, camera_origin));
-  vec3 reflected = reflect(light_dir, norm);
+  vec3 reflected = reflect(light_dir, normal);
   vec3 specular = mult_s(color, ks * pow(MAX(dot(view_dir, reflected), 0.0), alpha));
 
-  return in_shadow ? ambient : clamp(add(add(ambient, diffuse), specular));
+  return in_shadow ? ZERO_VECTOR : clamp(add(add(ambient, diffuse), specular));
 }
 
 vec3 random_in_unit_sphere()
@@ -594,118 +593,7 @@ vec3 random_in_hemisphere(vec3 normal)
   }
 }
 
-vec3 cast_ray_v1(ray_t *ray, object_t *objects, size_t nobj, int depth)
-{
-  // https://en.wikipedia.org/wiki/Path_tracing
-  ray_count++;
-
-  hit_t hit = {.t = DBL_MAX, .object = NULL};
-
-  if (depth > MAX_DEPTH || !intersect(ray, objects, nobj, &hit))
-  {
-    return RGB(25, 25, 25);
-  }
-
-#if 0
-  vec3 emittance_color = hit.object->material.color;
-#else
-  vec3 emittance_color;
-  if (hit.object->material.type == LIGHT)
-  {
-    emittance_color = mult_s((vec3){1, 1, 1}, 4);
-  }
-  else
-  {
-    emittance_color = RGB(5, 5, 5);
-  }
-#endif
-
-  vec3 attenuation = hit.object->material.color;
-
-  ray_t new_ray;
-  new_ray.origin = hit.point;
-  new_ray.direction = random_in_hemisphere(hit.normal);
-
-  double p = 1 / (2 * PI);
-
-  double cos_theta = dot(new_ray.direction, hit.normal);
-
-  // double reflectance = .5;
-  // vec3 BRDF = reflectance / PI;
-
-  vec3 recursive_color = cast_ray_v1(&new_ray, objects, nobj, depth + 1);
-
-  double d = CLAMP(dot(hit.normal, new_ray.direction));
-
-  // return add(emittance_color, mult(mult_s(recursive_color, d), attenuation));
-  // return mult_s(recursive_color, 0.5);
-  return add(emittance_color, mult(attenuation, recursive_color));
-  // return add(emittance_color, mult_s(recursive_color, CLAMP(cos_theta / p)));
-}
-
-vec3 cast_ray_v2(ray_t *ray, object_t *objects, size_t nobj, int depth)
-{
-  ray_count++;
-
-  hit_t hit = {.t = DBL_MAX, .object = NULL};
-
-  if (depth > MAX_DEPTH || !intersect(ray, objects, nobj, &hit))
-  {
-    return BACKGROUND;
-  }
-
-  vec3 direct_light = ZERO_VECTOR, indirect_light = ZERO_VECTOR;
-
-  light_t light = {
-      .intensity = .75,
-      .color = (vec3){1, 1, 1},
-      .position = (vec3){2, 10, 2},
-  };
-
-  vec3 light_dir = normalize(sub(light.position, hit.point));
-  ray_t light_ray = (ray_t){.origin = hit.point, .direction = light_dir};
-  vec3 light_color = mult_s(light.color, light.intensity);
-
-#if 1
-  hit_t tmp;
-  if (!intersect(&light_ray, objects, nobj, &tmp))
-  {
-    direct_light = add(direct_light, mult_s(light_color, MAX(dot(hit.normal, light_dir), 0)));
-  }
-#else
-  if (hit.object->material.type == LIGHT)
-  {
-    return light_color;
-  }
-#endif
-
-  size_t nsamples = MONTE_CARLO_SAMPLES;
-  for (size_t i = 0; i < nsamples; i++)
-  {
-    ray_t new_ray = {.origin = hit.point, .direction = random_in_hemisphere(hit.normal)};
-    vec3 color = cast_ray_v2(&new_ray, objects, nobj, depth + 1);
-
-    double theta = random_range(0.0, 1.0) * PI;
-    double cosTheta = cos(theta);
-
-    indirect_light = add(indirect_light, color);
-    // indirect_light = add(indirect_light, mult_s(color, cosTheta));
-  }
-
-  indirect_light = mult_s(indirect_light, 1 / (double)nsamples);
-
-  vec3 object_color = hit.object->material.color;
-  if (hit.object->material.type == CHECKERED)
-  {
-    object_color = sample_texture(object_color, hit.u, hit.v);
-  }
-
-  // return mult_s(indirect_light, 0.5);
-  return mult(add(direct_light, indirect_light), object_color);
-  // return mult_s(mult(add(direct_light, indirect_light), object_color), 1 / PI);
-}
-
-vec3 cast_ray_v3(ray_t *ray, object_t *objects, size_t nobj, int depth)
+vec3 cast_ray_1(ray_t *ray, object_t *objects, size_t nobj, int depth)
 {
   ray_count++;
   hit_t hit = {.t = DBL_MAX, .object = NULL};
@@ -716,21 +604,68 @@ vec3 cast_ray_v3(ray_t *ray, object_t *objects, size_t nobj, int depth)
   }
 
   vec3 out_color = ZERO_VECTOR;
-  vec3 light_pos = {0, 3, -1};
+  vec3 light_pos = {0, 5, 0};
   vec3 light_color = {1, 1, 1};
   vec3 light_dir = normalize(sub(light_pos, hit.point));
-  ray_t light_ray = {hit.point, normalize(sub(light_pos, hit.point))};
+  ray_t light_ray = {hit.point, light_dir};
   bool in_shadow = intersect(&light_ray, objects, nobj, NULL);
 
-  double ka = 0.18, ks = 0.4, kd = 0.8, alpha = 5;
+  double ka = 0.1, ks = 0.4, kd = 0.5, alpha = 5;
 
   switch (hit.object->material.type)
   {
+  case WIKIPEDIA_ALGORITHM:
+  {
+    double ka, kd, ks, kt, kr;
+
+    ka = 0.25;
+    kd = 0.5;
+    ks = 0.8;
+    kt = 1.0;
+    kr = 0.5;
+
+
+    vec3 result = ZERO_VECTOR;
+    vec3 color = hit.object->material.color;
+
+    /* ambient */
+    vec3 ambient = mult_s(light_color, ka);
+
+    /* diffuse */
+    vec3 diffuse = mult_s(light_color, kd * MAX(0.0, dot(hit.normal, light_dir)));
+
+    /* specular */
+    vec3 reflected = reflect(light_dir, hit.normal);
+    vec3 view_dir = normalize(sub(hit.point, ray->origin));
+    vec3 specular = mult_s(light_color, ks * pow(MAX(dot(view_dir, reflected), 0.0), alpha));
+
+    vec3 blinn_phong = mult(
+      add(
+        ambient, 
+        mult_s(
+          add(specular, diffuse),
+          in_shadow ? 0 : 1
+        ) 
+      ), 
+      color
+    );
+
+    out_color = add(out_color, blinn_phong);
+
+    vec3 reflected_color = cast_ray_1(&(ray_t){ hit.point, reflected }, objects, nobj, depth + 1);
+
+    out_color = add(out_color, mult_s(reflected_color, kr));
+
+
+
+    break;
+  }
+
   case REFLECTION:
   {
     // TODO: compute fresnel equation
     ray_t reflected = {hit.point, normalize(reflect(ray->direction, hit.normal))};
-    vec3 reflected_color = cast_ray_v3(&reflected, objects, nobj, depth + 1);
+    vec3 reflected_color = cast_ray_1(&reflected, objects, nobj, depth + 1);
     double f = 0.2;
     out_color = add(mult_s(reflected_color, (1 - f)), mult_s(hit.object->material.color, (f)));
     out_color = phong(out_color, light_dir, hit.normal, ray->origin, hit.point, in_shadow, ka, ks, kd, alpha);
@@ -740,11 +675,11 @@ vec3 cast_ray_v3(ray_t *ray, object_t *objects, size_t nobj, int depth)
   case REFLECTION_AND_REFRACTION:
   {
     ray_t reflected = {hit.point, normalize(reflect(ray->direction, hit.normal))};
-    vec3 reflected_color = cast_ray_v3(&reflected, objects, nobj, depth + 1);
+    vec3 reflected_color = cast_ray_1(&reflected, objects, nobj, depth + 1);
 
-    double iot = 0.5;
+    double iot = 1.5;
     ray_t refracted = {hit.point, normalize(refract(ray->direction, hit.normal, iot))};
-    vec3 refracted_color = cast_ray_v3(&refracted, objects, nobj, depth + 1);
+    vec3 refracted_color = cast_ray_1(&refracted, objects, nobj, depth + 1);
 
     double kr = .8;
 
@@ -790,20 +725,127 @@ vec3 cast_ray_v3(ray_t *ray, object_t *objects, size_t nobj, int depth)
 
   case NORMAL:
   {
-    out_color = add((vec3){0.5, 0.5, 0.5}, mult(hit.normal, (vec3){ .5, .5, .5}));
+    out_color = add((vec3){0.5, 0.5, 0.5}, mult(hit.normal, (vec3){ 0.5, 0.5, 0.5}));
     break;
   }
   default:
   {
-    puts("no material type set");
     exit(1);
   }
   }
 
   return out_color;
+}
 
+vec3 cast_ray_2(ray_t *ray, object_t *objects, size_t nobj, int depth)
+{
+  // https://en.wikipedia.org/wiki/Path_tracing
+  ray_count++;
 
+  hit_t hit = {.t = DBL_MAX, .object = NULL};
 
+  if (depth > MAX_DEPTH || !intersect(ray, objects, nobj, &hit))
+  {
+    return RGB(25, 25, 25);
+  }
+
+#if 0
+  vec3 emittance_color = hit.object->material.color;
+#else
+  vec3 emittance_color;
+  if (hit.object->material.type == LIGHT)
+  {
+    emittance_color = mult_s((vec3){1, 1, 1}, 4);
+  }
+  else
+  {
+    emittance_color = RGB(5, 5, 5);
+  }
+#endif
+
+  vec3 attenuation = hit.object->material.color;
+
+  ray_t new_ray;
+  new_ray.origin = hit.point;
+  new_ray.direction = random_in_hemisphere(hit.normal);
+
+  double p = 1 / (2 * PI);
+
+  double cos_theta = dot(new_ray.direction, hit.normal);
+
+  // double reflectance = .5;
+  // vec3 BRDF = reflectance / PI;
+
+  vec3 recursive_color = cast_ray_2(&new_ray, objects, nobj, depth + 1);
+
+  double d = CLAMP(dot(hit.normal, new_ray.direction));
+
+  // return add(emittance_color, mult(mult_s(recursive_color, d), attenuation));
+  // return mult_s(recursive_color, 0.5);
+  return add(emittance_color, mult(attenuation, recursive_color));
+  // return add(emittance_color, mult_s(recursive_color, CLAMP(cos_theta / p)));
+}
+
+vec3 cast_ray_3(ray_t *ray, object_t *objects, size_t nobj, int depth)
+{
+  ray_count++;
+
+  hit_t hit = {.t = DBL_MAX, .object = NULL};
+
+  if (depth > MAX_DEPTH || !intersect(ray, objects, nobj, &hit))
+  {
+    return BACKGROUND;
+  }
+
+  vec3 direct_light = ZERO_VECTOR, indirect_light = ZERO_VECTOR;
+
+  light_t light = {
+      .intensity = .75,
+      .color = (vec3){1, 1, 1},
+      .position = (vec3){2, 10, 2},
+  };
+
+  vec3 light_dir = normalize(sub(light.position, hit.point));
+  ray_t light_ray = (ray_t){.origin = hit.point, .direction = light_dir};
+  vec3 light_color = mult_s(light.color, light.intensity);
+
+#if 1
+  hit_t tmp;
+  if (!intersect(&light_ray, objects, nobj, &tmp))
+  {
+    direct_light = add(direct_light, mult_s(light_color, MAX(dot(hit.normal, light_dir), 0)));
+  }
+#else
+  if (hit.object->material.type == LIGHT)
+  {
+    return light_color;
+  }
+#endif
+
+  size_t nsamples = MONTE_CARLO_SAMPLES;
+  for (size_t i = 0; i < nsamples; i++)
+  {
+    ray_t new_ray = {.origin = hit.point, .direction = random_in_hemisphere(hit.normal)};
+    vec3 color = cast_ray_3(&new_ray, objects, nobj, depth + 1);
+
+    double theta = random_range(0.0, 1.0) * PI;
+    double cosTheta = cos(theta);
+
+    indirect_light = add(indirect_light, color);
+    // indirect_light = add(indirect_light, mult_s(color, cosTheta));
+  }
+
+  indirect_light = mult_s(indirect_light, 1 / (double)nsamples);
+
+  vec3 object_color = hit.object->material.color;
+  if (hit.object->material.type == CHECKERED)
+  {
+    object_color = sample_texture(object_color, hit.u, hit.v);
+  }
+
+  // return mult_s(indirect_light, 0.5);
+  return mult(add(direct_light, indirect_light), object_color);
+  // return mult_s(mult(add(direct_light, indirect_light), object_color), 1 / PI);
 }
 
 #if 0

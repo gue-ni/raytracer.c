@@ -20,7 +20,7 @@
 #define PI 3.14159265359
 #endif
 #define EPSILON 1e-8
-#define MAX_DEPTH 3
+#define MAX_DEPTH 5
 #define MONTE_CARLO_SAMPLES 1
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
@@ -36,6 +36,9 @@
 #define BACKGROUND RGB(1, 130, 129)
 //#define BACKGROUND  RGB(150, 150, 150)
 #define ZERO_VECTOR RGB(0, 0, 0)
+#define ONE_VECTOR ((vec3) {1.0, 1.0, 1.0})
+#define VECTOR(x, y, z) ((vec3) {(x), (y), (z)})
+#define SINGLE_VECTOR(x) ((vec3) {x, x, x})
 #define BLACK ZERO_VECTOR
 #define RANDOM_COLOR \
   (vec3) { random_double(), random_double(), random_double() }
@@ -82,6 +85,7 @@ typedef enum
   CHECKERED,
   DIFFUSE,
   REFLECTION,
+  WIKIPEDIA_ALGORITHM,
   REFLECTION_AND_REFRACTION,
 } material_type_t;
 
