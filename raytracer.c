@@ -621,15 +621,43 @@ vec3 cast_ray_1(ray_t *ray, object_t *objects, size_t nobj, int depth)
   case CHECKERED: /* fall through */
   {
     object_color = sample_texture(object_color, hit.u, hit.v);
+
+    double ka = 0.25;
+    double kd = 0.5;
+    double ks = 0.8;
+
+    /* ambient */
+    vec3 ambient = mult_s(light_color, ka);
+
+    /* diffuse */
+    vec3 diffuse = mult_s(light_color, kd * MAX(0.0, dot(hit.normal, light_dir)));
+
+    /* specular */
+    vec3 reflected = reflect(light_dir, hit.normal);
+    vec3 view_dir = normalize(sub(hit.point, ray->origin));
+    vec3 specular = mult_s(light_color, ks * pow(MAX(dot(view_dir, reflected), 0.0), alpha));
+
+    vec3 surface = mult(
+      add(
+        ambient, 
+        mult_s(
+          add(specular, diffuse),
+          in_shadow ? 0 : 1
+        ) 
+      ), 
+      object_color
+    );
+
+    out_color = add(out_color, surface);
+    break;
+
   }
 
   case WIKIPEDIA_ALGORITHM:
   {
-    double ka, kd, ks, kt, kr;
-
-    ka = 0.25;
-    kd = 0.5;
-    ks = 0.8;
+    double ka = 0.25;
+    double kd = 0.5;
+    double ks = 0.8;
 
     /* ambient */
     vec3 ambient = mult_s(light_color, ka);
@@ -659,10 +687,10 @@ vec3 cast_ray_1(ray_t *ray, object_t *objects, size_t nobj, int depth)
     double transparency = 0.5;
 
     double facingratio = -dot(ray->direction, hit.normal);
-    double fresnel = mix(pow(1 - facingratio, 3), 1, 0.05);
+    double fresnel = mix(pow(1 - facingratio, 3), 1, 0.1);
 
-    kr = fresnel;
-    kt = (1 - fresnel) * transparency;
+    double kr = fresnel;
+    double kt = (1 - fresnel) * transparency;
 
     out_color = add(out_color, surface);
 
@@ -673,7 +701,6 @@ vec3 cast_ray_1(ray_t *ray, object_t *objects, size_t nobj, int depth)
         mult_s(refraction, kt)
       ) 
     );
-
     break;
   }
 

@@ -205,7 +205,7 @@ int main(int argc, char **argv)
             .type = GEOMETRY_MESH, 
             .material = { 
                 .color = RGB(100,100,100), 
-                .type = PHONG
+                .type = CHECKERED
             }, 
             .geometry.mesh = &mesh_2
         },
