@@ -635,11 +635,10 @@ vec3 cast_ray_1(ray_t *ray, object_t *objects, size_t nobj, int depth)
     vec3 diffuse = mult_s(light_color, kd * MAX(0.0, dot(hit.normal, light_dir)));
 
     /* specular */
-    vec3 reflected = reflect(mult_s(light_dir, 1), hit.normal);
+    vec3 reflected = reflect(light_dir, hit.normal);
     vec3 view_dir = normalize(sub(hit.point, ray->origin));
     vec3 specular = mult_s(light_color, ks * pow(MAX(dot(view_dir, reflected), 0.0), alpha));
 
-  #if 1
     vec3 blinn_phong = mult(
       add(
         ambient, 
@@ -650,18 +649,11 @@ vec3 cast_ray_1(ray_t *ray, object_t *objects, size_t nobj, int depth)
       ), 
       color
     );
-#else
-    vec3 blinn_phong = mult(ambient, color);
-#endif
 
     out_color = add(out_color, blinn_phong);
 
-    vec3 reflected_color = cast_ray_1(&(ray_t){ hit.point, mult_s(reflected, -1) }, objects, nobj, depth + 1);
-
+    vec3 reflected_color = cast_ray_1(&(ray_t){ hit.point, normalize(reflect(ray->direction, hit.normal)) }, objects, nobj, depth + 1);
     out_color = add(out_color, mult_s(reflected_color, kr));
-
-
-
     break;
   }
 
