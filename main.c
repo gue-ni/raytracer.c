@@ -136,94 +136,31 @@ int main(int argc, char **argv)
     };
 
     mat4 t = translate((vec3){0,-1,0});
-    mat4 s = scale((vec3){8,.5,8});
+    mat4 s = scale((vec3){16, 0.5, 16});
     //mat4 transform = mult_mm(s, t);
     apply_matrix(&mesh_2, s);
 
-    mesh_t mesh = {
-        .num_triangles = 12,
-        .vertices = (vertex_t[]){
-            /* top */
-            {{pos.x - size.x, pos.y + size.y, pos.z + size.z}, /* 5 top front left */       {1,1}},
-            {{pos.x + size.x, pos.y + size.y, pos.z - size.z}, /* 4 top back right */       {0,0}},
-            {{pos.x - size.x, pos.y + size.y, pos.z - size.z}, /* 6 top back left */        {1,0}},
-
-            {{pos.x - size.x, pos.y + size.y, pos.z + size.z}, /* 5 top front left */       {1,1}},
-            {{pos.x + size.x, pos.y + size.y, pos.z - size.z}, /* 4 top back right */       {0,0}},
-            {{pos.x + size.x, pos.y + size.y, pos.z + size.z}, /* 8 top front right */      {0,1}},
-
-            /* bottom */
-            {{pos.x + size.x, pos.y - size.y, pos.z + size.z}, /* 3 bottom front right */   {0,1}},
-            {{pos.x - size.x, pos.y - size.y, pos.z + size.z}, /* 1 bottom front left */    {1,1}},
-            {{pos.x + size.x, pos.y - size.y, pos.z - size.z}, /* 0 bottom back right */    {0,0}},
-
-            {{pos.x - size.x, pos.y - size.y, pos.z - size.z}, /* 2 bottom back right */     {1,0}},
-            {{pos.x + size.x, pos.y - size.y, pos.z - size.z}, /* 0 bottom back left */    {0,0}},
-            {{pos.x - size.x, pos.y - size.y, pos.z + size.z}, /* 1 bottom front left */    {1,1}},
-
-            /* back, normal works */
-            {{pos.x + size.x, pos.y - size.y, pos.z - size.z}, /* 0 bottom back left m */    {1,0}},
-            {{pos.x - size.x, pos.y - size.y, pos.z - size.z}, /* 2 bottom back right */     {0,0}},
-            {{pos.x + size.x, pos.y + size.y, pos.z - size.z}, /* 4 top back right */       {1,1}},
-
-            {{pos.x - size.x, pos.y - size.y, pos.z - size.z}, /* 2 bottom back right */     {0,0}},
-            {{pos.x - size.x, pos.y + size.y, pos.z - size.z}, /* 6 top back left */        {0,1}},
-            {{pos.x + size.x, pos.y + size.y, pos.z - size.z}, /* 4 top back right */       {1,1}},
-
-            /* front */
-            {{pos.x + size.x, pos.y - size.y, pos.z + size.z}, /* 0 bottom back left m */    {1,0}},
-            {{pos.x - size.x, pos.y - size.y, pos.z + size.z}, /* 2 bottom back right */     {0,0}},
-            {{pos.x + size.x, pos.y + size.y, pos.z + size.z}, /* 4 top back right */       {1,1}},
-
-            {{pos.x - size.x, pos.y - size.y, pos.z + size.z}, /* 2 bottom back right */     {0,0}},
-            {{pos.x - size.x, pos.y + size.y, pos.z + size.z}, /* 6 top back left */        {0,1}},
-            {{pos.x + size.x, pos.y + size.y, pos.z + size.z}, /* 4 top back right */       {1,1}},
-
-
-            /* right */
-            {{pos.x - size.x, pos.y - size.y, pos.z - size.z}, /* 2 bottom back right */     {0,0}},
-            {{pos.x - size.x, pos.y - size.y, pos.z + size.z}, /* 1 bottom front left */    {1,1}},
-            {{pos.x - size.x, pos.y + size.y, pos.z - size.z}, /* 6 top back left */        {1,0}},
-
-            {{pos.x - size.x, pos.y - size.y, pos.z + size.z}, /* 1 bottom front left */    {1,1}},
-            {{pos.x - size.x, pos.y + size.y, pos.z + size.z}, /* 5 top front left */       {1,1}},
-            {{pos.x - size.x, pos.y + size.y, pos.z - size.z}, /* 6 top back left */        {1,0}},
-
-            /* left */
-            {{pos.x + size.x, pos.y - size.y, pos.z - size.z}, /* 0 bottom back left m */    {1,0}},
-            {{pos.x + size.x, pos.y - size.y, pos.z + size.z}, /* 3 bottom front right */   {0,1}},
-            {{pos.x + size.x, pos.y + size.y, pos.z + size.z}, /* 8 top front right */      {0,1}},
-
-            {{pos.x + size.x, pos.y - size.y, pos.z - size.z}, /* 0 bottom back left m */    {1,0}},
-            {{pos.x + size.x, pos.y + size.y, pos.z - size.z}, /* 4 top back right */       {1,1}},
-            {{pos.x + size.x, pos.y + size.y, pos.z + size.z}, /* 8 top front right */      {0,1}},
-        },
-    };
-
-   object_t scene[] = {
+    object_t scene[] = {
         {
             .type = GEOMETRY_MESH, 
             .material = { 
                 .color = RGB(100,100,100), 
-                .type = WIKIPEDIA_ALGORITHM,
-                .flags = M_PHONG | M_CHECKERED
+                .flags = M_PHONG | M_CHECKERED | M_REFLECTION
             }, 
             .geometry.mesh = &mesh_2
         },
         {
             .type = GEOMETRY_SPHERE, 
             .material = { 
-                .color = RANDOM_COLOR, 
-                .type = WIKIPEDIA_ALGORITHM,
-                .flags = M_PHONG | M_REFLECTION
+                .color = BLACK, 
+                .flags = M_PHONG | M_REFLECTION | M_REFRACTION
             }, 
             .geometry.sphere = &(sphere_t){ {1.1, 1, -1}, 0.5 }
         },
         {
             .type = GEOMETRY_SPHERE, 
             .material = { 
-                .color = RED, 
-                .type = WIKIPEDIA_ALGORITHM,
+                .color = BLACK, 
                 .flags = M_PHONG | M_REFLECTION | M_REFRACTION
             }, 
             .geometry.sphere = &(sphere_t){ {0, 1, 0}, 0.75}
@@ -231,9 +168,8 @@ int main(int argc, char **argv)
         {
             .type = GEOMETRY_SPHERE, 
             .material = { 
-                .color = GREEN, 
-                .type = WIKIPEDIA_ALGORITHM,
-                .flags = M_PHONG | M_REFLECTION
+                .color = BLACK, 
+                .flags = M_PHONG | M_REFLECTION | M_REFRACTION
             }, 
             .geometry.sphere = &(sphere_t){{-1.1, 1, 1}, 0.5}
         },
