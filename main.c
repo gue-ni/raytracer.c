@@ -96,12 +96,9 @@ int main(int argc, char **argv)
             {{ -0.5f,  0.5f, -0.5f,},{    0.0f, 1.0f,  }},
             {{ 0.5f,  0.5f, -0.5f, },{   1.0f, 1.0f,   }},
             {{ 0.5f,  0.5f,  0.5f, },{   1.0f, 0.0f,   }},
-
             {{ 0.5f,  0.5f,  0.5f, },{   1.0f, 0.0f,   }},
             {{ -0.5f,  0.5f,  0.5f,},{    0.0f, 0.0f,  }},
             {{ -0.5f,  0.5f, -0.5f,},{    0.0f, 1.0f   }},
-
-
             {{ -0.5f, -0.5f, -0.5f,},{    0.0f, 0.0f,  }},
             {{ 0.5f, -0.5f, -0.5f, },{   1.0f, 0.0f,   }},
             {{ 0.5f,  0.5f, -0.5f, },{   1.0f, 1.0f,   }},
@@ -144,8 +141,8 @@ int main(int argc, char **argv)
         {
             .type = GEOMETRY_MESH, 
             .material = { 
-                .color = RGB(100,100,100), 
-                .flags = M_PHONG | M_CHECKERED | M_REFLECTION
+                .color = RGB(0, 64, 64), 
+                .flags = M_PHONG | M_CHECKERED 
             }, 
             .geometry.mesh = &mesh_2
         },
@@ -163,15 +160,15 @@ int main(int argc, char **argv)
                 .color = BLACK, 
                 .flags = M_PHONG | M_REFLECTION | M_REFRACTION
             }, 
-            .geometry.sphere = &(sphere_t){ {0, 1, 0}, 0.75}
+            .geometry.sphere = &(sphere_t){ {0, 1, 0}, 0.7 }
         },
         {
             .type = GEOMETRY_SPHERE, 
             .material = { 
-                .color = BLACK, 
-                .flags = M_PHONG | M_REFLECTION | M_REFRACTION
+                .color = RGB(20, 20, 20), 
+                .flags = M_PHONG | M_REFLECTION 
             }, 
-            .geometry.sphere = &(sphere_t){{-1.1, 1, 1}, 0.5}
+            .geometry.sphere = &(sphere_t){ {-1.1, 1, 1}, 0.5 }
         },
     };
 

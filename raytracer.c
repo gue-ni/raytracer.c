@@ -608,21 +608,21 @@ vec3 cast_ray_1(ray_t *ray, object_t *objects, size_t nobj, int depth)
   }
 
   vec3 out_color = ZERO_VECTOR;
-  vec3 light_pos = {0, 5, 0};
+  vec3 light_pos = {2, 15, 2};
   vec3 light_color = {1, 1, 1};
-  vec3 light_dir = normalize(sub(light_pos, hit.point));
-  ray_t light_ray = {hit.point, light_dir};
-  bool in_shadow = intersect(&light_ray, objects, nobj, NULL);
-  vec3 object_color = hit.object->material.color;
 
+  ray_t light_ray = {hit.point, normalize(sub(light_pos, hit.point))};
+
+  bool in_shadow = intersect(&light_ray, objects, nobj, NULL);
+  
+  vec3 object_color = hit.object->material.color;
   uint flags = hit.object->material.flags;
 
   if (flags & M_NORMAL)
   {
-    out_color = add((vec3){0.5, 0.5, 0.5}, mult(hit.normal, (vec3){ 0.5, 0.5, 0.5}));
+    out_color = add(VECTOR(0.5, 0.5, 0.5), mult(hit.normal, VECTOR(0.5, 0.5, 0.5)));
     return out_color;
   }
-
 
   double ka = 0.25;
   double kd = 0.5;
@@ -634,14 +634,11 @@ vec3 cast_ray_1(ray_t *ray, object_t *objects, size_t nobj, int depth)
     object_color = sample_texture(object_color, hit.u, hit.v);
   } 
 
-  /* ambient */
   vec3 ambient = mult_s(light_color, ka);
 
-  /* diffuse */
-  vec3 diffuse = mult_s(light_color, kd * MAX(0.0, dot(hit.normal, light_dir)));
+  vec3 diffuse = mult_s(light_color, kd * MAX(0.0, dot(hit.normal, light_ray.direction)));
 
-  /* specular */
-  vec3 reflected = reflect(light_dir, hit.normal);
+  vec3 reflected = reflect(light_ray.direction, hit.normal);
   vec3 view_dir = normalize(sub(hit.point, ray->origin));
   vec3 specular = mult_s(light_color, ks * pow(MAX(dot(view_dir, reflected), 0.0), alpha));
 
@@ -658,23 +655,27 @@ vec3 cast_ray_1(ray_t *ray, object_t *objects, size_t nobj, int depth)
   
   vec3 reflection = ZERO_VECTOR, refraction = ZERO_VECTOR;
 
+  double kr = 0, kt = 0;
+
   if (flags & M_REFLECTION)
   {
-    reflection = cast_ray_1(&(ray_t){ hit.point, normalize(reflect(ray->direction, hit.normal)) }, objects, nobj, depth + 1);
+    kr = 1.0;
+    ray_t r = { hit.point, normalize(reflect(ray->direction, hit.normal)) };
+    reflection = cast_ray_1(&r, objects, nobj, depth + 1);
   }
   
   if (flags & M_REFRACTION)
   {
-    refraction = cast_ray_1(&(ray_t){ hit.point, normalize(refract(ray->direction, hit.normal, 1.0))}, objects, nobj, depth + 1);
+    double transparency = 0.5;
+    double facingratio = -dot(ray->direction, hit.normal);
+    double fresnel = mix(pow(1 - facingratio, 3), 1, 0.1);
+
+    kr = fresnel;
+    kt = (1 - fresnel) * transparency;
+
+    ray_t r = { hit.point, normalize(refract(ray->direction, hit.normal, 1.0))};
+    refraction = cast_ray_1(&r, objects, nobj, depth + 1);
   }
-
-  double transparency = 0.5;
-
-  double facingratio = -dot(ray->direction, hit.normal);
-  double fresnel = mix(pow(1 - facingratio, 3), 1, 0.1);
-
-  double kr = fresnel;
-  double kt = (1 - fresnel) * transparency;
 
   out_color = add(out_color, surface);
 
@@ -685,7 +686,6 @@ vec3 cast_ray_1(ray_t *ray, object_t *objects, size_t nobj, int depth)
       mult_s(refraction, kt)
     ) 
   );
-
 
   return out_color;
 }
@@ -800,113 +800,5 @@ vec3 cast_ray_3(ray_t *ray, object_t *objects, size_t nobj, int depth)
   return mult(add(direct_light, indirect_light), object_color);
   // return mult_s(mult(add(direct_light, indirect_light), object_color), 1 / PI);
 }
-
-#if 0
-void load_file(void *ctx, const char *filename, const int is_mtl, const char *obj, char **buffer, size_t *len)
-{
-  long string_size = 0, read_size = 0;
-  FILE *handler = fopen(filename, "r");
-
-  if (handler)
-  {
-    fseek(handler, 0, SEEK_END);
-    string_size = ftell(handler);
-    rewind(handler);
-    *buffer = (char *)malloc(sizeof(char) * (string_size + 1));
-    read_size = fread(*buffer, sizeof(char), (size_t)string_size, handler);
-    (*buffer)[string_size] = '\0';
-    if (string_size != read_size)
-    {
-      free(buffer);
-      *buffer = NULL;
-    }
-    fclose(handler);
-  }
-  *len = read_size;
-}
-
-bool load_obj(const char *filename, mesh_t *mesh)
-{
-  tinyobj_attrib_t attrib;
-  tinyobj_shape_t *shape = NULL;
-  tinyobj_material_t *material = NULL;
-
-  size_t num_shapes;
-  size_t num_materials;
-
-  tinyobj_attrib_init(&attrib);
-
-  int result = tinyobj_parse_obj(
-      &attrib,
-      &shape,
-      &num_shapes,
-      &material,
-      &num_materials,
-      filename,
-      load_file,
-      NULL,
-      TINYOBJ_FLAG_TRIANGULATE);
-
-  assert(result == TINYOBJ_SUCCESS);
-  assert(attrib.num_faces == 36);
-  assert(attrib.num_normals == 6);  // one per side
-  assert(attrib.num_vertices == 8); // one per corner
-  assert(attrib.num_texcoords == 0);
-  assert(attrib.num_face_num_verts == 12); // two triangles per side
-
-  assert(mesh != NULL);
-
-  mesh->num_triangles = attrib.num_face_num_verts;
-  mesh->triangles = malloc(mesh->num_triangles * sizeof(*mesh->triangles));
-
-  assert(mesh->triangles != NULL);
-
-  size_t face_offset = 0;
-  // iterate over all faces
-  for (size_t i = 0; i < attrib.num_face_num_verts; i++)
-  {
-    const int face_num_verts = attrib.face_num_verts[i]; // num verts per face
-
-    assert(face_num_verts == 3);     // assert all faces are triangles
-    assert(face_num_verts % 3 == 0); // assert all faces are triangles
-    // printf("[%d] face_num_verts = %d\n", i, face_num_verts);
-
-    tinyobj_vertex_index_t idx0 = attrib.faces[face_offset + 0];
-    tinyobj_vertex_index_t idx1 = attrib.faces[face_offset + 1];
-    tinyobj_vertex_index_t idx2 = attrib.faces[face_offset + 2];
-
-    triangle_t triangle;
-
-    for (int k = 0; k < 3; k++)
-    {
-      int f0 = idx0.v_idx;
-      int f1 = idx1.v_idx;
-      int f2 = idx2.v_idx;
-
-      assert(f0 >= 0);
-      assert(f1 >= 0);
-      assert(f2 >= 0);
-
-      vec3 v = {
-          attrib.vertices[3 * (size_t)f0 + k],
-          attrib.vertices[3 * (size_t)f1 + k],
-          attrib.vertices[3 * (size_t)f2 + k],
-      };
-
-      triangle.v[k] = v;
-    }
-
-    mesh->triangles[i] = triangle;
-
-    face_offset += (size_t)face_num_verts;
-  }
-
-  if (shape)
-    tinyobj_shapes_free(shape, num_shapes);
-
-  tinyobj_attrib_free(&attrib);
-  return true;
-}
-#endif
 
 /*==================[end of file]===========================================*/

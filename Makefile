@@ -27,7 +27,7 @@ test: $(TESTS)
 	./$(TESTS) | tee tests.log 2>&1
 
 run: all 
-	./$(APP) -w 640 -h 480 -s 200 -o "result.png"
+	./$(APP) -w 640 -h 480 -s 100 -o "result.png"
 
 pretty: all
 	./$(APP) -w 1920 -h 1080 -s 1000 -o image-$(DATE).png

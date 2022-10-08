@@ -27,19 +27,18 @@
 #define CLAMP(x) (MAX(0, MIN(x, 1)))
 #define CLAMP_BETWEEN(x, min_v, max_v) (MAX(min_v, MIN(max_v, 1)))
 #define ABS(x) ((x < 0) ? (-x) : (x))
-#define RGB(r, g, b) ((vec3){r / 255.0, g / 255.0, b / 255.0})
-#define EQ(a, b) (ABS((a) - (b)) < EPSILON)
-#define RED RGB(255, 0, 0)
-#define GREEN RGB(0, 192, 48)
-#define BLUE RGB(0, 0, 255)
-#define WHITE RGB(255, 255, 255)
-#define BACKGROUND RGB(1, 130, 129)
-//#define BACKGROUND  RGB(150, 150, 150)
-#define ZERO_VECTOR RGB(0, 0, 0)
-#define ONE_VECTOR ((vec3) {1.0, 1.0, 1.0})
 #define VECTOR(x, y, z) ((vec3) {(x), (y), (z)})
-#define SINGLE_VECTOR(x) ((vec3) {x, x, x})
-#define BLACK ZERO_VECTOR
+#define RGB(r, g, b) (VECTOR(r / 255.0, g / 255.0, b / 255.0))
+#define EQ(a, b) (ABS((a) - (b)) < EPSILON)
+
+#define RED       RGB(255, 0, 0)
+#define GREEN     RGB(0, 192, 48)
+#define BLUE      RGB(0, 0, 255)
+#define WHITE     RGB(255, 255, 255)
+#define BLACK     RGB(0, 0, 0)
+#define BACKGROUND RGB(1, 130, 129)
+#define ZERO_VECTOR RGB(0, 0, 0)
+#define ONE_VECTOR (VECTOR(1.0, 1.0, 1.0))
 #define RANDOM_COLOR \
   (vec3) { random_double(), random_double(), random_double() }
 
@@ -101,7 +100,7 @@ typedef struct
 {
   material_type_t type;
   vec3 color;
-  double ka, ks, kd, kt, kr;
+  double ka, ks, kd;
   uint flags;
 } material_t;
 
