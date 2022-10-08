@@ -43,7 +43,15 @@
 #define RANDOM_COLOR \
   (vec3) { random_double(), random_double(), random_double() }
 
+#define M_PHONG       ((uint)1 << 1)
+#define M_REFLECTION  ((uint)1 << 2)
+#define M_REFRACTION  ((uint)1 << 3)
+#define M_CHECKERED   ((uint)1 << 4)
+#define M_NORMAL      ((uint)1 << 5)
+
 /*==================[type definitions]======================================*/
+
+typedef unsigned int uint;
 
 typedef struct
 {
@@ -94,6 +102,7 @@ typedef struct
   material_type_t type;
   vec3 color;
   double ka, ks, kd, kt, kr;
+  uint flags;
 } material_t;
 
 typedef struct

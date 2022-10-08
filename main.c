@@ -205,7 +205,8 @@ int main(int argc, char **argv)
             .type = GEOMETRY_MESH, 
             .material = { 
                 .color = RGB(100,100,100), 
-                .type = CHECKERED
+                .type = WIKIPEDIA_ALGORITHM,
+                .flags = M_PHONG | M_CHECKERED
             }, 
             .geometry.mesh = &mesh_2
         },
@@ -213,7 +214,8 @@ int main(int argc, char **argv)
             .type = GEOMETRY_SPHERE, 
             .material = { 
                 .color = RANDOM_COLOR, 
-                .type = WIKIPEDIA_ALGORITHM  
+                .type = WIKIPEDIA_ALGORITHM,
+                .flags = M_PHONG | M_REFLECTION
             }, 
             .geometry.sphere = &(sphere_t){ {1.1, 1, -1}, 0.5 }
         },
@@ -221,7 +223,8 @@ int main(int argc, char **argv)
             .type = GEOMETRY_SPHERE, 
             .material = { 
                 .color = RED, 
-                .type = WIKIPEDIA_ALGORITHM
+                .type = WIKIPEDIA_ALGORITHM,
+                .flags = M_PHONG | M_REFLECTION | M_REFRACTION
             }, 
             .geometry.sphere = &(sphere_t){ {0, 1, 0}, 0.75}
         },
@@ -229,7 +232,8 @@ int main(int argc, char **argv)
             .type = GEOMETRY_SPHERE, 
             .material = { 
                 .color = GREEN, 
-                .type = WIKIPEDIA_ALGORITHM
+                .type = WIKIPEDIA_ALGORITHM,
+                .flags = M_PHONG | M_REFLECTION
             }, 
             .geometry.sphere = &(sphere_t){{-1.1, 1, 1}, 0.5}
         },

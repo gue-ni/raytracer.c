@@ -614,170 +614,79 @@ vec3 cast_ray_1(ray_t *ray, object_t *objects, size_t nobj, int depth)
   ray_t light_ray = {hit.point, light_dir};
   bool in_shadow = intersect(&light_ray, objects, nobj, NULL);
   vec3 object_color = hit.object->material.color;
-  double ka = 0.1, ks = 0.4, kd = 0.5, alpha = 5;
 
-  switch (hit.object->material.type)
-  {
-  case CHECKERED: /* fall through */
-  {
-    object_color = sample_texture(object_color, hit.u, hit.v);
+  uint flags = hit.object->material.flags;
 
-    double ka = 0.25;
-    double kd = 0.5;
-    double ks = 0.8;
-
-    /* ambient */
-    vec3 ambient = mult_s(light_color, ka);
-
-    /* diffuse */
-    vec3 diffuse = mult_s(light_color, kd * MAX(0.0, dot(hit.normal, light_dir)));
-
-    /* specular */
-    vec3 reflected = reflect(light_dir, hit.normal);
-    vec3 view_dir = normalize(sub(hit.point, ray->origin));
-    vec3 specular = mult_s(light_color, ks * pow(MAX(dot(view_dir, reflected), 0.0), alpha));
-
-    vec3 surface = mult(
-      add(
-        ambient, 
-        mult_s(
-          add(specular, diffuse),
-          in_shadow ? 0 : 1
-        ) 
-      ), 
-      object_color
-    );
-
-    out_color = add(out_color, surface);
-    break;
-
-  }
-
-  case WIKIPEDIA_ALGORITHM:
-  {
-    double ka = 0.25;
-    double kd = 0.5;
-    double ks = 0.8;
-
-    /* ambient */
-    vec3 ambient = mult_s(light_color, ka);
-
-    /* diffuse */
-    vec3 diffuse = mult_s(light_color, kd * MAX(0.0, dot(hit.normal, light_dir)));
-
-    /* specular */
-    vec3 reflected = reflect(light_dir, hit.normal);
-    vec3 view_dir = normalize(sub(hit.point, ray->origin));
-    vec3 specular = mult_s(light_color, ks * pow(MAX(dot(view_dir, reflected), 0.0), alpha));
-
-    vec3 surface = mult(
-      add(
-        ambient, 
-        mult_s(
-          add(specular, diffuse),
-          in_shadow ? 0 : 1
-        ) 
-      ), 
-      object_color
-    );
-    
-    vec3 reflection = cast_ray_1(&(ray_t){ hit.point, normalize(reflect(ray->direction, hit.normal)) }, objects, nobj, depth + 1);
-    vec3 refraction = cast_ray_1(&(ray_t){ hit.point, normalize(refract(ray->direction, hit.normal, 1.0))}, objects, nobj, depth + 1);
-
-    double transparency = 0.5;
-
-    double facingratio = -dot(ray->direction, hit.normal);
-    double fresnel = mix(pow(1 - facingratio, 3), 1, 0.1);
-
-    double kr = fresnel;
-    double kt = (1 - fresnel) * transparency;
-
-    out_color = add(out_color, surface);
-
-    out_color = add(
-      out_color, 
-      add(
-        mult_s(reflection, kr),
-        mult_s(refraction, kt)
-      ) 
-    );
-    break;
-  }
-
-  case REFLECTION:
-  {
-    // TODO: compute fresnel equation
-    ray_t reflected = {hit.point, normalize(reflect(ray->direction, hit.normal))};
-    vec3 reflected_color = cast_ray_1(&reflected, objects, nobj, depth + 1);
-    double f = 0.2;
-    out_color = add(mult_s(reflected_color, (1 - f)), mult_s(hit.object->material.color, (f)));
-    out_color = phong(out_color, light_dir, hit.normal, ray->origin, hit.point, in_shadow, ka, ks, kd, alpha);
-    break;
-  }
-
-  case REFLECTION_AND_REFRACTION:
-  {
-    ray_t reflected = {hit.point, normalize(reflect(ray->direction, hit.normal))};
-    vec3 reflected_color = cast_ray_1(&reflected, objects, nobj, depth + 1);
-
-    double iot = 1.5;
-    ray_t refracted = {hit.point, normalize(refract(ray->direction, hit.normal, iot))};
-    vec3 refracted_color = cast_ray_1(&refracted, objects, nobj, depth + 1);
-
-    double kr = .8;
-
-    vec3 refracted_reflected = add(mult_s(refracted_color, kr), mult_s(reflected_color, (1 - kr)));
-    out_color = refracted_reflected;
-    break;
-  }
-
-  case PHONG:
-  {
-    vec3 material_color = hit.object->material.color;
-    out_color = phong(material_color, light_dir, hit.normal, ray->origin, hit.point, in_shadow, ka, ks, kd, alpha);
-    break;
-  }
-
-  /*
-  case CHECKERED:
-  {
-    vec3 material_color = sample_texture(hit.object->material.color, hit.u, hit.v);
-    out_color = phong(material_color, light_dir, hit.normal, ray->origin, hit.point, in_shadow, ka, ks, kd, alpha);
-    break;
-  }
-  */
-
-  case DIFFUSE:
-  {
-
-    double ks = 0.6;
-    vec3 ambient = mult_s((vec3){0.5, 0.5, 0.5}, ks);
-
-    vec3 normal = normalize(hit.normal);
-    vec3 light_dir = normalize(sub(light_pos, hit.point));
-    double diff = MAX(dot(normal, light_dir), 0.0);
-
-    vec3 diffuse = mult_s(light_color, diff);
-    out_color = clamp(mult(add(ambient, in_shadow ? ZERO_VECTOR : diffuse), hit.object->material.color));
-    break;
-  }
-
-  case SOLID:
-  {
-    out_color = hit.object->material.color;
-    break;
-  }
-
-  case NORMAL:
+  if (flags & M_NORMAL)
   {
     out_color = add((vec3){0.5, 0.5, 0.5}, mult(hit.normal, (vec3){ 0.5, 0.5, 0.5}));
-    break;
+    return out_color;
   }
-  default:
+
+
+  double ka = 0.25;
+  double kd = 0.5;
+  double ks = 0.8;
+  double alpha = 10.0;
+
+  if (flags & M_CHECKERED)
   {
-    exit(1);
+    object_color = sample_texture(object_color, hit.u, hit.v);
+  } 
+
+  /* ambient */
+  vec3 ambient = mult_s(light_color, ka);
+
+  /* diffuse */
+  vec3 diffuse = mult_s(light_color, kd * MAX(0.0, dot(hit.normal, light_dir)));
+
+  /* specular */
+  vec3 reflected = reflect(light_dir, hit.normal);
+  vec3 view_dir = normalize(sub(hit.point, ray->origin));
+  vec3 specular = mult_s(light_color, ks * pow(MAX(dot(view_dir, reflected), 0.0), alpha));
+
+  vec3 surface = mult(
+    add(
+      ambient, 
+      mult_s(
+        add(specular, diffuse),
+        in_shadow ? 0 : 1
+      ) 
+    ), 
+    object_color
+  );
+  
+  vec3 reflection = ZERO_VECTOR, refraction = ZERO_VECTOR;
+
+  if (flags & M_REFLECTION)
+  {
+    reflection = cast_ray_1(&(ray_t){ hit.point, normalize(reflect(ray->direction, hit.normal)) }, objects, nobj, depth + 1);
   }
+  
+  if (flags & M_REFRACTION)
+  {
+    refraction = cast_ray_1(&(ray_t){ hit.point, normalize(refract(ray->direction, hit.normal, 1.0))}, objects, nobj, depth + 1);
   }
+
+  double transparency = 0.5;
+
+  double facingratio = -dot(ray->direction, hit.normal);
+  double fresnel = mix(pow(1 - facingratio, 3), 1, 0.1);
+
+  double kr = fresnel;
+  double kt = (1 - fresnel) * transparency;
+
+  out_color = add(out_color, surface);
+
+  out_color = add(
+    out_color, 
+    add(
+      mult_s(reflection, kr),
+      mult_s(refraction, kt)
+    ) 
+  );
+
+
   return out_color;
 }
 
