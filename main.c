@@ -19,7 +19,8 @@ options_t options = {
     .height = 180,
     .samples = 50,
     .result = "result.png",
-    .obj = "assets/cube.obj"};
+    .obj = "assets/cube.obj"
+};
 
 uint8_t *framebuffer = NULL;
 
@@ -28,18 +29,13 @@ extern int intersection_test_count;
 
 void write_image(int signal)
 {
-    printf("on exit\n");
     if (framebuffer != NULL)
     {
         if (stbi_write_png(options.result, options.width, options.height, 3, framebuffer, options.width * 3) == 0)
-        {
-            fprintf(stderr, "failed to write");
             exit(EXIT_FAILURE);
-        }
         else
-        {
             printf("done.\n");
-        }
+
         free(framebuffer);
     }
 }
@@ -149,15 +145,15 @@ int main(int argc, char **argv)
         {
             .type = GEOMETRY_SPHERE, 
             .material = { 
-                .color = BLACK, 
-                .flags = M_PHONG | M_REFLECTION | M_REFRACTION
+                .color = RGB(20, 20, 20), 
+                .flags = M_PHONG | M_REFLECTION
             }, 
             .geometry.sphere = &(sphere_t){ {1.1, 1, -1}, 0.5 }
         },
         {
             .type = GEOMETRY_SPHERE, 
             .material = { 
-                .color = BLACK, 
+                .color = RGB(20, 20, 20), 
                 .flags = M_PHONG | M_REFLECTION | M_REFRACTION
             }, 
             .geometry.sphere = &(sphere_t){ {0, 1, 0}, 0.7 }
@@ -177,7 +173,7 @@ int main(int argc, char **argv)
     if (framebuffer == NULL)
     {
         fprintf(stderr, "could not allocate framebuffer\n");
-        exit(1);
+        exit(EXIT_FAILURE);
     }
 
     memset(framebuffer, 0x0,buff_len);
@@ -199,5 +195,5 @@ int main(int argc, char **argv)
     printf("rendering took %f seconds\n", time_taken);
     printf("writing result to '%s'...\n", options.result);
     write_image(0);
-    return 0;
+    return EXIT_SUCCESS;
 }

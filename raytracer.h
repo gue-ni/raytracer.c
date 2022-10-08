@@ -159,6 +159,7 @@ typedef struct
 {
   int width, height, samples;
   char *result, *obj;
+  vec3 background;
 } options_t;
 
 /*==================[external function declarations]========================*/

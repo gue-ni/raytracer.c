@@ -667,8 +667,8 @@ vec3 cast_ray_1(ray_t *ray, object_t *objects, size_t nobj, int depth)
   if (flags & M_REFRACTION)
   {
     double transparency = 0.5;
-    double facingratio = -dot(ray->direction, hit.normal);
-    double fresnel = mix(pow(1 - facingratio, 3), 1, 0.1);
+    double facingratio  = -dot(ray->direction, hit.normal);
+    double fresnel      = mix(pow(1 - facingratio, 3), 1, 0.1);
 
     kr = fresnel;
     kt = (1 - fresnel) * transparency;
