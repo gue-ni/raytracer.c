@@ -20,7 +20,7 @@
 #define PI 3.14159265359
 #endif
 #define EPSILON 1e-8
-#define MAX_DEPTH 5
+#define MAX_DEPTH 2
 #define MONTE_CARLO_SAMPLES 1
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
@@ -36,7 +36,10 @@
 #define BLUE      RGB(0, 0, 255)
 #define WHITE     RGB(255, 255, 255)
 #define BLACK     RGB(0, 0, 0)
-#define BACKGROUND RGB(0, 0x80, 0x80)
+//#define BACKGROUND RGB(0, 0x80, 0x80)
+
+#define BACKGROUND RGB(210,217,233)
+
 #define ZERO_VECTOR RGB(0, 0, 0)
 #define ONE_VECTOR (VECTOR(1.0, 1.0, 1.0))
 #define RANDOM_COLOR \
@@ -47,6 +50,8 @@
 #define M_REFRACTION  ((uint)1 << 3)
 #define M_CHECKERED   ((uint)1 << 4)
 #define M_NORMAL      ((uint)1 << 5)
+#define M_LIGHT       ((uint)1 << 6)
+#define M_GLOBAL      ((uint)1 << 7)
 
 /*==================[type definitions]======================================*/
 

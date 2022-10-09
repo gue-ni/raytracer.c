@@ -1,15 +1,15 @@
-CC 			= gcc
-CFLAGS 	= --std=c99 -Wall -g -Wno-strict-aliasing -Wno-unused-variable -Wno-unused-function -fopenmp -O3
-LFLAGS 	= -lm
+CC      = gcc
+CFLAGS  = --std=c99 -Wall -g -Wno-strict-aliasing -Wno-unused-variable -Wno-unused-function -fopenmp -O3
+LFLAGS  = -lm
 
-SRC 		= $(wildcard *.c)
-OBJ 		= $(patsubst %.c, bin/%.o, $(SRC))
+SRC     = $(wildcard *.c)
+OBJ     = $(patsubst %.c, bin/%.o, $(SRC))
 HEADERS = $(wildcard *.h)
 
-DATE 		:= $(shell date "+%Y-%m-%d")
+DATE    = $(shell date "+%Y-%m-%d")
 
-APP 		= raytracer
-TESTS 	= raytracer_test
+APP     = raytracer
+TESTS   = raytracer_test
 
 $(APP): bin/main.o bin/raytracer.o raytracer.h
 	$(CC) $(CFLAGS) -o $@ $^ $(LFLAGS)
@@ -27,7 +27,7 @@ test: $(TESTS)
 	./$(TESTS) | tee tests.log 2>&1
 
 run: all 
-	./$(APP) -w 640 -h 380 -s 100 -o "result.png"
+	./$(APP) -w 640 -h 480 -s 50 -o "result.png"
 
 pretty: all
 	./$(APP) -w 1920 -h 1080 -s 1000 -o image-$(DATE).png

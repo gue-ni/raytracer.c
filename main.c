@@ -14,6 +14,8 @@
 
 #include "raytracer.h"
 
+#define SPHERE(x, y, z, r) ((sphere_t) { { (x), (y) + (r), (z) }, (r) })
+
 options_t options = {
     .width = 320,
     .height = 180,
@@ -49,6 +51,33 @@ void apply_matrix(mesh_t* mesh, mat4 matrix)
     }
 }
 
+void parse_options(int argc, char **argv, options_t *options)
+{
+    uint optind;
+    for (optind = 1; optind < argc; optind++)
+    {
+        switch (argv[optind][1])
+        {
+        case 'h':
+            options->height = atoi(argv[optind + 1]);
+            break;
+        case 'w':
+            options->width = atoi(argv[optind + 1]);
+            break;
+        case 's':
+            options->samples = atoi(argv[optind + 1]);
+            break;
+        case 'o':
+            options->result = argv[optind + 1];
+            break;
+
+        default:
+            break;
+        }
+    }
+    argv += optind;
+}
+
 int main(int argc, char **argv)
 {
     srand((unsigned)time(NULL));
@@ -59,29 +88,7 @@ int main(int argc, char **argv)
         exit(EXIT_FAILURE);
     }
 
-    uint optind;
-    for (optind = 1; optind < argc; optind++)
-    {
-        switch (argv[optind][1])
-        {
-        case 'h':
-            options.height = atoi(argv[optind + 1]);
-            break;
-        case 'w':
-            options.width = atoi(argv[optind + 1]);
-            break;
-        case 's':
-            options.samples = atoi(argv[optind + 1]);
-            break;
-        case 'o':
-            options.result = argv[optind + 1];
-            break;
-
-        default:
-            break;
-        }
-    }
-    argv += optind;
+    parse_options(argc, argv, &options);
 
     vec3 pos = {0, 0, 0};
     vec3 size = {1, 1, 1.5};
@@ -130,33 +137,27 @@ int main(int argc, char **argv)
 
     mat4 t = translate((vec3){0,-1,0});
     mat4 s = scale((vec3){16, 0.5, 16});
-    //mat4 transform = mult_mm(s, t);
     apply_matrix(&cube, s);
+
+    const double y = 0.25;
 
     object_t scene[] = {
         {
             .type = GEOMETRY_MESH, 
             .material = { 
-                .color = RGB(0, 64, 64), 
-                .flags = M_PHONG | M_CHECKERED 
+                .color = RGB(109,124,187), 
+                .flags = M_PHONG | M_CHECKERED | M_GLOBAL
             }, 
             .geometry.mesh = &cube
         },
+        /*
         {
             .type = GEOMETRY_SPHERE, 
             .material = { 
                 .color = RGB(20, 20, 20), 
                 .flags = M_PHONG | M_REFLECTION
             }, 
-            .geometry.sphere = &(sphere_t){ {1.1, 1, -1}, 0.5 }
-        },
-        {
-            .type = GEOMETRY_SPHERE, 
-            .material = { 
-                .color = RGB(20, 20, 20), 
-                .flags = M_PHONG | M_REFLECTION | M_REFRACTION
-            }, 
-            .geometry.sphere = &(sphere_t){ {0, 1, 0}, 0.7 }
+            .geometry.sphere = &SPHERE(-1.1, y, -1.2, 0.7)
         },
         {
             .type = GEOMETRY_SPHERE, 
@@ -164,16 +165,42 @@ int main(int argc, char **argv)
                 .color = RGB(20, 20, 20), 
                 .flags = M_PHONG | M_REFLECTION 
             }, 
-            .geometry.sphere = &(sphere_t){ {-1.1, 1, 1}, 0.5 }
+            .geometry.sphere = &SPHERE(1.3, y, -1.3, 0.8)
         },
         {
             .type = GEOMETRY_SPHERE, 
             .material = { 
-                .color = RGB(0, 64, 64), 
-                .flags = M_PHONG 
+                .color = RGB(20, 20, 20), 
+                .flags = M_PHONG | M_REFLECTION | M_REFRACTION 
             }, 
-            .geometry.sphere = &(sphere_t){ {1.5, 1, 1}, 0.3 }
+            .geometry.sphere = &SPHERE(0.0, y, 0.0, 0.9)
         },
+        {
+            .type = GEOMETRY_SPHERE, 
+            .material = { 
+                .color = RGB(20, 20, 20), 
+                .flags = M_PHONG | M_REFLECTION 
+            }, 
+            .geometry.sphere = &SPHERE(-1.1, y, 1.0, 0.5)
+        },
+        */
+        {
+            .type = GEOMETRY_SPHERE, 
+            .material = { 
+                .color = BLUE, 
+                .flags = M_PHONG | M_GLOBAL
+            }, 
+            .geometry.sphere = &SPHERE(1.1, y, 1.0, 0.4)
+        },
+        {
+            .type = GEOMETRY_SPHERE, 
+            .material = { 
+                .color = RED, 
+                .flags = M_PHONG | M_LIGHT
+            }, 
+            .geometry.sphere = &SPHERE(0.3, y, 1.2, 0.3)
+        },
+
     };
 
     size_t buff_len = sizeof(*framebuffer) * options.width * options.height * 3;
@@ -188,7 +215,8 @@ int main(int argc, char **argv)
     signal(SIGINT, &write_image);
 
     camera_t camera;
-    init_camera(&camera, (vec3){0.0, 1, 3.5}, (vec3){0, 1, 0}, &options);
+    init_camera(&camera, (vec3){0.0, 1, 3.25}, (vec3){0, 1, 0}, &options);
+    //init_camera(&camera, (vec3){0.0001, 5, 0.0}, (vec3){0, 0, 0}, &options);
 
     clock_t tic = clock();
 

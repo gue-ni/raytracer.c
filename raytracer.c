@@ -582,7 +582,7 @@ vec3 cast_ray(ray_t *ray, object_t *objects, size_t nobj, int depth)
 
   if (depth > MAX_DEPTH || !intersect(ray, objects, nobj, &hit))
   {
-    return BACKGROUND;
+    return ZERO_VECTOR;
   }
 
   vec3 out_color = ZERO_VECTOR;
@@ -595,6 +595,11 @@ vec3 cast_ray(ray_t *ray, object_t *objects, size_t nobj, int depth)
   
   vec3 object_color = hit.object->material.color;
   uint flags = hit.object->material.flags;
+
+  if (flags & M_LIGHT)
+  {
+    return mult_s(object_color, 4);
+  }
 
   if (flags & M_NORMAL)
   {
@@ -612,13 +617,33 @@ vec3 cast_ray(ray_t *ray, object_t *objects, size_t nobj, int depth)
     object_color = sample_texture(object_color, hit.u, hit.v);
   } 
 
-  vec3 ambient = mult_s(light_color, ka);
+  vec3 ambient = ZERO_VECTOR, diffuse = ZERO_VECTOR, specular = ZERO_VECTOR;
 
-  vec3 diffuse = mult_s(light_color, kd * MAX(0.0, dot(hit.normal, light_ray.direction)));
+  if (flags & M_GLOBAL) 
+  {
+    uint samples = 10;
+    vec3 sampled = ZERO_VECTOR;
+    
+    for (uint s = 0; s < samples; s++)
+    {
+      ray_t r = { hit.point, normalize(random_in_hemisphere(hit.normal)) };
+      sampled = add(sampled, cast_ray(&r, objects, nobj, depth + 1));
+    }
+
+    ambient = mult_s(sampled, 1.0 / (double)samples);
+  }
+  else 
+  {
+    ambient = mult_s(light_color, ka);
+  }
+
+#if 0
+  diffuse = mult_s(light_color, kd * MAX(0.0, dot(hit.normal, light_ray.direction)));
 
   vec3 reflected = reflect(light_ray.direction, hit.normal);
   vec3 view_dir = normalize(sub(hit.point, ray->origin));
-  vec3 specular = mult_s(light_color, ks * pow(MAX(dot(view_dir, reflected), 0.0), alpha));
+  specular = mult_s(light_color, ks * pow(MAX(dot(view_dir, reflected), 0.0), alpha));
+#endif
 
   vec3 surface = mult(
     add(
