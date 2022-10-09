@@ -141,9 +141,10 @@ int main(int argc, char **argv)
     mat4 s = scale(VECTOR(16, 0.5, 16));
     apply_matrix(&cube, s);
 
+    double aspect_ratio = (double)options.width / (double)options.height;
     const double room_depth = 3;
     const double room_height = 2;
-    const double room_width = 3;
+    const double room_width = room_height * aspect_ratio;
     const double radius = 1000;
     const  vec3 wall_color = WHITE;
     const double y = -room_height;
@@ -200,7 +201,7 @@ int main(int argc, char **argv)
             }, 
             .geometry.sphere = &(sphere_t) { {0, 0, radius + room_depth * 2}, radius},
         },
-#if 0 
+#if 0 /* cube */
         {
             .type = GEOMETRY_MESH, 
             .material = { 
@@ -210,7 +211,7 @@ int main(int argc, char **argv)
             .geometry.mesh = &cube
         },
 #endif
-#if 1
+#if 1 /* objects */
         {
             .type = GEOMETRY_SPHERE, 
             .material = { 
@@ -255,13 +256,13 @@ int main(int argc, char **argv)
             .type = GEOMETRY_SPHERE, 
             .material = { 
                 .color = RED, 
-                .flags = lighting | M_CHECKERED
+                .flags = lighting
             }, 
             .geometry.sphere = &SPHERE(0.2, y, 1.2, 0.3)
         },
 #endif
-#if 1
-        { /* the light */
+#if 1 /* light */
+        {
             .type = GEOMETRY_SPHERE, 
             .material = { 
                 .color = WHITE, 
@@ -284,7 +285,7 @@ int main(int argc, char **argv)
     signal(SIGINT, &write_image);
 
     camera_t camera;
-    init_camera(&camera, VECTOR(0.0, 0, 6), VECTOR(0, 0, 0), &options);
+    init_camera(&camera, VECTOR(0.0, 0, 5), VECTOR(0, 0, 0), &options);
 
     clock_t tic = clock();
 

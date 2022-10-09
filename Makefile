@@ -34,7 +34,7 @@ run: all
 	./$(APP) -w 640 -h 480 -s 100 -o "result.png"
 
 highres: $(HD) 
-	./$(HD) -w 640 -h 480 -s 3000 -o "result-hd.png"
+	./$(HD) -w 640 -h 480 -s 5000 -o "result-hd.png"
 
 pretty: $(HD)
 	./$(HD) -w 1920 -h 1080 -s 1000 -o image-$(DATE).png

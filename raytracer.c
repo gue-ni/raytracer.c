@@ -591,7 +591,7 @@ vec3 cast_ray(ray_t *ray, object_t *objects, size_t nobj, int depth)
 
   if (flags & M_LIGHT)
   {
-    double intensity = 10;
+    double intensity = 4;
     return mult_s(object_color, intensity);
   }
 
