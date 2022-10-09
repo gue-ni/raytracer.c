@@ -141,21 +141,22 @@ int main(int argc, char **argv)
 
     const double y = 0.25;
 
+    uint lighting = M_DEFAULT | M_GLOBAL;
+
     object_t scene[] = {
         {
             .type = GEOMETRY_MESH, 
             .material = { 
                 .color = RGB(109,124,187), 
-                .flags = M_PHONG | M_CHECKERED | M_GLOBAL
+                .flags = lighting | M_CHECKERED
             }, 
             .geometry.mesh = &cube
         },
-        /*
         {
             .type = GEOMETRY_SPHERE, 
             .material = { 
                 .color = RGB(20, 20, 20), 
-                .flags = M_PHONG | M_REFLECTION
+                .flags = lighting | M_REFLECTION
             }, 
             .geometry.sphere = &SPHERE(-1.1, y, -1.2, 0.7)
         },
@@ -163,7 +164,7 @@ int main(int argc, char **argv)
             .type = GEOMETRY_SPHERE, 
             .material = { 
                 .color = RGB(20, 20, 20), 
-                .flags = M_PHONG | M_REFLECTION 
+                .flags = lighting | M_REFLECTION 
             }, 
             .geometry.sphere = &SPHERE(1.3, y, -1.3, 0.8)
         },
@@ -171,7 +172,7 @@ int main(int argc, char **argv)
             .type = GEOMETRY_SPHERE, 
             .material = { 
                 .color = RGB(20, 20, 20), 
-                .flags = M_PHONG | M_REFLECTION | M_REFRACTION 
+                .flags = lighting | M_REFLECTION | M_REFRACTION 
             }, 
             .geometry.sphere = &SPHERE(0.0, y, 0.0, 0.9)
         },
@@ -179,24 +180,23 @@ int main(int argc, char **argv)
             .type = GEOMETRY_SPHERE, 
             .material = { 
                 .color = RGB(20, 20, 20), 
-                .flags = M_PHONG | M_REFLECTION 
+                .flags = lighting | M_REFLECTION
             }, 
             .geometry.sphere = &SPHERE(-1.1, y, 1.0, 0.5)
         },
-        */
         {
             .type = GEOMETRY_SPHERE, 
             .material = { 
                 .color = BLUE, 
-                .flags = M_PHONG | M_GLOBAL
+                .flags = lighting
             }, 
             .geometry.sphere = &SPHERE(1.1, y, 1.0, 0.4)
         },
         {
             .type = GEOMETRY_SPHERE, 
             .material = { 
-                .color = RED, 
-                .flags = M_PHONG | M_LIGHT
+                .color = WHITE, 
+                .flags = lighting | M_LIGHT
             }, 
             .geometry.sphere = &SPHERE(0.3, y, 1.2, 0.3)
         },

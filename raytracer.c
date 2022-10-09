@@ -275,7 +275,7 @@ double random_double()
 { return (double)rand() / ((double)RAND_MAX + 1); }
 
 double random_range(double min, double max)
-{ return (double)rand() * (max - min) + min; }
+{ return random_double() * (max - min) + min; }
 
 double dot(const vec3 v1, const vec3 v2) 
 { return v1.x * v2.x + v1.y * v2.y + v1.z * v2.z; }
@@ -540,19 +540,16 @@ vec3 phong(vec3 color, vec3 light_dir, vec3 normal, vec3 camera_origin, vec3 pos
 
 vec3 random_in_unit_sphere()
 {
+  vec3 p;
+  double d = 100000;
   int loop_counter = 0;
-  while (true)
-  {
-    vec3 p = VECTOR(random_range(-1, 1), random_range(-1, 1), random_range(-1, 1));
 
-    //vec3 p = RANDOM_COLOR;
-
-    if (length2(p) < 1)
-    {
-      return p;
-    }
+  do {
     assert(++loop_counter < 100);
-  }
+    p = VECTOR(random_range(-1, 1), random_range(-1, 1), random_range(-1, 1));
+  } while(length(p) > 1);
+
+  return p;
 }
 
 
@@ -561,13 +558,9 @@ vec3 random_in_hemisphere(vec3 normal)
   vec3 d = random_in_unit_sphere();
 
   if (dot(d, normal) < 0)
-  {
     return mult_s(d, -1);
-  }
   else
-  {
     return d;
-  }
 }
 
 vec3 cast_ray(ray_t *ray, object_t *objects, size_t nobj, int depth)
@@ -577,7 +570,8 @@ vec3 cast_ray(ray_t *ray, object_t *objects, size_t nobj, int depth)
 
   if (depth > MAX_DEPTH || !intersect(ray, objects, nobj, &hit))
   {
-    return ZERO_VECTOR;
+    //return BACKGROUND;
+    return BLACK;
   }
 
   vec3 out_color = ZERO_VECTOR;
@@ -593,7 +587,8 @@ vec3 cast_ray(ray_t *ray, object_t *objects, size_t nobj, int depth)
 
   if (flags & M_LIGHT)
   {
-    return mult_s(object_color, 4);
+    double intensity = 4;
+    return mult_s(object_color, intensity);
   }
 
   if (flags & M_NORMAL)
@@ -612,7 +607,7 @@ vec3 cast_ray(ray_t *ray, object_t *objects, size_t nobj, int depth)
     object_color = sample_texture(object_color, hit.u, hit.v);
   } 
 
-  vec3 ambient = ZERO_VECTOR, diffuse = ZERO_VECTOR, specular = ZERO_VECTOR;
+  vec3 surface = ZERO_VECTOR;
 
   if (flags & M_GLOBAL) 
   {
@@ -625,35 +620,35 @@ vec3 cast_ray(ray_t *ray, object_t *objects, size_t nobj, int depth)
       sampled = add(sampled, cast_ray(&r, objects, nobj, depth + 1));
     }
 
-    ambient = mult_s(sampled, 1.0 / (double)samples);
+    surface = mult(
+      mult_s(sampled, 1.0 / (double)samples),
+      object_color
+    );
   }
-  else 
+  else /* phong lighting */
   {
-    ambient = mult_s(light_color, ka);
+    vec3 ambient = mult_s(light_color, ka);
+
+    vec3 diffuse = mult_s(light_color, kd * MAX(0.0, dot(hit.normal, light_ray.direction)));
+
+    vec3 reflected = reflect(light_ray.direction, hit.normal);
+    vec3 view_dir = normalize(sub(hit.point, ray->origin));
+    vec3 specular = mult_s(light_color, ks * pow(MAX(dot(view_dir, reflected), 0.0), alpha));
+
+    surface = mult(
+      add(
+        ambient, 
+        mult_s(
+          add(specular, diffuse),
+          in_shadow ? 0 : 1
+        ) 
+      ), 
+      object_color
+    );
   }
-
-#if 0
-  diffuse = mult_s(light_color, kd * MAX(0.0, dot(hit.normal, light_ray.direction)));
-
-  vec3 reflected = reflect(light_ray.direction, hit.normal);
-  vec3 view_dir = normalize(sub(hit.point, ray->origin));
-  specular = mult_s(light_color, ks * pow(MAX(dot(view_dir, reflected), 0.0), alpha));
-#endif
-
-  vec3 surface = mult(
-    add(
-      ambient, 
-      mult_s(
-        add(specular, diffuse),
-        in_shadow ? 0 : 1
-      ) 
-    ), 
-    object_color
-  );
-  
-  vec3 reflection = ZERO_VECTOR, refraction = ZERO_VECTOR;
 
   double kr = 0, kt = 0;
+  vec3 reflection = ZERO_VECTOR, refraction = ZERO_VECTOR;
 
   if (flags & M_REFLECTION)
   {

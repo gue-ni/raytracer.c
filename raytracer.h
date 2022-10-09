@@ -45,7 +45,7 @@
 #define RANDOM_COLOR \
   (vec3) { random_double(), random_double(), random_double() }
 
-#define M_PHONG       ((uint)1 << 1)
+#define M_DEFAULT     ((uint)1 << 1)
 #define M_REFLECTION  ((uint)1 << 2)
 #define M_REFRACTION  ((uint)1 << 3)
 #define M_CHECKERED   ((uint)1 << 4)
