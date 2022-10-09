@@ -31,7 +31,7 @@ static ray_t get_camera_ray(const camera_t *camera, double u, double v);
 
 static vec3 cast_ray_2(ray_t *ray, object_t *scene, size_t nobj, int depth);
 static vec3 cast_ray_3(ray_t *ray, object_t *scene, size_t nobj, int depth);
-static vec3 cast_ray_1(ray_t *ray, object_t *scene, size_t nobj, int depth);
+static vec3 cast_ray(ray_t *ray, object_t *scene, size_t nobj, int depth);
 
 static vec3 reflect(const vec3 In, const vec3 N);
 static vec3 refract(const vec3 In, const vec3 N, double iot);
@@ -59,17 +59,17 @@ vec3 calculate_surface_normal(vec3 v0, vec3 v1, vec3 v2)
 
 vec3 mult_mv(mat4 A, vec3 v)
 {
-  size_t N = 4, M = 4, P = 1;
+  uint N = 4, M = 4, P = 1;
 
   double B[4] = {v.x, v.y, v.z, 1.0};
   double C[4];
 
-  for (size_t i = 0; i < N; i++)
+  for (uint i = 0; i < N; i++)
   {
-    for (size_t j = 0; j < P; j++)
+    for (uint j = 0; j < P; j++)
     {
       C[i * P + j] = 0;
-      for (size_t k = 0; k < M; k++)
+      for (uint k = 0; k < M; k++)
       {
         C[i * P + j] += (A.m[i * M + k] * B[k * P + j]);
       }
@@ -84,14 +84,14 @@ mat4 mult_mm(mat4 A, mat4 B)
   // A = N x M (N rows and M columns)
   // B = M x P
   mat4 C;
-  size_t N = 4, M = 4, P = 4;
+  uint N = 4, M = 4, P = 4;
 
-  for (size_t i = 0; i < N; i++)
+  for (uint i = 0; i < N; i++)
   {
-    for (size_t j = 0; j < P; j++)
+    for (uint j = 0; j < P; j++)
     {
       C.m[i * P + j] = 0;
-      for (size_t k = 0; k < M; k++)
+      for (uint k = 0; k < M; k++)
       {
         C.m[i * P + j] += (A.m[i * M + k] * B.m[k * P + j]);
       }
@@ -237,36 +237,36 @@ void render(uint8_t *framebuffer, object_t *objects, size_t n_objects, camera_t 
 
   const int str_len = 40;
   const char* done = "========================================";
-  const char* todo = "                                        ";
+  const char* todo = "----------------------------------------";
 
   #pragma omp parallel for
-  for (int y = 0; y < options->height; y++)
+  for (uint y = 0; y < options->height; y++)
   {
     if (omp_get_thread_num() == 0)
     {
       if (y % 10 == 0)
       {
-        double percentage = ((double)y * omp_get_num_threads() /(double)options->height) * 100.0;
+        double percentage = ((double)y * omp_get_num_threads() / (double)options->height) * 100.0;
         int p = str_len - (percentage / 100.0) * str_len;
         printf("[%s%s] %0.02f %%\n", done + (p), todo + (str_len - p), percentage);
       }
     }
 
-    for (int x = 0; x < options->width; x++)
+    for (uint x = 0; x < options->width; x++)
     {
       ray_t ray;
       vec3 pixel = {0, 0, 0};
-      for (int s = 0; s < options->samples; s++)
+      for (uint s = 0; s < options->samples; s++)
       {
         double u = (double)(x + random_double()) / ((double)options->width - 1.0);
         double v = (double)(y + random_double()) / ((double)options->height - 1.0);
         ray = get_camera_ray(camera, u, v);
-        pixel = add(pixel, clamp(cast_ray_1(&ray, objects, n_objects, 0)));
+        pixel = add(pixel, clamp(cast_ray(&ray, objects, n_objects, 0)));
       }
 
       pixel = mult_s(pixel, 1.0 / options->samples);
 
-      size_t i = (y * options->width + x) * 3;
+      uint i = (y * options->width + x) * 3;
       framebuffer[i + 0] = (uint8_t)(255.0 * pow(pixel.x, 1 / gamma));
       framebuffer[i + 1] = (uint8_t)(255.0 * pow(pixel.y, 1 / gamma));
       framebuffer[i + 2] = (uint8_t)(255.0 * pow(pixel.z, 1 / gamma));
@@ -429,9 +429,9 @@ void print_v(const char *msg, const vec3 v)
 
 void print_m(const mat4 m)
 {
-  for (int i = 0; i < 4; i++)
+  for (uint i = 0; i < 4; i++)
   {
-    for (int j = 0; j < 4; j++)
+    for (uint j = 0; j < 4; j++)
     {
       printf(" %6.1f, ", m.m[i * 4 + j]);
     }
@@ -492,14 +492,15 @@ bool intersect(const ray_t *ray, object_t *objects, size_t n, hit_t *hit)
 
   hit_t local = {.t = DBL_MAX};
 
-  for (int i = 0; i < n; i++)
+  for (uint i = 0; i < n; i++)
   {
+    object_t *object = &objects[i];
     switch (objects[i].type)
     {
     case GEOMETRY_MESH:
     {
       mesh_t *mesh = objects[i].geometry.mesh;
-      for (int ti = 0; ti < mesh->num_triangles; ti++)
+      for (uint ti = 0; ti < mesh->num_triangles; ti++)
       {
         vertex_t v0 = mesh->vertices[(ti * 3) + 0];
         vertex_t v1 = mesh->vertices[(ti * 3) + 1];
@@ -513,7 +514,6 @@ bool intersect(const ray_t *ray, object_t *objects, size_t n, hit_t *hit)
           local.normal = calculate_surface_normal(v0.pos, v1.pos, v2.pos);
         }
       }
-
       break;
     }
     case GEOMETRY_SPHERE:
@@ -523,8 +523,7 @@ bool intersect(const ray_t *ray, object_t *objects, size_t n, hit_t *hit)
         min_t = local.t;
         local.object = &objects[i];
         local.point = point_at(ray, local.t);
-        local.normal = normalize(div_s(sub(local.point, objects[i].geometry.sphere->center),
-                                       objects[i].geometry.sphere->radius));
+        local.normal = normalize(sub(local.point, objects[i].geometry.sphere->center));
       }
       break;
     }
@@ -597,7 +596,7 @@ vec3 random_in_hemisphere(vec3 normal)
   }
 }
 
-vec3 cast_ray_1(ray_t *ray, object_t *objects, size_t nobj, int depth)
+vec3 cast_ray(ray_t *ray, object_t *objects, size_t nobj, int depth)
 {
   ray_count++;
   hit_t hit = {.t = DBL_MAX, .object = NULL};
@@ -661,7 +660,7 @@ vec3 cast_ray_1(ray_t *ray, object_t *objects, size_t nobj, int depth)
   {
     kr = 1.0;
     ray_t r = { hit.point, normalize(reflect(ray->direction, hit.normal)) };
-    reflection = cast_ray_1(&r, objects, nobj, depth + 1);
+    reflection = cast_ray(&r, objects, nobj, depth + 1);
   }
   
   if (flags & M_REFRACTION)
@@ -674,7 +673,7 @@ vec3 cast_ray_1(ray_t *ray, object_t *objects, size_t nobj, int depth)
     kt = (1 - fresnel) * transparency;
 
     ray_t r = { hit.point, normalize(refract(ray->direction, hit.normal, 1.0))};
-    refraction = cast_ray_1(&r, objects, nobj, depth + 1);
+    refraction = cast_ray(&r, objects, nobj, depth + 1);
   }
 
   out_color = add(out_color, surface);
@@ -776,7 +775,7 @@ vec3 cast_ray_3(ray_t *ray, object_t *objects, size_t nobj, int depth)
 #endif
 
   size_t nsamples = MONTE_CARLO_SAMPLES;
-  for (size_t i = 0; i < nsamples; i++)
+  for (uint i = 0; i < nsamples; i++)
   {
     ray_t new_ray = {.origin = hit.point, .direction = random_in_hemisphere(hit.normal)};
     vec3 color = cast_ray_3(&new_ray, objects, nobj, depth + 1);

@@ -141,14 +141,15 @@ void  test_normal()
     vec3 v1 = {+X, -Y, -Z};
     vec3 v2 = {+X, +Y, -Z};
     vec3 normal = calculate_surface_normal(v0, v1, v2);
+    print_v("normal", normal);
   }
   {
     vec3 v0 = {-X, +Y, +Z};
     vec3 v1 = {+X, +Y, +Z};
     vec3 v2 = {+X, +Y, -Z};
     vec3 normal = calculate_surface_normal(v0, v1, v2);
+    print_v("normal", normal);
     TEST_CHECK(compare_vector(normal, (vec3){0, 1, 0}));
-    TEST_CHECK(0);
   }
 }
 

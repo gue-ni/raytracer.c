@@ -50,7 +50,7 @@
 
 /*==================[type definitions]======================================*/
 
-typedef unsigned int uint;
+typedef uint32_t uint;
 
 typedef struct
 {
