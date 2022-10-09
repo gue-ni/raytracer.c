@@ -142,10 +142,50 @@ int main(int argc, char **argv)
     apply_matrix(&cube, s);
 
     const double y = 0.25;
+    const double room_depth = 5;
+    const double room_height = 1.5;
+    const double room_width = 3;
+    const double radius = 100;
 
-    uint lighting = M_DEFAULT | M_GLOBAL_ILLUM;
+    uint lighting = M_DEFAULT;
 
     object_t scene[] = {
+        { // floor
+            .type = GEOMETRY_SPHERE,
+            .material = { 
+                .color = RGB(109,124,187), 
+                .flags = lighting | M_CHECKERED
+            }, 
+            .geometry.sphere = &(sphere_t) { {0, -radius - room_height, 0}, radius},
+        },
+        { // back wall
+            .type = GEOMETRY_SPHERE,
+            .material = { 
+                .color = RGB(109,124,187), 
+                .flags = lighting | M_CHECKERED
+            }, 
+            .geometry.sphere = &(sphere_t) { {0, 0, -radius - room_depth}, radius},
+        },
+        { // left wall
+            .type = GEOMETRY_SPHERE,
+            .material = { 
+                .color = GREEN, 
+                .flags = lighting | M_CHECKERED
+            }, 
+            .geometry.sphere = &(sphere_t) { {-radius - room_width, 0, 0}, radius},
+        },
+        { // right wall
+            .type = GEOMETRY_SPHERE,
+            .material = { 
+                .color = RED, 
+                .flags = lighting | M_CHECKERED
+            }, 
+            .geometry.sphere = &(sphere_t) { {radius + room_width, 0, 0}, radius},
+        },
+
+
+
+        /*
         {
             .type = GEOMETRY_MESH, 
             .material = { 
@@ -154,6 +194,7 @@ int main(int argc, char **argv)
             }, 
             .geometry.mesh = &cube
         },
+        */
         {
             .type = GEOMETRY_SPHERE, 
             .material = { 
@@ -225,7 +266,7 @@ int main(int argc, char **argv)
     signal(SIGINT, &write_image);
 
     camera_t camera;
-    init_camera(&camera, VECTOR(0.0, 1, 3.25), VECTOR(0, 1, 0), &options);
+    init_camera(&camera, VECTOR(0.0, 1, 5), VECTOR(0, 1, 0), &options);
     //init_camera(&camera, (vec3){0.0001, 5, 0.0}, (vec3){0, 0, 0}, &options);
 
     clock_t tic = clock();
