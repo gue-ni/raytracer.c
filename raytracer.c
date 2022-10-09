@@ -242,7 +242,7 @@ void render(uint8_t *framebuffer, object_t *objects, size_t n_objects, camera_t 
   #pragma omp parallel for
   for (uint y = 0; y < options->height; y++)
   {
-    if (omp_get_thread_num() == 0)
+    if (0 == omp_get_thread_num())
     {
       if (y % 10 == 0)
       {
