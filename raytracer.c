@@ -543,15 +543,9 @@ vec3 random_in_unit_sphere()
   int loop_counter = 0;
   while (true)
   {
-    /*
-    vec3 p = (vec3){
-      random_range(-1, 1),
-      random_range(-1, 1),
-      random_range(-1, 1),
-    };
-    */
+    vec3 p = VECTOR(random_range(-1, 1), random_range(-1, 1), random_range(-1, 1));
 
-    vec3 p = RANDOM_COLOR;
+    //vec3 p = RANDOM_COLOR;
 
     if (length2(p) < 1)
     {
@@ -560,6 +554,7 @@ vec3 random_in_unit_sphere()
     assert(++loop_counter < 100);
   }
 }
+
 
 vec3 random_in_hemisphere(vec3 normal)
 {
