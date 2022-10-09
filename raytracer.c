@@ -552,7 +552,6 @@ vec3 random_in_unit_sphere()
   return p;
 }
 
-
 vec3 random_in_hemisphere(vec3 normal)
 {
   vec3 d = random_in_unit_sphere();
