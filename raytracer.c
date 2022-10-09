@@ -39,8 +39,8 @@ static bool intersect(const ray_t *ray, object_t *objects, size_t n, hit_t *hit)
 /*==================[internal constants]====================================*/
 /*==================[external data]=========================================*/
 
-int ray_count = 0;
-int intersection_test_count = 0;
+long long ray_count = 0;
+long long intersection_test_count = 0;
 
 /*==================[internal data]=========================================*/
 /*==================[external function definitions]=========================*/
@@ -570,8 +570,8 @@ vec3 cast_ray(ray_t *ray, object_t *objects, size_t nobj, int depth)
 
   if (depth > MAX_DEPTH || !intersect(ray, objects, nobj, &hit))
   {
-    //return BACKGROUND;
-    return BLACK;
+    return BACKGROUND;
+    //return BLACK;
   }
 
   vec3 out_color = ZERO_VECTOR;
@@ -607,11 +607,11 @@ vec3 cast_ray(ray_t *ray, object_t *objects, size_t nobj, int depth)
     object_color = sample_texture(object_color, hit.u, hit.v);
   } 
 
-  vec3 surface = ZERO_VECTOR;
+  vec3 lighting = ZERO_VECTOR;
 
-  if (flags & M_GLOBAL) 
+  if (flags & M_GLOBAL_ILLUM) /* global illumination */
   {
-    uint samples = 10;
+    uint samples = MONTE_CARLO_SAMPLES;
     vec3 sampled = ZERO_VECTOR;
     
     for (uint s = 0; s < samples; s++)
@@ -620,7 +620,7 @@ vec3 cast_ray(ray_t *ray, object_t *objects, size_t nobj, int depth)
       sampled = add(sampled, cast_ray(&r, objects, nobj, depth + 1));
     }
 
-    surface = mult(
+    lighting = mult(
       mult_s(sampled, 1.0 / (double)samples),
       object_color
     );
@@ -635,7 +635,7 @@ vec3 cast_ray(ray_t *ray, object_t *objects, size_t nobj, int depth)
     vec3 view_dir = normalize(sub(hit.point, ray->origin));
     vec3 specular = mult_s(light_color, ks * pow(MAX(dot(view_dir, reflected), 0.0), alpha));
 
-    surface = mult(
+    lighting = mult(
       add(
         ambient, 
         mult_s(
@@ -670,7 +670,7 @@ vec3 cast_ray(ray_t *ray, object_t *objects, size_t nobj, int depth)
     refraction = cast_ray(&r, objects, nobj, depth + 1);
   }
 
-  out_color = add(out_color, surface);
+  out_color = add(out_color, lighting);
 
   out_color = add(
     out_color, 

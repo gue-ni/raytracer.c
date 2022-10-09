@@ -26,8 +26,8 @@ options_t options = {
 
 uint8_t *framebuffer = NULL;
 
-extern int ray_count;
-extern int intersection_test_count;
+extern long long ray_count;
+extern long long intersection_test_count;
 
 void write_image(int signal)
 {
@@ -102,12 +102,14 @@ int main(int argc, char **argv)
             {{ +0.5f, +0.5f, +0.5f },{ 1.0f, 0.0f }},
             {{ -0.5f, +0.5f, +0.5f },{ 0.0f, 0.0f }},
             {{ -0.5f, +0.5f, -0.5f },{ 0.0f, 1.0f }},
+
             {{ -0.5f, -0.5f, -0.5f },{ 0.0f, 0.0f }},
             {{ +0.5f, -0.5f, -0.5f },{ 1.0f, 0.0f }},
             {{ +0.5f, +0.5f, -0.5f },{ 1.0f, 1.0f }},
             {{ +0.5f, +0.5f, -0.5f },{ 1.0f, 1.0f }},
             {{ -0.5f, +0.5f, -0.5f },{ 0.0f, 1.0f }},
             {{ -0.5f, -0.5f, -0.5f },{ 0.0f, 0.0f }},
+
             {{ -0.5f, -0.5f, +0.5f },{ 0.0f, 0.0f }},
             {{ +0.5f, -0.5f, +0.5f },{ 1.0f, 0.0f }},
             {{ +0.5f, +0.5f, +0.5f },{ 1.0f, 1.0f }},
@@ -135,13 +137,13 @@ int main(int argc, char **argv)
         }
     };
 
-    mat4 t = translate((vec3){0,-1,0});
-    mat4 s = scale((vec3){16, 0.5, 16});
+    //mat4 t = translate((vec3){0,-1,0});
+    mat4 s = scale(VECTOR(16, 0.5, 16));
     apply_matrix(&cube, s);
 
     const double y = 0.25;
 
-    uint lighting = M_DEFAULT | M_GLOBAL;
+    uint lighting = M_DEFAULT | M_GLOBAL_ILLUM;
 
     object_t scene[] = {
         {
@@ -155,8 +157,8 @@ int main(int argc, char **argv)
         {
             .type = GEOMETRY_SPHERE, 
             .material = { 
-                .color = RGB(20, 20, 20), 
-                .flags = lighting | M_REFLECTION
+                .color = GREEN, 
+                .flags = lighting
             }, 
             .geometry.sphere = &SPHERE(-1.1, y, -1.2, 0.7)
         },
@@ -172,7 +174,7 @@ int main(int argc, char **argv)
             .type = GEOMETRY_SPHERE, 
             .material = { 
                 .color = RGB(20, 20, 20), 
-                .flags = lighting | M_REFLECTION | M_REFRACTION 
+                .flags = lighting | M_REFLECTION 
             }, 
             .geometry.sphere = &SPHERE(0.0, y, 0.0, 0.9)
         },
@@ -195,10 +197,18 @@ int main(int argc, char **argv)
         {
             .type = GEOMETRY_SPHERE, 
             .material = { 
+                .color = RED, 
+                .flags = lighting 
+            }, 
+            .geometry.sphere = &SPHERE(0.2, y, 1.2, 0.3)
+        },
+        {
+            .type = GEOMETRY_SPHERE, 
+            .material = { 
                 .color = WHITE, 
                 .flags = lighting | M_LIGHT
             }, 
-            .geometry.sphere = &SPHERE(0.3, y, 1.2, 0.3)
+            .geometry.sphere = &SPHERE(0.0, 2.7, 0.0, 0.7)
         },
 
     };
@@ -215,7 +225,7 @@ int main(int argc, char **argv)
     signal(SIGINT, &write_image);
 
     camera_t camera;
-    init_camera(&camera, (vec3){0.0, 1, 3.25}, (vec3){0, 1, 0}, &options);
+    init_camera(&camera, VECTOR(0.0, 1, 3.25), VECTOR(0, 1, 0), &options);
     //init_camera(&camera, (vec3){0.0001, 5, 0.0}, (vec3){0, 0, 0}, &options);
 
     clock_t tic = clock();
@@ -223,11 +233,12 @@ int main(int argc, char **argv)
     render(framebuffer, scene, sizeof(scene) / sizeof(scene[0]), &camera, &options);
 
     clock_t toc = clock();
-    double time_taken = (double)(toc - tic) / CLOCKS_PER_SEC;
+
+    double time_taken = (double)((toc - tic) / CLOCKS_PER_SEC);
 
     printf("%d x %d pixels\n", options.width, options.height);
-    printf("cast %d rays\n", ray_count);
-    printf("checked %d possible intersections\n", intersection_test_count);
+    printf("cast %lld rays\n", ray_count);
+    printf("checked %lld possible intersections\n", intersection_test_count);
     printf("rendering took %f seconds\n", time_taken);
     printf("writing result to '%s'...\n", options.result);
     write_image(0);

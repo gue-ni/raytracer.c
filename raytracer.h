@@ -21,7 +21,7 @@
 #endif
 #define EPSILON 1e-8
 #define MAX_DEPTH 2
-#define MONTE_CARLO_SAMPLES 1
+#define MONTE_CARLO_SAMPLES 32
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
 #define CLAMP(x) (MAX(0, MIN(x, 1)))
@@ -38,7 +38,7 @@
 #define BLACK     RGB(0, 0, 0)
 //#define BACKGROUND RGB(0, 0x80, 0x80)
 
-#define BACKGROUND RGB(210,217,233)
+#define BACKGROUND RGB(10, 10, 10)
 
 #define ZERO_VECTOR RGB(0, 0, 0)
 #define ONE_VECTOR (VECTOR(1.0, 1.0, 1.0))
@@ -51,7 +51,7 @@
 #define M_CHECKERED   ((uint)1 << 4)
 #define M_NORMAL      ((uint)1 << 5)
 #define M_LIGHT       ((uint)1 << 6)
-#define M_GLOBAL      ((uint)1 << 7)
+#define M_GLOBAL_ILLUM      ((uint)1 << 7)
 
 /*==================[type definitions]======================================*/
 
@@ -208,8 +208,8 @@ bool load_obj(const char *filename, mesh_t *mesh);
 /*==================[external constants]====================================*/
 /*==================[external data]=========================================*/
 
-extern int ray_count;
-extern int intersection_test_count;
+extern long long ray_count;
+extern long long intersection_test_count;
 
 /*==================[end of file]===========================================*/
 
