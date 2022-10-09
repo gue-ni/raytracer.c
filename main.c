@@ -141,28 +141,30 @@ int main(int argc, char **argv)
     mat4 s = scale(VECTOR(16, 0.5, 16));
     apply_matrix(&cube, s);
 
-    const double y = 0.25;
-    const double room_depth = 5;
-    const double room_height = 1.5;
+    const double room_depth = 3;
+    const double room_height = 2;
     const double room_width = 3;
-    const double radius = 100;
+    const double radius = 1000;
+    const  vec3 wall_color = WHITE;
+    const double y = -room_height;
 
     uint lighting = M_DEFAULT;
+    lighting |= M_GLOBAL_ILLUM;
 
     object_t scene[] = {
         { // floor
             .type = GEOMETRY_SPHERE,
             .material = { 
-                .color = RGB(109,124,187), 
-                .flags = lighting | M_CHECKERED
+                .color = wall_color, 
+                .flags = lighting
             }, 
-            .geometry.sphere = &(sphere_t) { {0, -radius, 0}, radius},
+            .geometry.sphere = &(sphere_t) { {0, -radius - room_height, 0}, radius},
         },
         { // back wall
             .type = GEOMETRY_SPHERE,
             .material = { 
-                .color = RGB(109,124,187), 
-                .flags = lighting | M_CHECKERED
+                .color = wall_color, 
+                .flags = lighting
             }, 
             .geometry.sphere = &(sphere_t) { {0, 0, -radius - room_depth}, radius},
         },
@@ -170,7 +172,7 @@ int main(int argc, char **argv)
             .type = GEOMETRY_SPHERE,
             .material = { 
                 .color = GREEN, 
-                .flags = lighting | M_CHECKERED
+                .flags = lighting
             }, 
             .geometry.sphere = &(sphere_t) { {-radius - room_width, 0, 0}, radius},
         },
@@ -178,14 +180,27 @@ int main(int argc, char **argv)
             .type = GEOMETRY_SPHERE,
             .material = { 
                 .color = RED, 
-                .flags = lighting | M_CHECKERED
+                .flags = lighting
             }, 
             .geometry.sphere = &(sphere_t) { {radius + room_width, 0, 0}, radius},
         },
-
-
-
-        /*
+        { // ceiling
+            .type = GEOMETRY_SPHERE,
+            .material = { 
+                .color = WHITE, 
+                .flags = lighting
+            }, 
+            .geometry.sphere = &(sphere_t) { {0, radius + room_height, 0}, radius},
+        },
+        { // front wall
+            .type = GEOMETRY_SPHERE,
+            .material = { 
+                .color = wall_color, 
+                .flags = lighting
+            }, 
+            .geometry.sphere = &(sphere_t) { {0, 0, radius + room_depth * 2}, radius},
+        },
+#if 0 
         {
             .type = GEOMETRY_MESH, 
             .material = { 
@@ -194,7 +209,8 @@ int main(int argc, char **argv)
             }, 
             .geometry.mesh = &cube
         },
-        */
+#endif
+#if 1
         {
             .type = GEOMETRY_SPHERE, 
             .material = { 
@@ -239,19 +255,21 @@ int main(int argc, char **argv)
             .type = GEOMETRY_SPHERE, 
             .material = { 
                 .color = RED, 
-                .flags = lighting 
+                .flags = lighting | M_CHECKERED
             }, 
             .geometry.sphere = &SPHERE(0.2, y, 1.2, 0.3)
         },
-        {
+#endif
+#if 1
+        { /* the light */
             .type = GEOMETRY_SPHERE, 
             .material = { 
                 .color = WHITE, 
                 .flags = lighting | M_LIGHT
             }, 
-            .geometry.sphere = &SPHERE(0.0, 2.7, 0.0, 0.7)
+            .geometry.sphere = &(sphere_t) {{0, room_height, 0}, 0.75 }
         },
-
+#endif
     };
 
     size_t buff_len = sizeof(*framebuffer) * options.width * options.height * 3;
@@ -266,8 +284,7 @@ int main(int argc, char **argv)
     signal(SIGINT, &write_image);
 
     camera_t camera;
-    init_camera(&camera, VECTOR(0.0, 1, 5), VECTOR(0, 1, 0), &options);
-    //init_camera(&camera, (vec3){0.0001, 5, 0.0}, (vec3){0, 0, 0}, &options);
+    init_camera(&camera, VECTOR(0.0, 0, 6), VECTOR(0, 0, 0), &options);
 
     clock_t tic = clock();
 

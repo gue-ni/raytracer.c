@@ -9,9 +9,13 @@ HEADERS = $(wildcard *.h)
 DATE    = $(shell date "+%Y-%m-%d")
 
 APP     = raytracer
+HD     	= raytracer_hd
 TESTS   = raytracer_test
 
 $(APP): bin/main.o bin/raytracer.o raytracer.h
+	$(CC) $(CFLAGS) -o $@ $^ $(LFLAGS)
+
+$(HD): bin/main.o bin/raytracer.o raytracer.h
 	$(CC) $(CFLAGS) -o $@ $^ $(LFLAGS)
 
 $(TESTS): bin/test.o bin/raytracer.o raytracer.h
@@ -29,8 +33,11 @@ test: $(TESTS)
 run: all 
 	./$(APP) -w 640 -h 480 -s 100 -o "result.png"
 
-pretty: all
-	./$(APP) -w 1920 -h 1080 -s 1000 -o image-$(DATE).png
+highres: $(HD) 
+	./$(HD) -w 640 -h 480 -s 3000 -o "result-hd.png"
+
+pretty: $(HD)
+	./$(HD) -w 1920 -h 1080 -s 1000 -o image-$(DATE).png
 
 memcheck: $(APP)
 	valgrind --leak-check=full \
@@ -48,5 +55,5 @@ perfcheck: $(APP)
 clean:
 	rm -f $(APP) $(TESTS) *.o *.stackdump *.log *.out bin/*
 
-.PHONY: all clean run memcheck render
+.PHONY: all clean run memcheck render highres perfcheck
 

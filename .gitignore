@@ -8,6 +8,7 @@ cmake-*
 *.out
 *.exe.stackdump
 result*.png
-raytracer
 ray
+raytracer
 raytracer_test
+raytracer_hd

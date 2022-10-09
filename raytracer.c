@@ -255,16 +255,19 @@ void render(uint8_t *framebuffer, object_t *objects, size_t n_objects, camera_t 
       {
         double u = (double)(x + random_double()) / ((double)options->width - 1.0);
         double v = (double)(y + random_double()) / ((double)options->height - 1.0);
+
         ray = get_camera_ray(camera, u, v);
-        pixel = add(pixel, clamp(cast_ray(&ray, objects, n_objects, 0)));
+
+        vec3 sample = cast_ray(&ray, objects, n_objects, 0);
+        pixel = add(pixel, sample);
       }
 
-      pixel = mult_s(pixel, 1.0 / options->samples);
+      pixel = mult_s(pixel, 1.0 / (double)options->samples);
 
       uint i = (y * options->width + x) * 3;
-      framebuffer[i + 0] = (uint8_t)(255.0 * pow(pixel.x, 1 / gamma));
-      framebuffer[i + 1] = (uint8_t)(255.0 * pow(pixel.y, 1 / gamma));
-      framebuffer[i + 2] = (uint8_t)(255.0 * pow(pixel.z, 1 / gamma));
+      framebuffer[i + 0] = (uint8_t)(255.0 * CLAMP(pow(pixel.x, 1 / gamma)));
+      framebuffer[i + 1] = (uint8_t)(255.0 * CLAMP(pow(pixel.y, 1 / gamma)));
+      framebuffer[i + 2] = (uint8_t)(255.0 * CLAMP(pow(pixel.z, 1 / gamma)));
     }
   }
 }
@@ -503,6 +506,8 @@ bool intersect(const ray_t *ray, object_t *objects, size_t n, hit_t *hit)
         local.object = &objects[i];
         local.point = point_at(ray, local.t);
         local.normal = normalize(sub(local.point, objects[i].geometry.sphere->center));
+        local.u = atan2(local.normal.x, local.normal.z) / (2 * PI) + 0.5;
+        local.v = local.normal.y * 0.5 + 0.5;
       }
       break;
     }
@@ -574,7 +579,7 @@ vec3 cast_ray(ray_t *ray, object_t *objects, size_t nobj, int depth)
   }
 
   vec3 out_color = ZERO_VECTOR;
-  vec3 light_pos = {2, 15, 2};
+  vec3 light_pos = {0, 15, 0};
   vec3 light_color = {1, 1, 1};
 
   ray_t light_ray = {hit.point, normalize(sub(light_pos, hit.point))};
@@ -586,7 +591,7 @@ vec3 cast_ray(ray_t *ray, object_t *objects, size_t nobj, int depth)
 
   if (flags & M_LIGHT)
   {
-    double intensity = 4;
+    double intensity = 10;
     return mult_s(object_color, intensity);
   }
 
