@@ -156,7 +156,7 @@ int main(int argc, char **argv)
                 .color = RGB(109,124,187), 
                 .flags = lighting | M_CHECKERED
             }, 
-            .geometry.sphere = &(sphere_t) { {0, -radius - room_height, 0}, radius},
+            .geometry.sphere = &(sphere_t) { {0, -radius, 0}, radius},
         },
         { // back wall
             .type = GEOMETRY_SPHERE,
