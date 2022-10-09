@@ -36,7 +36,7 @@
 #define BLUE      RGB(0, 0, 255)
 #define WHITE     RGB(255, 255, 255)
 #define BLACK     RGB(0, 0, 0)
-#define BACKGROUND RGB(1, 130, 129)
+#define BACKGROUND RGB(0, 0x80, 0x80)
 #define ZERO_VECTOR RGB(0, 0, 0)
 #define ONE_VECTOR (VECTOR(1.0, 1.0, 1.0))
 #define RANDOM_COLOR \

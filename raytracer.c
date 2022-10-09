@@ -1,7 +1,6 @@
 /*==================[inclusions]============================================*/
 
 #include <omp.h>
-#include <stdarg.h>
 #define TINYOBJ_LOADER_C_IMPLEMENTATION
 #include "lib/tinyobj_loader.h"
 
@@ -9,9 +8,6 @@
 
 /*==================[macros]================================================*/
 /*==================[type definitions]======================================*/
-
-
-
 /*==================[external function declarations]========================*/
 /*==================[internal function declarations]========================*/
 
@@ -21,7 +17,6 @@ static inline vec3 div_s(const vec3, const double);
 static vec3 add_s(const vec3, const double);
 static vec2 mult_s2(const vec2, const double);
 static vec2 add_s2(const vec2, const vec2);
-static vec3 add_variadic(int n, ...);
 
 static vec3 random_in_unit_sphere();
 static vec3 random_in_hemisphere(vec3 normal);
@@ -29,9 +24,9 @@ static vec3 random_in_hemisphere(vec3 normal);
 static vec3 phong(vec3 color, vec3 light_dir, vec3 normal, vec3 camera_origin, vec3 position, bool in_shadow, double ka, double ks, double kd, double alpha);
 static ray_t get_camera_ray(const camera_t *camera, double u, double v);
 
+static vec3 cast_ray(ray_t *ray, object_t *scene, size_t nobj, int depth);
 static vec3 cast_ray_2(ray_t *ray, object_t *scene, size_t nobj, int depth);
 static vec3 cast_ray_3(ray_t *ray, object_t *scene, size_t nobj, int depth);
-static vec3 cast_ray(ray_t *ray, object_t *scene, size_t nobj, int depth);
 
 static vec3 reflect(const vec3 In, const vec3 N);
 static vec3 refract(const vec3 In, const vec3 N, double iot);
@@ -275,22 +270,6 @@ void render(uint8_t *framebuffer, object_t *objects, size_t n_objects, camera_t 
 }
 
 /*==================[internal function definitions]=========================*/
-
-static vec3 add_variadic(int n, ...)
-{
-  vec3 sum;
-  va_list args;  
-
-  va_start(args, n);
-
-  for (int i = 0; i < n; i++)
-  {
-    sum = add(sum, va_arg(args, vec3));
-  }
-
-  va_end(args);
-  return sum;
-}
 
 double random_double() 
 { return (double)rand() / ((double)RAND_MAX + 1); }

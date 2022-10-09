@@ -174,11 +174,6 @@ int main(int argc, char **argv)
             }, 
             .geometry.sphere = &(sphere_t){ {1.5, 1, 1}, 0.3 }
         },
-
-
-
-
-
     };
 
     size_t buff_len = sizeof(*framebuffer) * options.width * options.height * 3;
