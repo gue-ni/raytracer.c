@@ -228,7 +228,7 @@ bool intersect_triangle(const ray_t *ray, vertex_t vertex0, vertex_t vertex1, ve
 
 void render(uint8_t *framebuffer, object_t *objects, size_t n_objects, camera_t *camera, options_t *options)
 {
-  const double gamma = 3.0;
+  const double gamma = 4.0;
 
   const int str_len = 40;
   const char* done = "========================================";
