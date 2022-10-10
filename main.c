@@ -215,7 +215,7 @@ int main(int argc, char **argv)
         {
             .type = GEOMETRY_SPHERE, 
             .material = { 
-                .color = GREEN, 
+                .color = WHITE, 
                 .flags = lighting
             }, 
             .geometry.sphere = &SPHERE(-1.1, y, -1.2, 0.7)
@@ -247,7 +247,7 @@ int main(int argc, char **argv)
         {
             .type = GEOMETRY_SPHERE, 
             .material = { 
-                .color = BLUE, 
+                .color = WHITE, 
                 .flags = lighting
             }, 
             .geometry.sphere = &SPHERE(1.1, y, 1.0, 0.4)
@@ -255,7 +255,7 @@ int main(int argc, char **argv)
         {
             .type = GEOMETRY_SPHERE, 
             .material = { 
-                .color = RED, 
+                .color = WHITE, 
                 .flags = lighting
             }, 
             .geometry.sphere = &SPHERE(0.2, y, 1.2, 0.3)
@@ -268,7 +268,7 @@ int main(int argc, char **argv)
                 .color = WHITE, 
                 .flags = lighting | M_LIGHT
             }, 
-            .geometry.sphere = &(sphere_t) {{0, room_height, 0}, 0.75 }
+            .geometry.sphere = &(sphere_t) {{0, room_height + 0.5, 0}, 0.75 }
         },
 #endif
     };

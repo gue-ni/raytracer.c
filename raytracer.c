@@ -228,7 +228,7 @@ bool intersect_triangle(const ray_t *ray, vertex_t vertex0, vertex_t vertex1, ve
 
 void render(uint8_t *framebuffer, object_t *objects, size_t n_objects, camera_t *camera, options_t *options)
 {
-  const double gamma = 2.0;
+  const double gamma = 3.0;
 
   const int str_len = 40;
   const char* done = "========================================";
@@ -491,7 +491,7 @@ bool intersect(const ray_t *ray, object_t *objects, size_t n, hit_t *hit)
         if (intersect_triangle(ray, v0, v1, v2, &local) && local.t < min_t)
         {
           min_t = local.t;
-          local.object = &objects[i];
+          local.object_id = i;
           local.point = point_at(ray, local.t);
           local.normal = calculate_surface_normal(v0.pos, v1.pos, v2.pos);
         }
@@ -503,7 +503,7 @@ bool intersect(const ray_t *ray, object_t *objects, size_t n, hit_t *hit)
       if (intersect_sphere(ray, objects[i].geometry.sphere, &local) && local.t < min_t)
       {
         min_t = local.t;
-        local.object = &objects[i];
+        local.object_id = i;
         local.point = point_at(ray, local.t);
         local.normal = normalize(sub(local.point, objects[i].geometry.sphere->center));
         local.u = atan2(local.normal.x, local.normal.z) / (2 * PI) + 0.5;
@@ -570,7 +570,7 @@ vec3 random_in_hemisphere(vec3 normal)
 vec3 cast_ray(ray_t *ray, object_t *objects, size_t nobj, int depth)
 {
   ray_count++;
-  hit_t hit = {.t = DBL_MAX, .object = NULL};
+  hit_t hit = {.t = DBL_MAX, .object_id = -1};
 
   if (depth > MAX_DEPTH || !intersect(ray, objects, nobj, &hit))
   {
@@ -586,8 +586,8 @@ vec3 cast_ray(ray_t *ray, object_t *objects, size_t nobj, int depth)
 
   bool in_shadow = intersect(&light_ray, objects, nobj, NULL);
   
-  vec3 object_color = hit.object->material.color;
-  uint flags = hit.object->material.flags;
+  vec3 object_color     = objects[hit.object_id].material.color;
+  uint flags            = objects[hit.object_id].material.flags;
 
   if (flags & M_LIGHT)
   {
@@ -618,10 +618,13 @@ vec3 cast_ray(ray_t *ray, object_t *objects, size_t nobj, int depth)
     uint samples = MONTE_CARLO_SAMPLES;
     vec3 sampled = ZERO_VECTOR;
     
+#if MONTE_CARLO_SAMPLES > 1
     for (uint s = 0; s < samples; s++)
+#endif
     {
       ray_t r = { hit.point, normalize(random_in_hemisphere(hit.normal)) };
-      sampled = add(sampled, cast_ray(&r, objects, nobj, depth + 1));
+      double cos_theta = dot(r.direction, hit.normal);
+      sampled = add(sampled, mult_s(cast_ray(&r, objects, nobj, depth + 1), cos_theta));
     }
 
     lighting = mult(
@@ -687,6 +690,7 @@ vec3 cast_ray(ray_t *ray, object_t *objects, size_t nobj, int depth)
   return out_color;
 }
 
+#if 0
 vec3 cast_ray_2(ray_t *ray, object_t *objects, size_t nobj, int depth)
 {
   // https://en.wikipedia.org/wiki/Path_tracing
@@ -797,5 +801,6 @@ vec3 cast_ray_3(ray_t *ray, object_t *objects, size_t nobj, int depth)
   return mult(add(direct_light, indirect_light), object_color);
   // return mult_s(mult(add(direct_light, indirect_light), object_color), 1 / PI);
 }
+#endif
 
 /*==================[end of file]===========================================*/

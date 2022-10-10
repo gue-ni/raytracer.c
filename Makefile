@@ -31,13 +31,13 @@ test: $(TESTS)
 	./$(TESTS) | tee tests.log 2>&1
 
 run: all 
-	./$(APP) -w 640 -h 480 -s 100 -o "result.png"
+	./$(APP) -w 640 -h 480 -s 64 -o "result.png"
 
 highres: $(HD) 
-	./$(HD) -w 640 -h 480 -s 5000 -o "result-hd.png"
+	./$(HD) -w 640 -h 480 -s 4096 -o "result-hd.png"
 
 pretty: $(HD)
-	./$(HD) -w 1920 -h 1080 -s 1000 -o image-$(DATE).png
+	./$(HD) -w 1920 -h 1080 -s 1024 -o image-$(DATE).png
 
 memcheck: $(APP)
 	valgrind --leak-check=full \
@@ -45,11 +45,11 @@ memcheck: $(APP)
 		 --track-origins=yes \
 		 --verbose \
 		 --log-file="valgrind.log" \
-		 ./$(APP) -w 100 -h 50 -s 50 -o "bin/valgrind.png"
+		 ./$(APP) -w 100 -h 50 -s 64 -o "bin/valgrind.png"
 
 perfcheck: CFLAGS += -pg
 perfcheck: $(APP)
-	./$(APP) -w 320 -h 180 -s 50 -o "bin/gprof.png"
+	./$(APP) -w 320 -h 180 -s 64 -o "bin/gprof.png"
 	gprof $(APP) gmon.out > gprof.log 2>&1
 
 clean:

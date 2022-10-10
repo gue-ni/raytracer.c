@@ -146,7 +146,7 @@ typedef struct
   double u, v;
   vec3 point;
   vec3 normal;
-  object_t *object;
+  uint object_id;
 } hit_t;
 
 typedef struct

@@ -1,13 +1,17 @@
 .idea/
 .vscode/
 bin/
+obj/
 cmake-*
 *.o
+*.sh
+*.txt
 *.exe
 *.log
 *.out
 *.exe.stackdump
 result*.png
+results/*/*.png
 ray
 raytracer
 raytracer_test
