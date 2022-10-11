@@ -275,7 +275,8 @@ void render(uint8_t *framebuffer, object_t *objects, size_t n_objects, camera_t 
 /*==================[internal function definitions]=========================*/
 
 double random_double() 
-{ return (double)rand() / ((double)RAND_MAX + 1); }
+//{ return (double)rand() / ((double)RAND_MAX + 1); }
+{ return drand48(); }
 
 double random_range(double min, double max)
 { return random_double() * (max - min) + min; }
