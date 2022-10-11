@@ -8,7 +8,7 @@ HEADERS = $(wildcard *.h)
 
 DATE    = $(shell date "+%Y-%m-%d")
 
-APP     = raytracer1
+APP     = raytracer
 HD     	= raytracer_hd
 TESTS   = raytracer_test
 
@@ -31,7 +31,7 @@ test: $(TESTS)
 	./$(TESTS) | tee tests.log 2>&1
 
 run: all 
-	./$(APP) -w 640 -h 480 -s 64 -o "result.png"
+	./$(APP) -w 640 -h 480 -s 32 -o "result.png"
 
 highres: $(HD) 
 	./$(HD) -w 640 -h 480 -s 4096 -o "result-hd.png"
