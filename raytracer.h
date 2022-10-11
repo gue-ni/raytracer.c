@@ -20,7 +20,7 @@
 #define PI 3.14159265359
 #endif
 #define EPSILON 1e-8
-#define MAX_DEPTH 2
+#define MAX_DEPTH 5
 #define MONTE_CARLO_SAMPLES 1
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
