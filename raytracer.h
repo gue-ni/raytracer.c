@@ -27,9 +27,12 @@
 #define CLAMP(x) (MAX(0, MIN(x, 1)))
 #define CLAMP_BETWEEN(x, min_v, max_v) (MAX(min_v, MIN(max_v, 1)))
 #define ABS(x) ((x < 0) ? (-x) : (x))
-#define VECTOR(x, y, z) ((vec3) {(x), (y), (z)})
 #define RGB(r, g, b) (VECTOR(r / 255.0, g / 255.0, b / 255.0))
 #define EQ(a, b) (ABS((a) - (b)) < EPSILON)
+
+
+#define VECTOR(x, y, z) ((vec3) {(x), (y), (z)})
+#define RAY(o, d) ((ray_t) { .origin = o, .direction = d })
 
 #define RED       RGB(255, 0, 0)
 #define GREEN     RGB(0, 192, 48)
@@ -63,10 +66,7 @@ typedef struct
 } vec2;
 
 typedef struct {
-    union {
-        struct { double r, g, b; };
-        struct { double x, y, z; };
-    };
+  double x, y, z;
 } vec3;
 
 typedef struct
@@ -183,7 +183,6 @@ vec3 sub(const vec3, const vec3);
 vec3 mult(const vec3, const vec3);
 vec3 clamp(const vec3);
 double length(const vec3);
-double length2(const vec3);
 double dot(const vec3, const vec3);
 
 vec3 calculate_surface_normal(vec3 v0, vec3 v1, vec3 v2);

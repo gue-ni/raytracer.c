@@ -274,21 +274,33 @@ void render(uint8_t *framebuffer, object_t *objects, size_t n_objects, camera_t 
 
 /*==================[internal function definitions]=========================*/
 
-double random_double() 
-//{ return (double)rand() / ((double)RAND_MAX + 1); }
-{ return drand48(); }
+double random_double() { return (double)rand() / ((double)RAND_MAX + 1); }
 
-double random_range(double min, double max)
-{ return random_double() * (max - min) + min; }
+double random_range(double min, double max){ return random_double() * (max - min) + min; }
 
-double dot(const vec3 v1, const vec3 v2) 
-{ return v1.x * v2.x + v1.y * v2.y + v1.z * v2.z; }
+double dot(const vec3 v1, const vec3 v2) { return v1.x * v2.x + v1.y * v2.y + v1.z * v2.z; }
 
-double length2(const vec3 v1) 
-{ return v1.x * v1.x + v1.y * v1.y + v1.z * v1.z; }
+double length(const vec3 v) { return sqrt(dot(v, v)); }
 
-double length(const vec3 v1) 
-{ return sqrt(length2(v1)); }
+vec3 mult(const vec3 v1, const vec3 v2){ return (vec3){v1.x * v2.x, v1.y * v2.y, v1.z * v2.z}; }
+
+vec3 sub(const vec3 v1, const vec3 v2) { return (vec3){v1.x - v2.x, v1.y - v2.y, v1.z - v2.z}; }
+
+vec3 add(const vec3 v1, const vec3 v2) { return (vec3){v1.x + v2.x, v1.y + v2.y, v1.z + v2.z}; }
+
+double mix(double a, double b, double mix) { return b * mix + a * (1 - mix); } 
+
+vec3 mult_s(const vec3 v, const double s) { return (vec3){v.x * s, v.y * s, v.z * s}; }
+
+vec3 div_s(const vec3 v, const double s)  { return mult_s(v, 1/s); }
+
+vec2 mult_s2(const vec2 v, const double s) { return (vec2){v.x * s, v.y * s}; }
+
+vec2 add_s2(const vec2 v1, const vec2 v2)  { return (vec2){v1.x + v2.x, v1.y + v2.y}; }
+
+vec3 point_at(const ray_t *ray, double t) { return add(ray->origin, mult_s(ray->direction, t)); }
+
+vec3 clamp(const vec3 v) { return (vec3){CLAMP(v.x), CLAMP(v.y), CLAMP(v.z)}; }
 
 vec3 cross(const vec3 a, const vec3 b)
 { return (vec3){
@@ -297,43 +309,11 @@ vec3 cross(const vec3 a, const vec3 b)
   a.x * b.y - a.y * b.x}; 
 }
 
-vec3 mult(const vec3 v1, const vec3 v2)
-{ return (vec3){v1.x * v2.x, v1.y * v2.y, v1.z * v2.z}; }
-
-vec3 sub(const vec3 v1, const vec3 v2) 
-{ return (vec3){v1.x - v2.x, v1.y - v2.y, v1.z - v2.z}; }
-
-vec3 add(const vec3 v1, const vec3 v2) 
-{ return (vec3){v1.x + v2.x, v1.y + v2.y, v1.z + v2.z}; }
-
-double mix(double a, double b, double mix) 
-{ 
-    return b * mix + a * (1 - mix); 
-} 
-
-vec3 mult_s(const vec3 v1, const double s)
-{ return (vec3){v1.x * s, v1.y * s, v1.z * s}; }
-
-vec3 div_s(const vec3 v, const double s) 
-{ return mult_s(v, 1/s); }
-
-vec2 mult_s2(const vec2 v, const double s) 
-{ return (vec2){v.x * s, v.y * s}; }
-
-vec2 add_s2(const vec2 v1, const vec2 v2) 
-{ return (vec2){v1.x + v2.x, v1.y + v2.y}; }
-
-vec3 point_at(const ray_t *ray, double t)
-{ return add(ray->origin, mult_s(ray->direction, t)); }
-
-vec3 clamp(const vec3 v1) 
-{ return (vec3){CLAMP(v1.x), CLAMP(v1.y), CLAMP(v1.z)}; }
-
-vec3 normalize(const vec3 v1)
+vec3 normalize(const vec3 v)
 {
-  double m = length(v1);
+  double m = length(v);
   assert(m > 0);
-  return (vec3){v1.x / m, v1.y / m, v1.z / m};
+  return mult_s(v, 1 / m);
 }
 
 mat4 translate(vec3 v)
