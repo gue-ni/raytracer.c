@@ -62,9 +62,11 @@ typedef struct
   double x, y;
 } vec2;
 
-typedef struct
-{
-  double x, y, z;
+typedef struct {
+    union {
+        struct { double r, g, b; };
+        struct { double x, y, z; };
+    };
 } vec3;
 
 typedef struct
