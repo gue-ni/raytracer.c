@@ -106,7 +106,7 @@ typedef enum
 typedef struct
 {
   material_type_t type;
-  vec3 color;
+  vec3 color, emission;
   double ka, ks, kd;
   uint flags;
 } material_t;
