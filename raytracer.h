@@ -90,25 +90,11 @@ typedef struct
   vec3 origin, direction;
 } ray_t;
 
-typedef enum
-{
-  SOLID,
-  LIGHT,
-  PHONG,
-  NORMAL,
-  CHECKERED,
-  DIFFUSE,
-  REFLECTION,
-  WIKIPEDIA_ALGORITHM,
-  REFLECTION_AND_REFRACTION,
-} material_type_t;
-
 typedef struct
 {
-  material_type_t type;
+  uint flags;
   vec3 color, emission;
   double ka, ks, kd;
-  uint flags;
 } material_t;
 
 typedef struct
@@ -158,15 +144,9 @@ typedef struct
 
 typedef struct
 {
-  double intensity;
-  vec3 position, color;
-} light_t;
-
-typedef struct
-{
-  int width, height, samples;
-  char *result, *obj;
   vec3 background;
+  char *result, *obj;
+  int width, height, samples;
 } options_t;
 
 /*==================[external function declarations]========================*/

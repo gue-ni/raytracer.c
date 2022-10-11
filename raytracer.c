@@ -560,9 +560,8 @@ vec3 cast_ray(ray_t *ray, object_t *objects, size_t nobj, int depth)
   }
 
   vec3 out_color = ZERO_VECTOR;
-  vec3 light_pos = {0, 15, 0};
-  vec3 light_color = {1, 1, 1};
 
+  vec3 light_pos = {0, 15, 0}, light_color = {1, 1, 1};
   ray_t light_ray = {hit.point, normalize(sub(light_pos, hit.point))};
 
   bool in_shadow = intersect(&light_ray, objects, nobj, NULL);
