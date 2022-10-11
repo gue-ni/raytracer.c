@@ -138,14 +138,14 @@ int main(int argc, char **argv)
     };
 
     //mat4 t = translate((vec3){0,-1,0});
-    mat4 s = scale(VECTOR(16, 0.5, 16));
-    apply_matrix(&cube, s);
+    //mat4 s = scale(VECTOR(16, 0.5, 16));
+    //apply_matrix(&cube, s);
 
     double aspect_ratio = (double)options.width / (double)options.height;
-    const double room_depth = 3;
-    const double room_height = 2;
+    const double room_depth = 30;
+    const double room_height = 20;
     const double room_width = room_height * aspect_ratio;
-    const double radius = 1000;
+    const double radius = 10000;
     const  vec3 wall_color = WHITE;
     const double y = -room_height;
 
@@ -218,7 +218,7 @@ int main(int argc, char **argv)
                 .color = WHITE, 
                 .flags = lighting
             }, 
-            .geometry.sphere = &SPHERE(-1.1, y, -1.2, 0.7)
+            .geometry.sphere = &SPHERE(-11, y, -12, 7)
         },
         {
             .type = GEOMETRY_SPHERE, 
@@ -226,7 +226,7 @@ int main(int argc, char **argv)
                 .color = RGB(20, 20, 20), 
                 .flags = lighting | M_REFLECTION 
             }, 
-            .geometry.sphere = &SPHERE(1.3, y, -1.3, 0.8)
+            .geometry.sphere = &SPHERE(13, y, -13, 8)
         },
         {
             .type = GEOMETRY_SPHERE, 
@@ -234,7 +234,7 @@ int main(int argc, char **argv)
                 .color = RGB(20, 20, 20), 
                 .flags = lighting | M_REFLECTION 
             }, 
-            .geometry.sphere = &SPHERE(0.0, y, 0.0, 0.9)
+            .geometry.sphere = &SPHERE(0, y, 0, 9)
         },
         {
             .type = GEOMETRY_SPHERE, 
@@ -242,7 +242,7 @@ int main(int argc, char **argv)
                 .color = RGB(20, 20, 20), 
                 .flags = lighting | M_REFLECTION
             }, 
-            .geometry.sphere = &SPHERE(-1.1, y, 1.0, 0.5)
+            .geometry.sphere = &SPHERE(-11, y, 10, 5)
         },
         {
             .type = GEOMETRY_SPHERE, 
@@ -250,7 +250,7 @@ int main(int argc, char **argv)
                 .color = WHITE, 
                 .flags = lighting
             }, 
-            .geometry.sphere = &SPHERE(1.1, y, 1.0, 0.4)
+            .geometry.sphere = &SPHERE(11, y, 10, 4)
         },
         {
             .type = GEOMETRY_SPHERE, 
@@ -258,7 +258,7 @@ int main(int argc, char **argv)
                 .color = WHITE, 
                 .flags = lighting
             }, 
-            .geometry.sphere = &SPHERE(0.2, y, 1.2, 0.3)
+            .geometry.sphere = &SPHERE(2, y, 12, 3)
         },
 #endif
 #if 1 /* light */
@@ -268,7 +268,7 @@ int main(int argc, char **argv)
                 .color = WHITE, 
                 .flags = lighting | M_LIGHT
             }, 
-            .geometry.sphere = &(sphere_t) {{0, room_height + 0.5, 0}, 0.75 }
+            .geometry.sphere = &(sphere_t) {{0, room_height + 5, 0}, 7.5 }
         },
 #endif
     };
@@ -285,7 +285,7 @@ int main(int argc, char **argv)
     signal(SIGINT, &write_image);
 
     camera_t camera;
-    init_camera(&camera, VECTOR(0.0, 0, 5), VECTOR(0, 0, 0), &options);
+    init_camera(&camera, VECTOR(0.0, 0, 50), VECTOR(0, 0, 0), &options);
 
     clock_t tic = clock();
 
