@@ -234,7 +234,7 @@ void render(uint8_t *framebuffer, object_t *objects, size_t n_objects, camera_t 
   const char* done = "========================================";
   const char* todo = "----------------------------------------";
 
-  #pragma omp parallel for schedule(dynamic, 1)
+  #pragma omp parallel for
   for (uint y = 0; y < options->height; y++)
   {
     if (0 == omp_get_thread_num())
