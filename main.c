@@ -147,6 +147,7 @@ int main(int argc, char **argv)
     const double room_width = room_height * aspect_ratio;
     const double radius = 10000;
     const  vec3 wall_color = WHITE;
+    const double light_radius = 15;
     const double y = -room_height;
 
     uint lighting = M_DEFAULT;
@@ -201,7 +202,7 @@ int main(int argc, char **argv)
         { // front wall
             .type = GEOMETRY_SPHERE,
             .material = { 
-                .color = wall_color, 
+                .color = BLACK, 
                 .emission = BLACK,
                 .flags = lighting
             }, 
@@ -278,10 +279,10 @@ int main(int argc, char **argv)
             .type = GEOMETRY_SPHERE, 
             .material = { 
                 .color = WHITE, 
-                .flags = lighting | M_LIGHT,
-                .emission = RGB(0x00 * 6, 0x32 * 6, 0xA0 * 6) 
+                .flags = lighting,
+                .emission = RGB(0x00 * 12, 0x32 * 12, 0xA0 * 12) 
             }, 
-            .geometry.sphere = &(sphere_t) {{0, room_height + 5, 0}, 7.5 }
+            .geometry.sphere = &(sphere_t) { {0, room_height + light_radius * 0.9, 0}, light_radius }
         },
         {
             .type = GEOMETRY_SPHERE, 
