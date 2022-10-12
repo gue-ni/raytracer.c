@@ -48,12 +48,12 @@
 #define RANDOM_COLOR \
   (vec3) { random_double(), random_double(), random_double() }
 
-#define M_DEFAULT     ((uint)1 << 1)
-#define M_REFLECTION  ((uint)1 << 2)
-#define M_REFRACTION  ((uint)1 << 3)
-#define M_CHECKERED   ((uint)1 << 4)
-#define M_NORMAL      ((uint)1 << 5)
-#define M_LIGHT       ((uint)1 << 6)
+#define M_DEFAULT           ((uint)1 << 1)
+#define M_REFLECTION        ((uint)1 << 2)
+#define M_REFRACTION        ((uint)1 << 3)
+#define M_CHECKERED         ((uint)1 << 4)
+#define M_NORMAL            ((uint)1 << 5)
+#define M_LIGHT             ((uint)1 << 6)
 #define M_GLOBAL_ILLUM      ((uint)1 << 7)
 
 /*==================[type definitions]======================================*/
@@ -111,8 +111,8 @@ typedef struct
 
 typedef union
 {
-  sphere_t *sphere;
   mesh_t *mesh;
+  sphere_t *sphere;
 } geometry_t;
 
 typedef enum
