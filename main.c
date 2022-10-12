@@ -279,7 +279,7 @@ int main(int argc, char **argv)
             .material = { 
                 .color = WHITE, 
                 .flags = lighting | M_LIGHT,
-                .emission = RGB(0x00 * 5, 0x32 * 5, 0xA0 * 5) 
+                .emission = RGB(0x00 * 6, 0x32 * 6, 0xA0 * 6) 
             }, 
             .geometry.sphere = &(sphere_t) {{0, room_height + 5, 0}, 7.5 }
         },
