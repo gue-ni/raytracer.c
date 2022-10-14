@@ -193,7 +193,7 @@ int main(int argc, char **argv)
         { // ceiling
             .type = GEOMETRY_SPHERE,
             .material = { 
-                .color = WHITE, 
+                .color = wall_color, 
                 .emission = BLACK,
                 .flags = lighting
             }, 
@@ -202,7 +202,7 @@ int main(int argc, char **argv)
         { // front wall
             .type = GEOMETRY_SPHERE,
             .material = { 
-                .color = BLACK, 
+                .color = wall_color, 
                 .emission = BLACK,
                 .flags = lighting
             }, 
@@ -259,7 +259,7 @@ int main(int argc, char **argv)
             .type = GEOMETRY_SPHERE, 
             .material = { 
                 .color = WHITE, 
-                .flags = lighting,
+                .flags = lighting | M_REFRACTION,
                 .emission = BLACK,
             }, 
             .geometry.sphere = &SPHERE(11, room_height / 4, 10, 6)

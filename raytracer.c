@@ -18,15 +18,14 @@ static vec3 add_s(const vec3, const double);
 static vec2 mult_s2(const vec2, const double);
 static vec2 add_s2(const vec2, const vec2);
 
-static vec3 random_in_unit_sphere();
-static vec3 random_in_hemisphere(vec3 normal);
+static vec3 random_on_unit_sphere();
+static vec3 random_on_hemisphere(vec3 normal);
 
 static vec3 phong(vec3 color, vec3 light_dir, vec3 normal, vec3 camera_origin, vec3 position, bool in_shadow, double ka, double ks, double kd, double alpha);
 static ray_t get_camera_ray(const camera_t *camera, double u, double v);
 
 static vec3 cast_ray(ray_t *ray, object_t *scene, size_t nobj, int depth);
-static vec3 cast_ray_2(ray_t *ray, object_t *scene, size_t nobj, int depth);
-static vec3 cast_ray_3(ray_t *ray, object_t *scene, size_t nobj, int depth);
+static vec3 trace_path(ray_t *ray, object_t *scene, size_t nobj, int depth);
 
 static vec3 reflect(const vec3 In, const vec3 N);
 static vec3 refract(const vec3 In, const vec3 N, double iot);
@@ -257,8 +256,11 @@ void render(uint8_t *framebuffer, object_t *objects, size_t n_objects, camera_t 
         double v = (double)(y + random_double()) / ((double)options->height - 1.0);
 
         ray = get_camera_ray(camera, u, v);
-
+#if 1
+        vec3 sample = trace_path(&ray, objects, n_objects, 0);
+#else
         vec3 sample = cast_ray(&ray, objects, n_objects, 0);
+#endif
         pixel = add(pixel, sample);
       }
 
@@ -524,7 +526,7 @@ vec3 phong(vec3 color, vec3 light_dir, vec3 normal, vec3 camera_origin, vec3 pos
   return in_shadow ? ZERO_VECTOR : clamp(add(add(ambient, diffuse), specular));
 }
 
-vec3 random_in_unit_sphere()
+vec3 random_on_unit_sphere()
 {
   vec3 p;
   double d = 100000;
@@ -538,9 +540,9 @@ vec3 random_in_unit_sphere()
   return normalize(p);
 }
 
-vec3 random_in_hemisphere(vec3 normal)
+vec3 random_on_hemisphere(vec3 normal)
 {
-  vec3 d = random_in_unit_sphere();
+  vec3 d = random_on_unit_sphere();
 
   if (dot(d, normal) < 0)
     return mult_s(d, -1);
@@ -548,7 +550,7 @@ vec3 random_in_hemisphere(vec3 normal)
     return d;
 }
 
-vec3 cast_ray(ray_t *ray, object_t *objects, size_t nobj, int depth)
+vec3 trace_path(ray_t *ray, object_t *objects, size_t nobj, int depth)
 {
   ray_count++;
   hit_t hit = { .t = DBL_MAX };
@@ -578,58 +580,99 @@ vec3 cast_ray(ray_t *ray, object_t *objects, size_t nobj, int depth)
   ray_t R;
   R.origin = hit.point;
 
-  if (flags & M_REFLECTION)
+  if (flags & M_REFRACTION)
+  {
+    double transparency = 0.5;
+    double facingratio  = -dot(ray->direction, hit.normal);
+    double fresnel      = mix(pow(1 - facingratio, 3), 1, 0.1);
+    double kr           = fresnel;
+    double kt           = (1 - fresnel) * transparency;
+
+    R.direction = normalize(refract(ray->direction, hit.normal, 1.0));
+    vec3 refraction =  trace_path(&R, objects, nobj, depth + 1);
+    
+    R.direction = normalize(reflect(ray->direction, hit.normal));
+    vec3 reflection =  trace_path(&R, objects, nobj, depth + 1);
+
+    radiance = add(mult_s(refraction, kr), mult_s(reflection, kt));
+    return add(emission, mult(albedo, radiance));
+  }
+  else if(flags & M_REFLECTION)
   {
     R.direction = reflect(ray->direction, hit.normal);
-    radiance =  cast_ray(&R, objects, nobj, depth + 1);
+    radiance =  trace_path(&R, objects, nobj, depth + 1);
 
     return add(emission, mult(albedo, radiance));
   }
   else 
   {
-    R.direction = random_in_hemisphere(hit.normal);
+    R.direction = random_on_hemisphere(hit.normal);
     double cos_theta = dot(R.direction, hit.normal);
-    radiance =  cast_ray(&R, objects, nobj, depth + 1);
+    radiance =  trace_path(&R, objects, nobj, depth + 1);
 
     return add(emission, mult(albedo, mult_s(radiance, cos_theta)));
   }
-#if 0
-  else /* phong lighting */
+}
+
+vec3 cast_ray(ray_t *ray, object_t *objects, size_t nobj, int depth)
+{
+  ray_count++;
+  hit_t hit = {.t = DBL_MAX };
+
+  if (depth > MAX_DEPTH || !intersect(ray, objects, nobj, &hit))
   {
+    return BACKGROUND;
+  }
+
+  vec3 out_color = ZERO_VECTOR;
+  vec3 light_pos = {2, 7, 2};
+  vec3 light_color = {1, 1, 1};
+
+  ray_t light_ray = {hit.point, normalize(sub(light_pos, hit.point))};
+
+  bool in_shadow = intersect(&light_ray, objects, nobj, NULL);
+  
+  vec3 object_color = objects[hit.object_id].material.color;
+  uint flags = objects[hit.object_id].material.flags;
+
+  if (flags & M_NORMAL)
+  {
+    out_color = add(VECTOR(0.5, 0.5, 0.5), mult(hit.normal, VECTOR(0.5, 0.5, 0.5)));
+    return out_color;
+  }
+
   double ka = 0.25;
   double kd = 0.5;
   double ks = 0.8;
   double alpha = 10.0;
 
-  vec3 light_pos = {0, 15, 0}, light_color = {1, 1, 1};
-  ray_t light_ray = {hit.point, normalize(sub(light_pos, hit.point))};
+  if (flags & M_CHECKERED)
+  {
+    object_color = sample_texture(object_color, hit.u, hit.v);
+  } 
 
-  bool in_shadow = intersect(&light_ray, objects, nobj, NULL);
+  vec3 ambient = mult_s(light_color, ka);
 
+  vec3 diffuse = mult_s(light_color, kd * MAX(0.0, dot(hit.normal, light_ray.direction)));
 
+  vec3 reflected = reflect(light_ray.direction, hit.normal);
+  vec3 view_dir = normalize(sub(hit.point, ray->origin));
+  vec3 specular = mult_s(light_color, ks * pow(MAX(dot(view_dir, reflected), 0.0), alpha));
 
-    vec3 ambient = mult_s(light_color, ka);
-
-    vec3 diffuse = mult_s(light_color, kd * MAX(0.0, dot(hit.normal, light_ray.direction)));
-
-    vec3 reflected = reflect(light_ray.direction, hit.normal);
-    vec3 view_dir = normalize(sub(hit.point, ray->origin));
-    vec3 specular = mult_s(light_color, ks * pow(MAX(dot(view_dir, reflected), 0.0), alpha));
-
-    lighting = mult(
-      add(
-        ambient, 
-        mult_s(
-          add(specular, diffuse),
-          in_shadow ? 0 : 1
-        ) 
-      ), 
-      albedo
-    );
-  }
+  vec3 surface = mult(
+    add(
+      ambient, 
+      mult_s(
+        add(specular, diffuse),
+        in_shadow ? 0 : 1
+      ) 
+    ), 
+    object_color
+  );
+  
+  vec3 reflection = ZERO_VECTOR, refraction = ZERO_VECTOR;
 
   double kr = 0, kt = 0;
-  vec3 reflection = ZERO_VECTOR, refraction = ZERO_VECTOR;
 
   if (flags & M_REFLECTION)
   {
@@ -651,7 +694,7 @@ vec3 cast_ray(ray_t *ray, object_t *objects, size_t nobj, int depth)
     refraction = cast_ray(&r, objects, nobj, depth + 1);
   }
 
-  out_color = add(out_color, lighting);
+  out_color = add(out_color, surface);
 
   out_color = add(
     out_color, 
@@ -660,7 +703,8 @@ vec3 cast_ray(ray_t *ray, object_t *objects, size_t nobj, int depth)
       mult_s(refraction, kt)
     ) 
   );
-#endif
+
+  return out_color;
 }
 
 /*==================[end of file]===========================================*/
