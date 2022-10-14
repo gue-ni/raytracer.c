@@ -11,15 +11,10 @@
 /*==================[external function declarations]========================*/
 /*==================[internal function declarations]========================*/
 
-static inline vec3 mult_s(const vec3, const double);
-static inline vec3 div_s(const vec3, const double);
-
-static vec3 add_s(const vec3, const double);
-static vec2 mult_s2(const vec2, const double);
-static vec2 add_s2(const vec2, const vec2);
+static double mix(double a, double b, double mix);
 
 static vec3 random_on_unit_sphere();
-static vec3 random_on_hemisphere(vec3 normal);
+static vec3 random_on_hemisphere(vec3);
 
 static vec3 phong(vec3 color, vec3 light_dir, vec3 normal, vec3 camera_origin, vec3 position, bool in_shadow, double ka, double ks, double kd, double alpha);
 static ray_t get_camera_ray(const camera_t *camera, double u, double v);
@@ -280,43 +275,35 @@ double random_double() { return (double)rand() / ((double)RAND_MAX + 1); }
 
 double random_range(double min, double max){ return random_double() * (max - min) + min; }
 
-double dot(const vec3 v1, const vec3 v2) { return v1.x * v2.x + v1.y * v2.y + v1.z * v2.z; }
+vec3 random_on_unit_sphere()
+{
+  vec3 p;
+  double d = 100000;
+  int loop_counter = 0;
 
-double length(const vec3 v) { return sqrt(dot(v, v)); }
+  do {
+    assert(++loop_counter < 100);
+    p = VECTOR(random_range(-1, 1), random_range(-1, 1), random_range(-1, 1));
+  } while(length(p) > 1);
 
-vec3 mult(const vec3 v1, const vec3 v2){ return (vec3){v1.x * v2.x, v1.y * v2.y, v1.z * v2.z}; }
+  return normalize(p);
+}
 
-vec3 sub(const vec3 v1, const vec3 v2) { return (vec3){v1.x - v2.x, v1.y - v2.y, v1.z - v2.z}; }
+vec3 random_on_hemisphere(vec3 normal)
+{
+  vec3 d = random_on_unit_sphere();
 
-vec3 add(const vec3 v1, const vec3 v2) { return (vec3){v1.x + v2.x, v1.y + v2.y, v1.z + v2.z}; }
+  if (dot(d, normal) < 0)
+    return mult_s(d, -1);
+  else
+    return d;
+}
 
 double mix(double a, double b, double mix) { return b * mix + a * (1 - mix); } 
-
-vec3 mult_s(const vec3 v, const double s) { return (vec3){v.x * s, v.y * s, v.z * s}; }
-
-vec3 div_s(const vec3 v, const double s)  { return mult_s(v, 1/s); }
-
-vec2 mult_s2(const vec2 v, const double s) { return (vec2){v.x * s, v.y * s}; }
-
-vec2 add_s2(const vec2 v1, const vec2 v2)  { return (vec2){v1.x + v2.x, v1.y + v2.y}; }
 
 vec3 point_at(const ray_t *ray, double t) { return add(ray->origin, mult_s(ray->direction, t)); }
 
 vec3 clamp(const vec3 v) { return (vec3){CLAMP(v.x), CLAMP(v.y), CLAMP(v.z)}; }
-
-vec3 cross(const vec3 a, const vec3 b)
-{ return (vec3){
-  a.y * b.z - a.z * b.y, 
-  a.z * b.x - a.x * b.z, 
-  a.x * b.y - a.y * b.x}; 
-}
-
-vec3 normalize(const vec3 v)
-{
-  double m = length(v);
-  assert(m > 0);
-  return mult_s(v, 1 / m);
-}
 
 mat4 translate(vec3 v)
 {
@@ -443,7 +430,6 @@ ray_t get_camera_ray(const camera_t *camera, double u, double v)
 
 vec3 checkered_texture(vec3 color, double u, double v, double M)
 {
-  /*double M = 10;*/
   double checker = (fmod(u * M, 1.0) > 0.5) ^ (fmod(v * M, 1.0) < 0.5);
   double c = 0.3 * (1 - checker) + 0.7 * checker;
   return mult_s(color, c);
@@ -524,30 +510,6 @@ vec3 phong(vec3 color, vec3 light_dir, vec3 normal, vec3 camera_origin, vec3 pos
   vec3 specular = mult_s(color, ks * pow(MAX(dot(view_dir, reflected), 0.0), alpha));
 
   return in_shadow ? ZERO_VECTOR : clamp(add(add(ambient, diffuse), specular));
-}
-
-vec3 random_on_unit_sphere()
-{
-  vec3 p;
-  double d = 100000;
-  int loop_counter = 0;
-
-  do {
-    assert(++loop_counter < 100);
-    p = VECTOR(random_range(-1, 1), random_range(-1, 1), random_range(-1, 1));
-  } while(length(p) > 1);
-
-  return normalize(p);
-}
-
-vec3 random_on_hemisphere(vec3 normal)
-{
-  vec3 d = random_on_unit_sphere();
-
-  if (dot(d, normal) < 0)
-    return mult_s(d, -1);
-  else
-    return d;
 }
 
 vec3 trace_path(ray_t *ray, object_t *objects, size_t nobj, int depth)

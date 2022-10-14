@@ -14,6 +14,8 @@
 #include <string.h>
 #include <omp.h>
 
+#include "vec.h"
+
 /*==================[macros]================================================*/
 
 #ifndef PI
@@ -56,11 +58,6 @@
 /*==================[type definitions]======================================*/
 
 typedef uint32_t uint;
-
-typedef struct { double x, y; } vec2;
-typedef struct { double x, y, z; } vec3;
-typedef struct { double x, y, z, w; } vec4;
-typedef struct { double m[16]; } mat4;
 typedef struct { vec3 pos; vec2 tex; } vertex_t;
 typedef struct { vec3 origin, direction; } ray_t;
 
@@ -131,24 +128,14 @@ vec3 point_at(const ray_t *ray, double t);
 vec3 mult_mv(mat4, vec3);
 mat4 mult_mm(mat4, mat4);
 
-vec3 add(const vec3, const vec3);
-vec3 sub(const vec3, const vec3);
-vec3 mult(const vec3, const vec3);
-vec3 clamp(const vec3);
-double length(const vec3);
-double dot(const vec3, const vec3);
-
 vec3 calculate_surface_normal(vec3 v0, vec3 v1, vec3 v2);
-
-vec3 cross(const vec3, const vec3);
-vec3 normalize(const vec3);
 
 bool intersect_sphere(const ray_t *ray, sphere_t *sphere, hit_t *hit);
 bool intersect_triangle(const ray_t *ray, vertex_t vertex0, vertex_t vertex1, vertex_t vertex2, hit_t *hit);
 
-mat4 translate(vec3);
-mat4 rotate(vec3);
 mat4 scale(vec3);
+mat4 rotate(vec3);
+mat4 translate(vec3);
 
 void print_v(const char* msg, const vec3 v);
 void print_m(const mat4 m);
