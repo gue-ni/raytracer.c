@@ -151,7 +151,6 @@ int main(int argc, char **argv)
     const double y = -room_height;
 
     uint lighting = M_DEFAULT;
-    lighting |= M_GLOBAL_ILLUM;
 
     object_t scene[] = {
         { // floor
@@ -159,7 +158,7 @@ int main(int argc, char **argv)
             .material = { 
                 .color = wall_color, 
                 .emission = BLACK,
-                .flags = lighting
+                .flags = lighting,
             }, 
             .geometry.sphere = &(sphere_t) { {0, -radius - room_height, 0}, radius},
         },
@@ -175,7 +174,7 @@ int main(int argc, char **argv)
         { // left wall
             .type = GEOMETRY_SPHERE,
             .material = { 
-                .color = VECTOR(0.25, 0.75, 0.25), 
+                .color = VECTOR(0.0, 0.75, 0.0), 
                 .emission = BLACK,
                 .flags = lighting
             }, 
@@ -184,7 +183,7 @@ int main(int argc, char **argv)
         { // right wall
             .type = GEOMETRY_SPHERE,
             .material = { 
-                .color = VECTOR(0.75, 0.25, 0.25), 
+                .color = VECTOR(0.75, 0.0, 0.0), 
                 .emission = BLACK,
                 .flags = lighting
             }, 
@@ -224,7 +223,7 @@ int main(int argc, char **argv)
             .material = { 
                 .color = WHITE, 
                 .emission = BLACK,
-                .flags = lighting
+                .flags = M_DEFAULT
             }, 
             .geometry.sphere = &SPHERE(-11, y, -12, 7)
         },
@@ -233,7 +232,7 @@ int main(int argc, char **argv)
             .material = { 
                 .color = WHITE, 
                 .emission = BLACK,
-                .flags = lighting | M_REFLECTION 
+                .flags =  M_REFLECTION, 
             }, 
             .geometry.sphere = &SPHERE(13, y, -13, 8)
         },
@@ -242,7 +241,7 @@ int main(int argc, char **argv)
             .material = { 
                 .color = WHITE, 
                 .emission = BLACK,
-                .flags = lighting | M_REFLECTION 
+                .flags = M_REFRACTION,
             }, 
             .geometry.sphere = &SPHERE(0, y, 0, 9)
         },
@@ -250,8 +249,8 @@ int main(int argc, char **argv)
             .type = GEOMETRY_SPHERE, 
             .material = { 
                 .color = WHITE, 
-                .flags = lighting | M_REFLECTION,
-                .emission = BLACK
+                .flags = M_REFLECTION,
+                .emission = BLACK,
             }, 
             .geometry.sphere = &SPHERE(-11, y, 10, 5)
         },
@@ -259,7 +258,7 @@ int main(int argc, char **argv)
             .type = GEOMETRY_SPHERE, 
             .material = { 
                 .color = WHITE, 
-                .flags = lighting | M_REFRACTION,
+                .flags = M_DEFAULT,
                 .emission = BLACK,
             }, 
             .geometry.sphere = &SPHERE(11, room_height / 4, 10, 6)
@@ -268,7 +267,7 @@ int main(int argc, char **argv)
             .type = GEOMETRY_SPHERE, 
             .material = { 
                 .color = WHITE, 
-                .flags = lighting | M_REFLECTION,
+                .flags = M_REFLECTION,
                 .emission = BLACK
             }, 
             .geometry.sphere = &SPHERE(-5, 5, -5, 5)
@@ -279,7 +278,7 @@ int main(int argc, char **argv)
             .type = GEOMETRY_SPHERE, 
             .material = { 
                 .color = WHITE, 
-                .flags = lighting,
+                .flags = M_DEFAULT,
                 .emission = RGB(0x00 * 15, 0x32 * 15, 0xA0 * 15) 
             }, 
             .geometry.sphere = &(sphere_t) { {0, room_height + light_radius * 0.9, 0}, light_radius }
@@ -288,7 +287,7 @@ int main(int argc, char **argv)
             .type = GEOMETRY_SPHERE, 
             .material = { 
                 .color = WHITE, 
-                .flags = lighting,
+                .flags = M_DEFAULT,
                 .emission = RGB(0xD0, 0x00, 0x70),
             }, 
             .geometry.sphere = &SPHERE(2, y, 12, 3)

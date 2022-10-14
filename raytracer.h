@@ -52,43 +52,17 @@
 #define M_REFLECTION        ((uint)1 << 2)
 #define M_REFRACTION        ((uint)1 << 3)
 #define M_CHECKERED         ((uint)1 << 4)
-#define M_NORMAL            ((uint)1 << 5)
-#define M_LIGHT             ((uint)1 << 6)
-#define M_GLOBAL_ILLUM      ((uint)1 << 7)
 
 /*==================[type definitions]======================================*/
 
 typedef uint32_t uint;
 
-typedef struct
-{
-  double x, y;
-} vec2;
-
-typedef struct {
-  double x, y, z;
-} vec3;
-
-typedef struct
-{
-  double x, y, z, w;
-} vec4;
-
-typedef struct
-{
-  vec3 pos;
-  vec2 tex;
-} vertex_t;
-
-typedef struct
-{
-  double m[16];
-} mat4;
-
-typedef struct
-{
-  vec3 origin, direction;
-} ray_t;
+typedef struct { double x, y; } vec2;
+typedef struct { double x, y, z; } vec3;
+typedef struct { double x, y, z, w; } vec4;
+typedef struct { double m[16]; } mat4;
+typedef struct { vec3 pos; vec2 tex; } vertex_t;
+typedef struct { vec3 origin, direction; } ray_t;
 
 typedef struct
 {
@@ -130,8 +104,7 @@ typedef struct
 
 typedef struct
 {
-  double t;
-  double u, v;
+  double t, u, v;
   vec3 point;
   vec3 normal;
   uint object_id;

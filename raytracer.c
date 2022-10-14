@@ -30,7 +30,7 @@ static vec3 trace_path(ray_t *ray, object_t *scene, size_t nobj, int depth);
 static vec3 reflect(const vec3 In, const vec3 N);
 static vec3 refract(const vec3 In, const vec3 N, double iot);
 
-static vec3 sample_texture(vec3 color, double u, double v);
+static vec3 checkered_texture(vec3 color, double u, double v, double M);
 
 static bool intersect(const ray_t *ray, object_t *objects, size_t n, hit_t *hit);
 
@@ -441,9 +441,9 @@ ray_t get_camera_ray(const camera_t *camera, double u, double v)
   return (ray_t){camera->position, normalize(direction)};
 }
 
-vec3 sample_texture(vec3 color, double u, double v)
+vec3 checkered_texture(vec3 color, double u, double v, double M)
 {
-  double M = 10;
+  /*double M = 10;*/
   double checker = (fmod(u * M, 1.0) > 0.5) ^ (fmod(v * M, 1.0) < 0.5);
   double c = 0.3 * (1 - checker) + 0.7 * checker;
   return mult_s(color, c);
@@ -575,7 +575,9 @@ vec3 trace_path(ray_t *ray, object_t *objects, size_t nobj, int depth)
   uint flags = objects[hit.object_id].material.flags;
 
   if (flags & M_CHECKERED)
-    albedo = sample_texture(albedo, hit.u, hit.v);
+  {
+    albedo = checkered_texture(albedo, hit.u, hit.v, 100000);
+  }
 
   ray_t R;
   R.origin = hit.point;
@@ -595,23 +597,20 @@ vec3 trace_path(ray_t *ray, object_t *objects, size_t nobj, int depth)
     vec3 reflection =  trace_path(&R, objects, nobj, depth + 1);
 
     radiance = add(mult_s(refraction, kr), mult_s(reflection, kt));
-    return add(emission, mult(albedo, radiance));
   }
   else if(flags & M_REFLECTION)
   {
     R.direction = reflect(ray->direction, hit.normal);
     radiance =  trace_path(&R, objects, nobj, depth + 1);
-
-    return add(emission, mult(albedo, radiance));
   }
   else 
   {
     R.direction = random_on_hemisphere(hit.normal);
     double cos_theta = dot(R.direction, hit.normal);
-    radiance =  trace_path(&R, objects, nobj, depth + 1);
-
-    return add(emission, mult(albedo, mult_s(radiance, cos_theta)));
+    radiance =  mult_s(trace_path(&R, objects, nobj, depth + 1), cos_theta);
   }
+    
+  return add(emission, mult(albedo, radiance));
 }
 
 vec3 cast_ray(ray_t *ray, object_t *objects, size_t nobj, int depth)
@@ -635,12 +634,6 @@ vec3 cast_ray(ray_t *ray, object_t *objects, size_t nobj, int depth)
   vec3 object_color = objects[hit.object_id].material.color;
   uint flags = objects[hit.object_id].material.flags;
 
-  if (flags & M_NORMAL)
-  {
-    out_color = add(VECTOR(0.5, 0.5, 0.5), mult(hit.normal, VECTOR(0.5, 0.5, 0.5)));
-    return out_color;
-  }
-
   double ka = 0.25;
   double kd = 0.5;
   double ks = 0.8;
@@ -648,7 +641,7 @@ vec3 cast_ray(ray_t *ray, object_t *objects, size_t nobj, int depth)
 
   if (flags & M_CHECKERED)
   {
-    object_color = sample_texture(object_color, hit.u, hit.v);
+    object_color = checkered_texture(object_color, hit.u, hit.v, 10);
   } 
 
   vec3 ambient = mult_s(light_color, ka);
