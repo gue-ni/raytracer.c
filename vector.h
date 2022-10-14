@@ -14,6 +14,7 @@ typedef struct { double m[4*4]; }     mat4;
 inline vec3 mult(const vec3 v1, const vec3 v2){ return (vec3){v1.x * v2.x, v1.y * v2.y, v1.z * v2.z}; }
 inline vec3 sub (const vec3 v1, const vec3 v2){ return (vec3){v1.x - v2.x, v1.y - v2.y, v1.z - v2.z}; }
 inline vec3 add (const vec3 v1, const vec3 v2){ return (vec3){v1.x + v2.x, v1.y + v2.y, v1.z + v2.z}; }
+inline vec3 div (const vec3 v1, const vec3 v2){ return (vec3){v1.x / v2.x, v1.y / v2.y, v1.z / v2.z}; }
 
 inline double dot(const vec3 v1, const vec3 v2) { return v1.x * v2.x + v1.y * v2.y + v1.z * v2.z; }
 inline double length(const vec3 v) { return sqrt(dot(v, v)); }

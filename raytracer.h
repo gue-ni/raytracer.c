@@ -14,7 +14,7 @@
 #include <string.h>
 #include <omp.h>
 
-#include "vec.h"
+#include "vector.h"
 
 /*==================[macros]================================================*/
 
