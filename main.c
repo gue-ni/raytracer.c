@@ -241,7 +241,7 @@ int main(int argc, char **argv)
             .material = { 
                 .color = WHITE, 
                 .emission = BLACK,
-                .flags = M_REFRACTION,
+                .flags = M_REFLECTION,
             }, 
             .geometry.sphere = &SPHERE(0, y, 0, 9)
         },

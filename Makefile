@@ -13,9 +13,6 @@ VEC 		= vectest
 HD     	= raytracer_hd
 TESTS   = raytracer_test
 
-$(VEC): bin/vectest.o
-	$(CC) $(CFLAGS) -o $@ $^ $(LFLAGS)
-
 $(APP): bin/main.o bin/raytracer.o raytracer.h
 	$(CC) $(CFLAGS) -o $@ $^ $(LFLAGS)
 
@@ -33,9 +30,6 @@ all: $(APP)
 
 test: $(TESTS)
 	./$(TESTS) | tee tests.log 2>&1
-
-
-vec: $(VEC)
 
 run: all 
 	./$(APP) -w 640 -h 480 -s 128 -o "result.png"
