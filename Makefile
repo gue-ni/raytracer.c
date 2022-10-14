@@ -9,7 +9,6 @@ HEADERS = $(wildcard *.h)
 DATE    = $(shell date "+%Y-%m-%d")
 
 APP     = raytracer
-VEC 		= vectest
 HD     	= raytracer_hd
 TESTS   = raytracer_test
 

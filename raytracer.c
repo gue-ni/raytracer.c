@@ -550,15 +550,14 @@ vec3 trace_path(ray_t *ray, object_t *objects, size_t nobj, int depth)
     double facingratio  = -dot(ray->direction, hit.normal);
     double fresnel      = mix(pow(1 - facingratio, 3), 1, 0.1);
     double kr           = fresnel;
-    double kt           = (1 - fresnel) * transparency;
+    double kt           = (1 - fresnel);
 
-    R.direction = normalize(refract(ray->direction, hit.normal, 1.0));
-    vec3 refraction = trace_path(&R, objects, nobj, depth + 1);
+    if (random_double() < fresnel)
+      R.direction = normalize(refract(ray->direction, hit.normal, 1.0));
+    else
+      R.direction = normalize(reflect(ray->direction, hit.normal));
     
-    R.direction = normalize(reflect(ray->direction, hit.normal));
-    vec3 reflection = trace_path(&R, objects, nobj, depth + 1);
-
-    radiance = add(mult_s(refraction, kt), mult_s(reflection, kr));
+    radiance = trace_path(&R, objects, nobj, depth + 1);
   }
   else if(flags & M_REFLECTION)
   {
