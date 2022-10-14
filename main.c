@@ -174,7 +174,7 @@ int main(int argc, char **argv)
         { // left wall
             .type = GEOMETRY_SPHERE,
             .material = { 
-                .color = VECTOR(0.0, 0.75, 0.0), 
+                .color = VECTOR(0.25, 0.75, 0.25), 
                 .emission = BLACK,
                 .flags = lighting
             }, 
@@ -183,7 +183,7 @@ int main(int argc, char **argv)
         { // right wall
             .type = GEOMETRY_SPHERE,
             .material = { 
-                .color = VECTOR(0.75, 0.0, 0.0), 
+                .color = VECTOR(0.75, 0.25, 0.25), 
                 .emission = BLACK,
                 .flags = lighting
             }, 

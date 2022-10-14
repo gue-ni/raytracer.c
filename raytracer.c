@@ -546,18 +546,29 @@ vec3 trace_path(ray_t *ray, object_t *objects, size_t nobj, int depth)
 
   if (flags & M_REFRACTION)
   {
-    double transparency = 0.5;
+    double transparency = 1.0;
     double facingratio  = -dot(ray->direction, hit.normal);
     double fresnel      = mix(pow(1 - facingratio, 3), 1, 0.1);
     double kr           = fresnel;
-    double kt           = (1 - fresnel);
+    double kt           = (1 - fresnel) * transparency;
 
-    if (random_double() < fresnel)
+#if 1
+    R.direction = normalize(refract(mult_s(ray->direction, -1), hit.normal, 1.0));
+    vec3 refraction = trace_path(&R, objects, nobj, depth + 1);
+
+    R.direction = normalize(reflect(mult_s(ray->direction, 1), hit.normal));
+    vec3 reflection = trace_path(&R, objects, nobj, depth + 1);
+
+    radiance = add(mult_s(refraction, kt), mult_s(reflection, kr));
+#else
+    double p = random_double();
+    if ((p * transparency) < fresnel)
       R.direction = normalize(refract(ray->direction, hit.normal, 1.0));
     else
       R.direction = normalize(reflect(ray->direction, hit.normal));
     
     radiance = trace_path(&R, objects, nobj, depth + 1);
+#endif
   }
   else if(flags & M_REFLECTION)
   {
@@ -567,7 +578,7 @@ vec3 trace_path(ray_t *ray, object_t *objects, size_t nobj, int depth)
   else 
   {
     R.direction = random_on_hemisphere(hit.normal);
-    double cos_theta = dot(R.direction, hit.normal);
+    double cos_theta = -dot(ray->direction, hit.normal);
     radiance =  mult_s(trace_path(&R, objects, nobj, depth + 1), cos_theta);
   }
     
