@@ -154,8 +154,6 @@ bool intersect_sphere(const ray_t *ray, sphere_t *sphere, hit_t *hit)
   if (t0 > EPSILON)
   {
     hit->t = t0;
-    hit->u = 0;
-    hit->v = 0;
     return true;
   }
   else
@@ -578,7 +576,8 @@ vec3 trace_path(ray_t *ray, object_t *objects, size_t nobj, int depth)
   else 
   {
     R.direction = random_on_hemisphere(hit.normal);
-    double cos_theta = -dot(ray->direction, hit.normal);
+    //double cos_theta = -dot(ray->direction, hit.normal);
+    double cos_theta = dot(R.direction, hit.normal);
     radiance =  mult_s(trace_path(&R, objects, nobj, depth + 1), cos_theta);
   }
     

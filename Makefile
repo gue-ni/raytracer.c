@@ -37,7 +37,7 @@ highres: $(HD)
 	./$(HD) -w 640 -h 480 -s 1024 -o "result-hd.png"
 
 render: $(HD)
-	./$(HD) -w 1920 -h 1080 -s 2048 -o "image-$(DATE).png"
+	./$(HD) -w 1920 -h 1080 -s 2048 -o "image-1920x1080-$(DATE).png"
 
 memcheck: $(APP)
 	valgrind --leak-check=full \
