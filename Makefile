@@ -1,5 +1,5 @@
 CC      = gcc
-CFLAGS  = --std=c99 -Wall -g -Wno-strict-aliasing -Wno-unused-variable -Wno-unused-function -fopenmp -O3
+CFLAGS  = --std=c99 -Wall -Wno-strict-aliasing -Wno-unused-variable -Wno-unused-function -fopenmp -O3
 LFLAGS  = -lm
 
 SRC     = $(wildcard *.c)
@@ -8,7 +8,7 @@ HEADERS = $(wildcard *.h)
 
 DATE    = $(shell date "+%Y-%m-%d")
 
-APP     = raytracer_tmp
+APP     = raytracer
 VEC 		= vectest
 HD     	= raytracer_hd
 TESTS   = raytracer_test
