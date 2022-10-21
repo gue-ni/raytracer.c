@@ -7,6 +7,7 @@ cmake-*
 *.log
 *.out
 *.exe.stackdump
+results/*/*.png
 result*.png
 raytracer
 ray
