@@ -12,3 +12,4 @@ result*.png
 raytracer
 ray
 raytracer_test
+render.sh
