@@ -14,14 +14,16 @@
 
 #include "raytracer.h"
 
-#define SPHERE(x, y, z, r) ((sphere_t) { { (x), (y) + (r), (z) }, (r) })
+#define SPHERE(x, y, z, r) \
+    .center = { (x), (y) + (r), (z) },\
+    .radius = (r),\
 
 options_t options = {
     .width = 320,
     .height = 180,
     .samples = 50,
     .result = "result.png",
-    .obj = "assets/cube.obj"
+    .obj = "assets/cube.obj",
 };
 
 uint8_t *framebuffer = NULL;
@@ -93,7 +95,7 @@ int main(int argc, char **argv)
     vec3 pos = {0, 0, 0};
     vec3 size = {1, 1, 1.5};
 
-    mesh_t cube = {
+    const mesh_t cube = {
         .num_triangles = 2,
         .vertices = (vertex_t[]){
             {{ -0.5f, +0.5f, -0.5f },{ 0.0f, 1.0f }},
@@ -154,58 +156,46 @@ int main(int argc, char **argv)
 
     object_t scene[] = {
         { // floor
-            .type = GEOMETRY_SPHERE,
-            .material = { 
-                .color = wall_color, 
-                .emission = BLACK,
-                .flags = lighting,
-            }, 
-            .geometry.sphere = &(sphere_t) { {0, -radius - room_height, 0}, radius},
+            .color = wall_color, 
+            .emission = BLACK,
+            .flags = lighting,
+            .center =  {0, -radius - room_height, 0},
+            .radius = radius,
         },
         { // back wall
-            .type = GEOMETRY_SPHERE,
-            .material = { 
-                .color = wall_color, 
-                .emission = BLACK,
-                .flags = lighting
-            }, 
-            .geometry.sphere = &(sphere_t) { {0, 0, -radius - room_depth}, radius},
+            .color = wall_color, 
+            .emission = BLACK,
+            .flags = lighting,
+            .center ={0, 0, -radius - room_depth}, 
+            .radius = radius,
         },
         { // left wall
-            .type = GEOMETRY_SPHERE,
-            .material = { 
-                .color = VECTOR(0.25, 0.75, 0.25), 
-                .emission = BLACK,
-                .flags = lighting
-            }, 
-            .geometry.sphere = &(sphere_t) { {-radius - room_width, 0, 0}, radius},
+            .color = VECTOR(0.25, 0.75, 0.25), 
+            .emission = BLACK,
+            .flags = lighting,
+            .center =  {-radius - room_width, 0, 0}, 
+            .radius = radius,
         },
         { // right wall
-            .type = GEOMETRY_SPHERE,
-            .material = { 
-                .color = VECTOR(0.75, 0.25, 0.25), 
-                .emission = BLACK,
-                .flags = lighting
-            }, 
-            .geometry.sphere = &(sphere_t) { {radius + room_width, 0, 0}, radius},
+            .color = VECTOR(0.75, 0.25, 0.25), 
+            .emission = BLACK,
+            .flags = lighting,
+            .center =  {radius + room_width, 0, 0}, 
+            .radius = radius,
         },
         { // ceiling
-            .type = GEOMETRY_SPHERE,
-            .material = { 
-                .color = wall_color, 
-                .emission = BLACK,
-                .flags = lighting
-            }, 
-            .geometry.sphere = &(sphere_t) { {0, radius + room_height, 0}, radius},
+            .color = wall_color, 
+            .emission = BLACK,
+            .flags = lighting,
+            .center = {0, radius + room_height, 0}, 
+            .radius = radius,
         },
         { // front wall
-            .type = GEOMETRY_SPHERE,
-            .material = { 
-                .color = wall_color, 
-                .emission = BLACK,
-                .flags = lighting
-            }, 
-            .geometry.sphere = &(sphere_t) { {0, 0, radius + room_depth * 2}, radius},
+            .color = wall_color, 
+            .emission = BLACK,
+            .flags = lighting,
+            .center = {0, 0, radius + room_depth * 2}, 
+            .radius = radius,
         },
 #if 0 /* cube */
         {
@@ -219,80 +209,56 @@ int main(int argc, char **argv)
 #endif
 #if 1 /* objects */
         {
-            .type = GEOMETRY_SPHERE, 
-            .material = { 
-                .color = WHITE, 
-                .emission = BLACK,
-                .flags = M_DEFAULT
-            }, 
-            .geometry.sphere = &SPHERE(-11, y, -12, 7)
+            .color = WHITE, 
+            .emission = BLACK,
+            .flags = M_DEFAULT,
+            SPHERE(-11, y, -12, 7)
         },
         {
-            .type = GEOMETRY_SPHERE, 
-            .material = { 
-                .color = WHITE, 
-                .emission = BLACK,
-                .flags =  M_REFLECTION, 
-            }, 
-            .geometry.sphere = &SPHERE(13, y, -13, 8)
+            .color = WHITE, 
+            .emission = BLACK,
+            .flags =  M_REFLECTION, 
+            SPHERE(13, y, -13, 8)
         },
         {
-            .type = GEOMETRY_SPHERE, 
-            .material = { 
-                .color = WHITE, 
-                .emission = BLACK,
-                .flags = M_REFRACTION,
-            }, 
-            .geometry.sphere = &SPHERE(0, y, 0, 9)
+            .color = WHITE, 
+            .emission = BLACK,
+            .flags = M_REFRACTION,
+            SPHERE(0, y, 0, 9)
         },
         {
-            .type = GEOMETRY_SPHERE, 
-            .material = { 
-                .color = WHITE, 
-                .flags = M_REFLECTION,
-                .emission = BLACK,
-            }, 
-            .geometry.sphere = &SPHERE(-11, y, 10, 5)
+            .color = WHITE, 
+            .flags = M_REFLECTION,
+            .emission = BLACK,
+            SPHERE(-11, y, 10, 5)
         },
         {
-            .type = GEOMETRY_SPHERE, 
-            .material = { 
-                .color = WHITE, 
-                .flags = M_DEFAULT,
-                .emission = BLACK,
-            }, 
-            .geometry.sphere = &SPHERE(11, room_height / 4, 10, 6)
+            .color = WHITE, 
+            .flags = M_DEFAULT,
+            .emission = BLACK,
+            SPHERE(11, room_height / 4, 10, 6)
         },
         {
-            .type = GEOMETRY_SPHERE, 
-            .material = { 
-                .color = WHITE, 
-                .flags = M_REFLECTION,
-                .emission = BLACK
-            }, 
-            .geometry.sphere = &SPHERE(-5, 5, -5, 5)
+            .color = WHITE, 
+            .flags = M_REFLECTION,
+            .emission = BLACK,
+            SPHERE(-5, 5, -5, 5)
         },
 #endif
 #if 1 /* light */
         {
-            .type = GEOMETRY_SPHERE, 
-            .material = { 
-                .color = WHITE, 
-                .flags = M_DEFAULT,
-                .emission = RGB(0x00 * 15, 0x32 * 15, 0xA0 * 15) 
-            }, 
-            .geometry.sphere = &(sphere_t) { {0, room_height + light_radius * 0.9, 0}, light_radius }
+            .color = WHITE, 
+            .flags = M_DEFAULT,
+            .emission = RGB(0x00 * 15, 0x32 * 15, 0xA0 * 15),
+            .center = {0, room_height + light_radius * 0.9, 0}, 
+            .radius = light_radius,
         },
         {
-            .type = GEOMETRY_SPHERE, 
-            .material = { 
-                .color = WHITE, 
-                .flags = M_DEFAULT,
-                .emission = RGB(0xD0, 0x00, 0x70),
-            }, 
-            .geometry.sphere = &SPHERE(2, y, 12, 3)
+            .color = WHITE, 
+            .flags = M_DEFAULT,
+            .emission = RGB(0xD0, 0x00, 0x70),
+            SPHERE(2, y, 12, 3)
         },
-
 #endif
     };
 

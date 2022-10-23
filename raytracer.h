@@ -92,11 +92,22 @@ typedef enum
   GEOMETRY_MESH,
 } geometry_type_t;
 
+/*
 typedef struct
 {
   geometry_type_t type;
   material_t material;
   geometry_t geometry;
+} object_t;
+*/
+
+typedef struct 
+{
+  uint flags;
+  double radius;
+  vec3 center;
+  vec3 color;
+  vec3 emission;
 } object_t;
 
 typedef struct
@@ -130,7 +141,7 @@ mat4 mult_mm(mat4, mat4);
 
 vec3 calculate_surface_normal(vec3 v0, vec3 v1, vec3 v2);
 
-bool intersect_sphere(const ray_t *ray, sphere_t *sphere, hit_t *hit);
+bool intersect_sphere(const ray_t *ray, vec3 center, double radius, hit_t *hit);
 bool intersect_triangle(const ray_t *ray, vertex_t vertex0, vertex_t vertex1, vertex_t vertex2, hit_t *hit);
 
 mat4 scale(vec3);

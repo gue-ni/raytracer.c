@@ -119,17 +119,17 @@ void init_camera(camera_t *camera, vec3 position, vec3 target, options_t *option
   camera->lower_left_corner = llc_new;
 }
 
-bool intersect_sphere(const ray_t *ray, sphere_t *sphere, hit_t *hit)
+bool intersect_sphere(const ray_t *ray, vec3 center, double radius, hit_t *hit)
 {
   intersection_test_count++;
 
   double t0, t1; // solutions for t if the ray intersects
-  vec3 L = sub(sphere->center, ray->origin);
+  vec3 L = sub(center, ray->origin);
   double tca = dot(L, ray->direction);
   if (tca < 0)
     return false;
   double d2 = dot(L, L) - tca * tca;
-  double radius2 = sphere->radius * sphere->radius;
+  double radius2 = radius * radius;
   if (d2 > radius2)
     return false;
 
@@ -444,6 +444,17 @@ bool intersect(const ray_t *ray, object_t *objects, size_t n, hit_t *hit)
   for (uint i = 0; i < n; i++)
   {
     object_t *object = &objects[i];
+    if (intersect_sphere(ray, objects[i].center, objects[i].radius, &local) && local.t < min_t)
+    {
+      min_t = local.t;
+      local.object_id = i;
+      local.point = point_at(ray, local.t);
+      local.normal = normalize(sub(local.point, objects[i].center));
+      local.u = atan2(local.normal.x, local.normal.z) / (2 * PI) + 0.5;
+      local.v = local.normal.y * 0.5 + 0.5;
+    }
+ 
+    /*
     switch (objects[i].type)
     {
     case GEOMETRY_MESH:
@@ -484,6 +495,7 @@ bool intersect(const ray_t *ray, object_t *objects, size_t n, hit_t *hit)
       exit(EXIT_FAILURE);
     }
     }
+    */
   }
 
   if (hit != NULL)
@@ -521,8 +533,8 @@ vec3 trace_path(ray_t *ray, object_t *objects, size_t nobj, int depth)
   }
 
   vec3 radiance;
-  vec3 albedo       = objects[hit.object_id].material.color;
-  vec3 emission     = objects[hit.object_id].material.emission;
+  vec3 albedo       = objects[hit.object_id].color;
+  vec3 emission     = objects[hit.object_id].emission;
 
   /* russian roulette */
   double prob = MAX(albedo.x, MAX(albedo.y, albedo.z));
@@ -532,7 +544,7 @@ vec3 trace_path(ray_t *ray, object_t *objects, size_t nobj, int depth)
   else
     return emission;
 
-  uint flags = objects[hit.object_id].material.flags;
+  uint flags = objects[hit.object_id].flags;
 
   if (flags & M_CHECKERED)
   {
@@ -602,8 +614,8 @@ vec3 cast_ray(ray_t *ray, object_t *objects, size_t nobj, int depth)
 
   bool in_shadow = intersect(&light_ray, objects, nobj, NULL);
   
-  vec3 object_color = objects[hit.object_id].material.color;
-  uint flags = objects[hit.object_id].material.flags;
+  vec3 object_color = objects[hit.object_id].color;
+  uint flags = objects[hit.object_id].flags;
 
   double ka = 0.25;
   double kd = 0.5;

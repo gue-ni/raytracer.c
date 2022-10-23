@@ -11,9 +11,14 @@ typedef struct { double m[2*2]; }     mat2;
 typedef struct { double m[3*3]; }     mat3;
 typedef struct { double m[4*4]; }     mat4;
 
-inline vec3 mult(vec3 a, vec3 b){ return (vec3){a.x * b.x, a.y * b.y, a.z * b.z}; }
-inline vec3 sub (vec3 a, vec3 b){ return (vec3){a.x - b.x, a.y - b.y, a.z - b.z}; }
-inline vec3 add (vec3 a, vec3 b){ return (vec3){a.x + b.x, a.y + b.y, a.z + b.z}; }
+inline vec3 mult(vec3 a, vec3 b)
+{ return (vec3){a.x * b.x, a.y * b.y, a.z * b.z}; }
+
+inline vec3 sub(vec3 a, vec3 b)
+{ return (vec3){a.x - b.x, a.y - b.y, a.z - b.z}; }
+
+inline vec3 add(vec3 a, vec3 b)
+{ return (vec3){a.x + b.x, a.y + b.y, a.z + b.z}; }
 
 inline double dot(vec3 a, vec3 b) { return a.x * b.x + a.y * b.y + a.z * b.z; }
 inline double length(vec3 v) { return sqrt(dot(v, v)); }
@@ -26,9 +31,9 @@ inline vec2 add_s2 (vec2 a, vec2 b)  {  return (vec2){a.x + b.x, a.y + b.y}; }
 
 inline vec3 cross(vec3 a, vec3 b)
 { return (vec3){
-  a.y * b.z - a.z * b.y, 
-  a.z * b.x - a.x * b.z, 
-  a.x * b.y - a.y * b.x }; 
+  a.y * b.z - a.z * b.y, \
+  a.z * b.x - a.x * b.z, \
+  a.x * b.y - a.y * b.x, }; 
 }
 
 inline vec3 normalize(vec3 v)

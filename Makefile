@@ -1,5 +1,5 @@
 CC      = gcc
-CFLAGS  = --std=c99 -Wall -Wno-strict-aliasing -Wno-unused-variable -Wno-unused-function -fopenmp -O3
+CFLAGS  = --std=c99 -Wall -Wno-strict-aliasing -Wno-unused-variable -Wno-unused-function -fopenmp -O3 -ffast-math
 LFLAGS  = -lm
 
 SRC     = $(wildcard *.c)
@@ -8,52 +8,45 @@ HEADERS = $(wildcard *.h)
 
 DATE    = $(shell date "+%Y-%m-%d")
 
-APP     = raytracer
-HD     	= raytracer_hd
-TESTS   = raytracer_test
+PROG    = raytracer
+TESTS   = test
 
-$(APP): bin/main.o bin/raytracer.o raytracer.h
-	$(CC) $(CFLAGS) -o $@ $^ $(LFLAGS)
+$(PROG): obj/main.o obj/raytracer.o
+	$(CC) $(CFLAGS) -o bin/$@ $^ $(LFLAGS)
 
-$(HD): bin/main.o bin/raytracer.o raytracer.h
-	$(CC) $(CFLAGS) -o $@ $^ $(LFLAGS)
+$(TESTS): obj/test.o obj/raytracer.o
+	$(CC) $(CFLAGS) -o bin/$@ $^ $(LFLAGS)
 
-$(TESTS): bin/test.o bin/raytracer.o raytracer.h
-	$(CC) $(CFLAGS) -o $@ $^ $(LFLAGS)
-
-bin/%.o: %.c
-	@mkdir -p bin/
+obj/%.o: %.c
+	@mkdir -p bin/ obj/
 	$(CC) $(CFLAGS) -c -o $@ $<
 
-all: $(APP)
+all: $(PROG)
 
 test: $(TESTS)
 	./$(TESTS) | tee tests.log 2>&1
 
 run: all 
-	./$(APP) -w 640 -h 480 -s 128 -o "result.png"
+	./bin/$(PROG) -w 640 -h 480 -s 128 -o "result.png"
 
-highres: $(HD) 
-	./$(HD) -w 640 -h 480 -s 1024 -o "result-hd.png"
+render: $(PROG)
+	./bin/$(PROG) -w 1920 -h 1080 -s 2048 -o "image-1920x1080-$(DATE).png"
 
-render: $(HD)
-	./$(HD) -w 1920 -h 1080 -s 2048 -o "image-1920x1080-$(DATE).png"
-
-memcheck: $(APP)
+memcheck: $(PROG)
 	valgrind --leak-check=full \
 		 --show-leak-kinds=all \
 		 --track-origins=yes \
 		 --verbose \
 		 --log-file="valgrind.log" \
-		 ./$(APP) -w 100 -h 50 -s 64 -o "bin/valgrind.png"
+		 ./bin/$(PROG) -w 100 -h 50 -s 64 -o "bin/valgrind.png"
 
 perfcheck: CFLAGS += -pg
-perfcheck: $(APP)
-	./$(APP) -w 320 -h 180 -s 64 -o "bin/gprof.png"
-	gprof $(APP) gmon.out > gprof.log 2>&1
+perfcheck: $(PROG)
+	./$(PROG) -w 320 -h 180 -s 64 -o "bin/gprof.png"
+	gprof $(PROG) gmon.out > gprof.log 2>&1
 
 clean:
-	rm -f $(APP) $(TESTS) *.o *.stackdump *.log *.out bin/*
+	rm -f $(PROG) $(TESTS) *.o *.stackdump *.log *.out bin/* obj/*
 
 .PHONY: all clean run memcheck render highres perfcheck render
 
