@@ -4,4 +4,4 @@ A simple raytracer written in C99. It uses [tinyobjloader-c](https://github.com/
 
 ![Result](results/image-2022-10-08.png)
 
-![Path Tracing](results/image-2022-10-13.png)
+![Path Tracing](results/image-2022-10-26.png)
