@@ -18,6 +18,8 @@
     .center = { (x), (y) + (r), (z) },\
     .radius = (r),\
 
+#define N_SPHERES (25)
+
 options_t options = {
     .width = 320,
     .height = 180,
@@ -41,6 +43,96 @@ void write_image(int signal)
             printf("done.\n");
 
         free(framebuffer);
+    }
+}
+
+bool collision(vec3 center0, double radius0, vec3 center1, double radius1)
+{
+    return length(sub(center0, center1)) < (radius0 + radius1);
+}
+
+void test_collision()
+{
+
+
+    object_t o_1 = {.radius = 3, .center = {0,0,0}};
+    object_t o_2 = {.radius = 3, .center = {6,0,0}};
+
+    printf("collision = %d\n", collision(o_1.center, o_1.radius, o_2.center, o_2.radius));
+}
+
+void generate_random_spheres(object_t *spheres, int num_spheres, vec3 box_min, vec3 box_max)
+{
+    const int max_iterations = 100000000;
+
+    const double min_radius = 2.0, max_radius = 8.0;
+
+    int iterations = 0;
+    int spheres_found = 0;
+    const double padding = 0.5;
+
+    while(spheres_found < num_spheres)
+    {
+        assert(iterations++ < max_iterations);
+
+        double radius = random_range(min_radius, max_radius);
+        vec3 vr = { radius, radius, radius };
+
+        vec3 min = add(box_min, vr);
+        vec3 max = sub(box_max, vr);
+
+        vec3 center = {
+            random_range(min.x, max.x),
+            random_range(min.y, max.y),
+            random_range(min.z, max.z)
+        };
+
+        bool coll = false;
+        for (int i = 0; i < spheres_found; i++)
+        {
+            object_t *sphere = &spheres[i];
+            coll = collision(sphere->center, sphere->radius, center, radius);
+            if (coll)
+                break;
+        }
+
+        if (!coll)
+        {
+            spheres_found++;
+
+            uint flags = M_DEFAULT;
+            vec3 color = WHITE;
+            vec3 emission = BLACK;
+
+            double r = random_double();
+            if (r < 0.5)
+            {
+                emission = RANDOM_COLOR;
+            }
+            else 
+            {
+                if (r > 0.8)
+                    flags = M_REFRACTION;
+                else if(r > 0.6)
+                    flags = M_REFLECTION;
+            }
+
+            if (length(emission) > 0)
+            {
+                //printf("[%d] = { .center = { %f, %f, %f }, .radius = %f, .emission = { %f, %f, %f } },\n", spheres_found, center.x, center.y, center.z, radius, emission.x, emission.y, emission.z);
+                printf("[%d] = { .center = { %f, %f, %f }, .radius = %f },\n", spheres_found, center.x, center.y, center.z, radius);
+            }
+
+            //center = (vec3){-8.053048, 13.375004, -5.639876};
+
+            *(spheres++) = (object_t) {
+                .center = center,
+                .radius = radius,
+                .flags = flags,
+                .color = color,
+                .emission = emission
+            };
+        }
     }
 }
 
@@ -82,7 +174,16 @@ void parse_options(int argc, char **argv, options_t *options)
 
 int main(int argc, char **argv)
 {
-    srand((unsigned)time(NULL));
+    unsigned int seed;
+#if 0
+    seed = (unsigned)time(NULL);
+#else
+    seed = 1666943821;
+#endif
+
+    printf("seed = %d\n", seed);
+    srand(seed);
+
 
     if (argc <= 1)
     {
@@ -143,7 +244,7 @@ int main(int argc, char **argv)
     //mat4 s = scale(VECTOR(16, 0.5, 16));
     //apply_matrix(&cube, s);
 
-    double aspect_ratio = (double)options.width / (double)options.height;
+    const double aspect_ratio = (double)options.width / (double)options.height;
     const double room_depth = 30;
     const double room_height = 20;
     const double room_width = room_height * aspect_ratio;
@@ -154,7 +255,9 @@ int main(int argc, char **argv)
 
     uint lighting = M_DEFAULT;
 
-    object_t scene[] = {
+#if 1
+    object_t scene[N_SPHERES + 6] = {
+#if 1
         { // floor
             .color = wall_color, 
             .emission = BLACK,
@@ -166,7 +269,7 @@ int main(int argc, char **argv)
             .color = wall_color, 
             .emission = BLACK,
             .flags = lighting,
-            .center ={0, 0, -radius - room_depth}, 
+            .center = {0, 0, -radius - room_depth}, 
             .radius = radius,
         },
         { // left wall
@@ -197,6 +300,7 @@ int main(int argc, char **argv)
             .center = {0, 0, radius + room_depth * 2}, 
             .radius = radius,
         },
+#endif
 #if 0 /* cube */
         {
             .type = GEOMETRY_MESH, 
@@ -207,7 +311,7 @@ int main(int argc, char **argv)
             .geometry.mesh = &cube
         },
 #endif
-#if 1 /* objects */
+#if 0 /* objects */
         {
             .color = WHITE, 
             .emission = BLACK,
@@ -245,6 +349,39 @@ int main(int argc, char **argv)
             SPHERE(-5, 5, -5, 5)
         },
 #endif
+#if 1 /* packed spheres */
+{ .color = { 1, 1, 1 }, .flags = M_DEFAULT, .emission = { 0, 0, 0 }, .center = { 11.8823, 12.8165, -3.43022 }, .radius = 3.47138 },
+{ .color = { 1, 1, 1 }, .flags = M_REFLECTION, .emission = { 0, 0, 0 }, .center = { -4.78617, -10.565, -11.8307 }, .radius = 7.8185 },
+{ .color = { 1, 1, 1 }, .flags = M_REFLECTION, .emission = { 0, 0, 0 }, .center = { 16.3283, 15.7456, 8.02745 }, .radius = 3.38449 },
+{ .color = { 1, 1, 1 }, .flags = M_DEFAULT, .emission = { 0.129721, 1.08691, 0.15077 }, .center = { -7.74563, 7.10781, -1.14851 }, .radius = 5.68239 },
+{ .color = { 1, 1, 1 }, .flags = M_DEFAULT, .emission = { 0, 0, 0 }, .center = { 0.604958, 13.8198, -10.0857 }, .radius = 3.63955 },
+{ .color = { 1, 1, 1 }, .flags = M_DEFAULT, .emission = { 0.419482, 0.406897, 0.301653 }, .center = { 2.72773, -3.47742, 7.21287 }, .radius = 5.756 },
+{ .color = { 1, 1, 1 }, .flags = M_REFLECTION, .emission = { 0, 0, 0 }, .center = { -11.6808, -15.0112, 10.6413 }, .radius = 3.40004 },
+{ .color = { 1, 1, 1 }, .flags = M_REFLECTION, .emission = { 0, 0, 0 }, .center = { 5.28438, -2.58167, -3.87996 }, .radius = 2.20867 },
+{ .color = { 1, 1, 1 }, .flags = M_DEFAULT, .emission = { 0, 0, 0 }, .center = { -15.1722, -0.318264, -14.8739 }, .radius = 3.31716 },
+{ .color = { 1, 1, 1 }, .flags = M_DEFAULT, .emission = { 0, 0, 0 }, .center = { 7.05345, -11.9375, -4.08415 }, .radius = 5.01176 },
+{ .color = { 1, 1, 1 }, .flags = M_DEFAULT, .emission = { 2.02456, 1.14375, 0.22395 }, .center = { -6.64606, 12.5952, -11.8074 }, .radius = 3.57727 },
+{ .color = { 1, 1, 1 }, .flags = M_REFLECTION, .emission = { 0, 0, 0 }, .center = { 15.3284, 7.63569, -7.88126 }, .radius = 2.26494 },
+{ .color = { 1, 1, 1 }, .flags = M_REFLECTION, .emission = { 0, 0, 0 }, .center = { 5.15508, -13.4632, 12.9555 }, .radius = 4.41505 },
+{ .color = { 1, 1, 1 }, .flags = M_DEFAULT, .emission = { 0, 0, 0 }, .center = { 6.61409, 15.9581, 13.6585 }, .radius = 2.76828 },
+{ .color = { 1, 1, 1 }, .flags = M_REFLECTION, .emission = { 0, 0, 0 }, .center = { 0.00113487, 8.35296, -14.4917 }, .radius = 2.58514 },
+{ .color = { 1, 1, 1 }, .flags = M_REFLECTION, .emission = { 0, 0, 0 }, .center = { 9.63578, 9.63074, -16.0336 }, .radius = 2.22603 },
+{ .color = { 1, 1, 1 }, .flags = M_REFLECTION, .emission = { 0, 0, 0 }, .center = { 13.105, 1.55555, 2.67293 }, .radius = 4.00109 },
+{ .color = { 1, 1, 1 }, .flags = M_REFLECTION, .emission = { 0, 0, 0 }, .center = { -0.0637789, 6.39925, 11.777 }, .radius = 4.99425 },
+{ .color = { 1, 1, 1 }, .flags = M_DEFAULT, .emission = { 0.403171, 1.90743, 1.59559 }, .center = { 7.11587, 6.96992, 7.24724 }, .radius = 3.28273 },
+{ .color = { 1, 1, 1 }, .flags = M_DEFAULT, .emission = { 0, 0, 0 }, .center = { -17.0139, 4.27765, 11.924 }, .radius = 2.14903 },
+{ .color = { 1, 1, 1 }, .flags = M_DEFAULT, .emission = { 0.647167, 1.99216, 1.4463 }, .center = { 15.3924, -4.96949, 12.4327 }, .radius = 3.48512 },
+{ .color = { 1, 1, 1 }, .flags = M_REFLECTION, .emission = { 0, 0, 0 }, .center = { -16.0135, 15.9701, 12.4844 }, .radius = 3.00053 },
+{ .color = { 1, 1, 1 }, .flags = M_DEFAULT, .emission = { 3.16375, 4.44267, 3.49332 }, .center = { -2.87246, -15.5185, 7.78116 }, .radius = 3.4779 },
+{ .color = { 1, 1, 1 }, .flags = M_REFLECTION, .emission = { 0, 0, 0 }, .center = { -8.89639, -10.9745, -1.80553 }, .radius = 2.39033 },
+{ .color = { 1, 1, 1 }, .flags = M_DEFAULT, .emission = { 0.662701, 2.82942, 1.50879 }, .center = { -0.653194, 9.99867, 4.17957 }, .radius = 3.28669 },
+{ .color = { 1, 1, 1 }, .flags = M_DEFAULT, .emission = { 1.6413, 2.60242, 0.421142 }, .center = { -14.6767, -6.47449, 4.48493 }, .radius = 4.77854 },
+{ .color = { 1, 1, 1 }, .flags = M_DEFAULT, .emission = { 0.479186, 0.149559, 0.3761 }, .center = { -9.76604, 16.8809, -0.605894 }, .radius = 2.89667 },
+{ .color = { 1, 1, 1 }, .flags = M_DEFAULT, .emission = { 0, 0, 0 }, .center = { 4.07601, 5.6942, -3.07305 }, .radius = 4.91388 },
+{ .color = { 1, 1, 1 }, .flags = M_REFLECTION, .emission = { 0, 0, 0 }, .center = { 15.1469, -13.988, 9.5646 }, .radius = 4.6719 },
+{ .color = { 1, 1, 1 }, .flags = M_DEFAULT, .emission = { 0, 0, 0 }, .center = { -7.2047, -5.0758, 7.74727 }, .radius = 2.86742 },
+
+#endif
 #if 1 /* light */
         {
             .color = WHITE, 
@@ -260,7 +397,25 @@ int main(int argc, char **argv)
             SPHERE(2, y, 12, 3)
         },
 #endif
+#if 0
+    { .center = { 13.724270, 11.059907, 11.930949 }, .radius = 2.852423, .color = WHITE, .emission = BLACK, .flags  = M_DEFAULT },
+    { .center = { 15.725292, 5.560808, 10.959894 }, .radius = 5.505558,  .color = WHITE, .emission = BLACK, .flags  = M_DEFAULT  },
+#endif
     };
+#else
+    object_t scene[N_SPHERES];
+#endif
+
+
+#if 0
+    generate_random_spheres
+    (
+        &scene[6], 
+        N_SPHERES, 
+        VECTOR(-room_width, -room_height, -room_depth), 
+        VECTOR(room_width, room_height, room_depth)
+    );
+#endif
 
     size_t buff_len = sizeof(*framebuffer) * options.width * options.height * 3;
     framebuffer = malloc(buff_len);
@@ -284,7 +439,7 @@ int main(int argc, char **argv)
 
     double time_taken = (double)((toc - tic) / CLOCKS_PER_SEC);
 
-    printf("%d x %d pixels\n", options.width, options.height);
+    printf("%d x %d (%d) pixels\n", options.width, options.height, options.width * options.height);
     printf("cast %lld rays\n", ray_count);
     printf("checked %lld possible intersections\n", intersection_test_count);
     printf("rendering took %f seconds\n", time_taken);

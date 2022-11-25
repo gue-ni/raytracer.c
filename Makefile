@@ -1,5 +1,5 @@
 CC      = gcc
-CFLAGS  = --std=c99 -Wall -Wno-strict-aliasing -Wno-unused-variable -Wno-unused-function -fopenmp -O3 -ffast-math
+CFLAGS  = --std=c99 -Wall -Wno-strict-aliasing -Wno-unused-variable -Wno-unused-function -fopenmp -O3
 LFLAGS  = -lm
 
 SRC     = $(wildcard *.c)
@@ -8,13 +8,17 @@ HEADERS = $(wildcard *.h)
 
 DATE    = $(shell date "+%Y-%m-%d")
 
-PROG    = raytracer
+PROG    = raytracer_tmp
 TESTS   = test
+COL			= col
 
 $(PROG): obj/main.o obj/raytracer.o
 	$(CC) $(CFLAGS) -o bin/$@ $^ $(LFLAGS)
 
 $(TESTS): obj/test.o obj/raytracer.o
+	$(CC) $(CFLAGS) -o bin/$@ $^ $(LFLAGS)
+
+$(COL): obj/collision.o
 	$(CC) $(CFLAGS) -o bin/$@ $^ $(LFLAGS)
 
 obj/%.o: %.c
@@ -23,11 +27,14 @@ obj/%.o: %.c
 
 all: $(PROG)
 
+coll: $(COL)
+	./bin/$(COL)
+
 test: $(TESTS)
 	./$(TESTS) | tee tests.log 2>&1
 
 run: all 
-	./bin/$(PROG) -w 640 -h 480 -s 128 -o "result.png"
+	./bin/$(PROG) -w 320 -h 180 -s 128 -o "result.png"
 
 render: $(PROG)
 	./bin/$(PROG) -w 1920 -h 1080 -s 2048 -o "image-1920x1080-$(DATE).png"

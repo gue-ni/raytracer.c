@@ -133,6 +133,7 @@ typedef struct
 /*==================[external function declarations]========================*/
 
 double random_double();
+double random_range(double, double);
 
 vec3 point_at(const ray_t *ray, double t);
 
