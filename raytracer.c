@@ -41,9 +41,7 @@ long long intersection_test_count = 0;
 
 vec3 calculate_surface_normal(vec3 v0, vec3 v1, vec3 v2)
 { 
-  vec3 U = vec3_sub(v1, v0);
-  vec3 V = vec3_sub(v2, v0);
-  return vec3_normalize(vec3_cross(V, U)); 
+  return vec3_normalize(vec3_cross(vec3_sub(v2, v0), vec3_sub(v1, v0))); 
 }
 
 void init_camera(camera_t *camera, vec3 position, vec3 target, options_t *options)
