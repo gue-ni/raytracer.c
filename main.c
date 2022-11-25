@@ -13,6 +13,7 @@
 #include "lib/stb_image_write.h"
 
 #include "raytracer.h"
+#include "vector.h"
 
 #define SPHERE(x, y, z, r) \
     .center = { (x), (y) + (r), (z) },\
@@ -33,6 +34,8 @@ uint8_t *framebuffer = NULL;
 extern long long ray_count;
 extern long long intersection_test_count;
 
+
+
 void write_image(int signal)
 {
     if (framebuffer != NULL)
@@ -48,7 +51,7 @@ void write_image(int signal)
 
 bool collision(vec3 center0, double radius0, vec3 center1, double radius1)
 {
-    return length(sub(center0, center1)) < (radius0 + radius1);
+    return vec3_length(vec3_sub(center0, center1)) < (radius0 + radius1);
 }
 
 void test_collision()
@@ -78,8 +81,8 @@ void generate_random_spheres(object_t *spheres, int num_spheres, vec3 box_min, v
         double radius = random_range(min_radius, max_radius);
         vec3 vr = { radius, radius, radius };
 
-        vec3 min = add(box_min, vr);
-        vec3 max = sub(box_max, vr);
+        vec3 min = vec3_add(box_min, vr);
+        vec3 max = vec3_sub(box_max, vr);
 
         vec3 center = {
             random_range(min.x, max.x),
@@ -117,7 +120,7 @@ void generate_random_spheres(object_t *spheres, int num_spheres, vec3 box_min, v
                     flags = M_REFLECTION;
             }
 
-            if (length(emission) > 0)
+            if (vec3_length(emission) > 0)
             {
                 //printf("[%d] = { .center = { %f, %f, %f }, .radius = %f, .emission = { %f, %f, %f } },\n", spheres_found, center.x, center.y, center.z, radius, emission.x, emission.y, emission.z);
                 printf("[%d] = { .center = { %f, %f, %f }, .radius = %f },\n", spheres_found, center.x, center.y, center.z, radius);
@@ -141,7 +144,7 @@ void apply_matrix(mesh_t* mesh, mat4 matrix)
     #pragma omp parallel for
     for (uint i = 0; i < mesh->num_triangles * 3; i++)
     {
-        mesh->vertices[i].pos = mult_mv(matrix, mesh->vertices[i].pos);
+        mesh->vertices[i].pos = mat4_vector_mult(matrix, mesh->vertices[i].pos);
     }
 }
 
@@ -256,7 +259,7 @@ int main(int argc, char **argv)
     uint lighting = M_DEFAULT;
 
 #if 1
-    object_t scene[N_SPHERES + 6] = {
+    object_t scene[] = {
 #if 1
         { // floor
             .color = wall_color, 

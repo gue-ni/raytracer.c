@@ -41,52 +41,9 @@ long long intersection_test_count = 0;
 
 vec3 calculate_surface_normal(vec3 v0, vec3 v1, vec3 v2)
 { 
-  vec3 U = sub(v1, v0);
-  vec3 V = sub(v2, v0);
-  return normalize(cross(V, U)); 
-}
-
-vec3 mult_mv(mat4 A, vec3 v)
-{
-  uint N = 4, M = 4, P = 1;
-
-  double B[4] = {v.x, v.y, v.z, 1.0};
-  double C[4];
-
-  for (uint i = 0; i < N; i++)
-  {
-    for (uint j = 0; j < P; j++)
-    {
-      C[i * P + j] = 0;
-      for (uint k = 0; k < M; k++)
-      {
-        C[i * P + j] += (A.m[i * M + k] * B[k * P + j]);
-      }
-    }
-  }
-
-  return (vec3){C[0], C[1], C[2]};
-}
-
-mat4 mult_mm(mat4 A, mat4 B)
-{
-  // A = N x M (N rows and M columns)
-  // B = M x P
-  mat4 C;
-  uint N = 4, M = 4, P = 4;
-
-  for (uint i = 0; i < N; i++)
-  {
-    for (uint j = 0; j < P; j++)
-    {
-      C.m[i * P + j] = 0;
-      for (uint k = 0; k < M; k++)
-      {
-        C.m[i * P + j] += (A.m[i * M + k] * B.m[k * P + j]);
-      }
-    }
-  }
-  return C;
+  vec3 U = vec3_sub(v1, v0);
+  vec3 V = vec3_sub(v2, v0);
+  return vec3_normalize(vec3_cross(V, U)); 
 }
 
 void init_camera(camera_t *camera, vec3 position, vec3 target, options_t *options)
@@ -97,24 +54,24 @@ void init_camera(camera_t *camera, vec3 position, vec3 target, options_t *option
   double aspect_ratio = (double)options->width / (double)options->height;
   double viewport_width = aspect_ratio * viewport_height;
 
-  vec3 forward = normalize(sub(target, position));
-  vec3 right = normalize(cross((vec3){0, 1, 0}, forward));
-  vec3 up = normalize(cross(forward, right));
+  vec3 forward = vec3_normalize(vec3_sub(target, position));
+  vec3 right = vec3_normalize(vec3_cross((vec3){0, 1, 0}, forward));
+  vec3 up = vec3_normalize(vec3_cross(forward, right));
 
   camera->position = position;
-  camera->vertical = mult_s(up, viewport_height);
-  camera->horizontal = mult_s(right, viewport_width);
+  camera->vertical = vec3_scalar_mult(up, viewport_height);
+  camera->horizontal = vec3_scalar_mult(right, viewport_width);
 
-  vec3 half_vertical = div_s(camera->vertical, 2);
-  vec3 half_horizontal = div_s(camera->horizontal, 2);
+  vec3 half_vertical = vec3_scalar_div(camera->vertical, 2);
+  vec3 half_horizontal = vec3_scalar_div(camera->horizontal, 2);
 
-  vec3 llc_old = sub(
-      sub(camera->position, half_horizontal),
-      sub(half_vertical, (vec3){0, 0, 1}));
+  vec3 llc_old = vec3_sub(
+      vec3_sub(camera->position, half_horizontal),
+      vec3_sub(half_vertical, (vec3){0, 0, 1}));
 
-  vec3 llc_new = sub(
-      sub(camera->position, half_horizontal),
-      sub(half_vertical, mult_s(forward, -1)));
+  vec3 llc_new = vec3_sub(
+      vec3_sub(camera->position, half_horizontal),
+      vec3_sub(half_vertical, vec3_scalar_mult(forward, -1)));
 
   camera->lower_left_corner = llc_new;
 }
@@ -124,11 +81,11 @@ bool intersect_sphere(const ray_t *ray, vec3 center, double radius, hit_t *hit)
   intersection_test_count++;
 
   double t0, t1; // solutions for t if the ray intersects
-  vec3 L = sub(center, ray->origin);
-  double tca = dot(L, ray->direction);
+  vec3 L = vec3_sub(center, ray->origin);
+  double tca = vec3_dot(L, ray->direction);
   if (tca < 0)
     return false;
-  double d2 = dot(L, L) - tca * tca;
+  double d2 = vec3_dot(L, L) - tca * tca;
   double radius2 = radius * radius;
   if (d2 > radius2)
     return false;
@@ -174,23 +131,23 @@ bool intersect_triangle(const ray_t *ray, vertex_t vertex0, vertex_t vertex1, ve
 
   vec3 edge1, edge2, h, s, q;
   double a, f, u, v, t;
-  edge1 = sub(v1, v0);
-  edge2 = sub(v2, v0);
-  h = cross(ray->direction, edge2);
-  a = dot(edge1, h);
+  edge1 = vec3_sub(v1, v0);
+  edge2 = vec3_sub(v2, v0);
+  h = vec3_cross(ray->direction, edge2);
+  a = vec3_dot(edge1, h);
   if (a > -EPSILON && a < EPSILON)
     return false; // This ray is parallel to this triangle.
   f = 1.0 / a;
-  s = sub(ray->origin, v0);
-  u = f * dot(s, h);
+  s = vec3_sub(ray->origin, v0);
+  u = f * vec3_dot(s, h);
   if (u < 0.0 || u > 1.0)
     return false;
-  q = cross(s, edge1);
-  v = f * dot(ray->direction, q);
+  q = vec3_cross(s, edge1);
+  v = f * vec3_dot(ray->direction, q);
   if (v < 0.0 || u + v > 1.0)
     return false;
   // At this stage we can compute t to find out where the intersection point is on the line.
-  t = f * dot(edge2, q);
+  t = f * vec3_dot(edge2, q);
 
   if (t > EPSILON)
   {
@@ -200,12 +157,12 @@ bool intersect_triangle(const ray_t *ray, vertex_t vertex0, vertex_t vertex1, ve
     vec2 st1 = vertex1.tex;
     vec2 st2 = vertex2.tex;
 
-    vec2 tex = add_s2(
-      add_s2(
-        mult_s2(st0, 1 - u - v), 
-        mult_s2(st1, u)
+    vec2 tex = vec2_add(
+      vec2_add(
+        vec2_scalar_mult(st0, 1 - u - v), 
+        vec2_scalar_mult(st1, u)
       ), 
-      mult_s2(st2, v)
+      vec2_scalar_mult(st2, v)
     );
 
     hit->u = tex.x;
@@ -254,10 +211,10 @@ void render(uint8_t *framebuffer, object_t *objects, size_t n_objects, camera_t 
 #else
         vec3 sample = cast_ray(&ray, objects, n_objects, 0);
 #endif
-        pixel = add(pixel, sample);
+        pixel = vec3_add(pixel, sample);
       }
 
-      pixel = mult_s(pixel, 1.0 / (double)options->samples);
+      pixel = vec3_scalar_mult(pixel, 1.0 / (double)options->samples);
 
       uint i = (y * options->width + x) * 3;
       framebuffer[i + 0] = (uint8_t)(255.0 * CLAMP(pow(pixel.x, 1 / gamma)));
@@ -282,24 +239,24 @@ vec3 random_on_unit_sphere()
   do {
     assert(++loop_counter < 100);
     p = VECTOR(random_range(-1, 1), random_range(-1, 1), random_range(-1, 1));
-  } while(length(p) > 1);
+  } while(vec3_length(p) > 1);
 
-  return normalize(p);
+  return vec3_normalize(p);
 }
 
 vec3 random_on_hemisphere(vec3 normal)
 {
   vec3 d = random_on_unit_sphere();
 
-  if (dot(d, normal) < 0)
-    return mult_s(d, -1);
+  if (vec3_dot(d, normal) < 0)
+    return vec3_scalar_mult(d, -1);
   else
     return d;
 }
 
 double mix(double a, double b, double mix) { return b * mix + a * (1 - mix); } 
 
-vec3 point_at(const ray_t *ray, double t) { return add(ray->origin, mult_s(ray->direction, t)); }
+vec3 point_at(const ray_t *ray, double t) { return vec3_add(ray->origin, vec3_scalar_mult(ray->direction, t)); }
 
 vec3 clamp(const vec3 v) { return (vec3){CLAMP(v.x), CLAMP(v.y), CLAMP(v.z)}; }
 
@@ -391,7 +348,7 @@ void print_m(const mat4 m)
 
 vec3 reflect(const vec3 In, const vec3 N)
 {
-  return sub(In, mult_s(N, 2 * dot(In, N)));
+  return vec3_sub(In, vec3_scalar_mult(N, 2 * vec3_dot(In, N)));
 }
 
 vec3 refract(const vec3 In, const vec3 N, double iot)
@@ -408,29 +365,29 @@ vec3 refract(const vec3 In, const vec3 N, double iot)
     double tmp = etai;
     etai = etat;
     etat = tmp;
-    n = mult_s(N, -1);
+    n = vec3_scalar_mult(N, -1);
   }
   double eta = etai / etat;
   double k = 1 - eta * eta * (1 - cosi * cosi);
-  return k < 0 ? ZERO_VECTOR : add(mult_s(In, eta), mult_s(n, eta * cosi - sqrtf(k)));
+  return k < 0 ? ZERO_VECTOR : vec3_add(vec3_scalar_mult(In, eta), vec3_scalar_mult(n, eta * cosi - sqrtf(k)));
 }
 
 ray_t get_camera_ray(const camera_t *camera, double u, double v)
 {
-  vec3 direction = sub(
+  vec3 direction = vec3_sub(
       camera->position,
-      add(
+      vec3_add(
           camera->lower_left_corner,
-          add(mult_s(camera->horizontal, u), mult_s(camera->vertical, v))));
+          vec3_add(vec3_scalar_mult(camera->horizontal, u), vec3_scalar_mult(camera->vertical, v))));
 
-  return (ray_t){camera->position, normalize(direction)};
+  return (ray_t){camera->position, vec3_normalize(direction)};
 }
 
 vec3 checkered_texture(vec3 color, double u, double v, double M)
 {
   double checker = (fmod(u * M, 1.0) > 0.5) ^ (fmod(v * M, 1.0) < 0.5);
   double c = 0.3 * (1 - checker) + 0.7 * checker;
-  return mult_s(color, c);
+  return vec3_scalar_mult(color, c);
 }
 
 bool intersect(const ray_t *ray, object_t *objects, size_t n, hit_t *hit)
@@ -449,7 +406,7 @@ bool intersect(const ray_t *ray, object_t *objects, size_t n, hit_t *hit)
       min_t = local.t;
       local.object_id = i;
       local.point = point_at(ray, local.t);
-      local.normal = normalize(sub(local.point, objects[i].center));
+      local.normal = vec3_normalize(vec3_sub(local.point, objects[i].center));
       local.u = atan2(local.normal.x, local.normal.z) / (2 * PI) + 0.5;
       local.v = local.normal.y * 0.5 + 0.5;
     }
@@ -509,17 +466,17 @@ bool intersect(const ray_t *ray, object_t *objects, size_t n, hit_t *hit)
 vec3 phong(vec3 color, vec3 light_dir, vec3 normal, vec3 camera_origin, vec3 position, bool in_shadow, double ka, double ks, double kd, double alpha)
 {
   // ambient
-  vec3 ambient = mult_s(color, ka);
+  vec3 ambient = vec3_scalar_mult(color, ka);
 
   // diffuse
-  vec3 diffuse = mult_s(color, kd * MAX(dot(normal, light_dir), 0.0));
+  vec3 diffuse = vec3_scalar_mult(color, kd * MAX(vec3_dot(normal, light_dir), 0.0));
 
   // specular
-  vec3 view_dir = normalize(sub(position, camera_origin));
+  vec3 view_dir = vec3_normalize(vec3_sub(position, camera_origin));
   vec3 reflected = reflect(light_dir, normal);
-  vec3 specular = mult_s(color, ks * pow(MAX(dot(view_dir, reflected), 0.0), alpha));
+  vec3 specular = vec3_scalar_mult(color, ks * pow(MAX(vec3_dot(view_dir, reflected), 0.0), alpha));
 
-  return in_shadow ? ZERO_VECTOR : clamp(add(add(ambient, diffuse), specular));
+  return in_shadow ? ZERO_VECTOR : clamp(vec3_add(vec3_add(ambient, diffuse), specular));
 }
 
 vec3 trace_path(ray_t *ray, object_t *objects, size_t nobj, int depth)
@@ -540,7 +497,7 @@ vec3 trace_path(ray_t *ray, object_t *objects, size_t nobj, int depth)
   double prob = MAX(albedo.x, MAX(albedo.y, albedo.z));
 
   if (random_double() < prob)
-    albedo = mult_s(albedo, 1 / prob);
+    albedo = vec3_scalar_mult(albedo, 1 / prob);
   else
     return emission;
 
@@ -557,19 +514,19 @@ vec3 trace_path(ray_t *ray, object_t *objects, size_t nobj, int depth)
   if (flags & M_REFRACTION)
   {
     double transparency = 1.0;
-    double facingratio  = -dot(ray->direction, hit.normal);
+    double facingratio  = -vec3_dot(ray->direction, hit.normal);
     double fresnel      = mix(pow(1 - facingratio, 3), 1, 0.1);
     double kr           = fresnel;
     double kt           = (1 - fresnel) * transparency;
 
 #if 1
-    R.direction = normalize(refract(mult_s(ray->direction, -1), hit.normal, 1.0));
+    R.direction = vec3_normalize(refract(vec3_scalar_mult(ray->direction, -1), hit.normal, 1.0));
     vec3 refraction = trace_path(&R, objects, nobj, depth + 1);
 
-    R.direction = normalize(reflect(mult_s(ray->direction, 1), hit.normal));
+    R.direction = vec3_normalize(reflect(vec3_scalar_mult(ray->direction, 1), hit.normal));
     vec3 reflection = trace_path(&R, objects, nobj, depth + 1);
 
-    radiance = add(mult_s(refraction, kt), mult_s(reflection, kr));
+    radiance = vec3_add(vec3_scalar_mult(refraction, kt), vec3_scalar_mult(reflection, kr));
 #else
     double p = random_double();
     if ((p * transparency) < fresnel)
@@ -589,11 +546,11 @@ vec3 trace_path(ray_t *ray, object_t *objects, size_t nobj, int depth)
   {
     R.direction = random_on_hemisphere(hit.normal);
     //double cos_theta = -dot(ray->direction, hit.normal);
-    double cos_theta = dot(R.direction, hit.normal);
-    radiance =  mult_s(trace_path(&R, objects, nobj, depth + 1), cos_theta);
+    double cos_theta = vec3_dot(R.direction, hit.normal);
+    radiance =  vec3_scalar_mult(trace_path(&R, objects, nobj, depth + 1), cos_theta);
   }
     
-  return add(emission, mult(albedo, radiance));
+  return vec3_add(emission, vec3_mult(albedo, radiance));
 }
 
 vec3 cast_ray(ray_t *ray, object_t *objects, size_t nobj, int depth)
@@ -610,7 +567,7 @@ vec3 cast_ray(ray_t *ray, object_t *objects, size_t nobj, int depth)
   vec3 light_pos = {2, 7, 2};
   vec3 light_color = {1, 1, 1};
 
-  ray_t light_ray = {hit.point, normalize(sub(light_pos, hit.point))};
+  ray_t light_ray = {hit.point, vec3_normalize(vec3_sub(light_pos, hit.point))};
 
   bool in_shadow = intersect(&light_ray, objects, nobj, NULL);
   
@@ -627,19 +584,19 @@ vec3 cast_ray(ray_t *ray, object_t *objects, size_t nobj, int depth)
     object_color = checkered_texture(object_color, hit.u, hit.v, 10);
   } 
 
-  vec3 ambient = mult_s(light_color, ka);
+  vec3 ambient = vec3_scalar_mult(light_color, ka);
 
-  vec3 diffuse = mult_s(light_color, kd * MAX(0.0, dot(hit.normal, light_ray.direction)));
+  vec3 diffuse = vec3_scalar_mult(light_color, kd * MAX(0.0, vec3_dot(hit.normal, light_ray.direction)));
 
   vec3 reflected = reflect(light_ray.direction, hit.normal);
-  vec3 view_dir = normalize(sub(hit.point, ray->origin));
-  vec3 specular = mult_s(light_color, ks * pow(MAX(dot(view_dir, reflected), 0.0), alpha));
+  vec3 view_dir = vec3_normalize(vec3_sub(hit.point, ray->origin));
+  vec3 specular = vec3_scalar_mult(light_color, ks * pow(MAX(vec3_dot(view_dir, reflected), 0.0), alpha));
 
-  vec3 surface = mult(
-    add(
+  vec3 surface = vec3_mult(
+    vec3_add(
       ambient, 
-      mult_s(
-        add(specular, diffuse),
+      vec3_scalar_mult(
+        vec3_add(specular, diffuse),
         in_shadow ? 0 : 1
       ) 
     ), 
@@ -653,30 +610,30 @@ vec3 cast_ray(ray_t *ray, object_t *objects, size_t nobj, int depth)
   if (flags & M_REFLECTION)
   {
     kr = 1.0;
-    ray_t r = { hit.point, normalize(reflect(ray->direction, hit.normal)) };
+    ray_t r = { hit.point, vec3_normalize(reflect(ray->direction, hit.normal)) };
     reflection = cast_ray(&r, objects, nobj, depth + 1);
   }
   
   if (flags & M_REFRACTION)
   {
     double transparency = 0.5;
-    double facingratio  = -dot(ray->direction, hit.normal);
+    double facingratio  = -vec3_dot(ray->direction, hit.normal);
     double fresnel      = mix(pow(1 - facingratio, 3), 1, 0.1);
 
     kr = fresnel;
     kt = (1 - fresnel) * transparency;
 
-    ray_t r = { hit.point, normalize(refract(ray->direction, hit.normal, 1.0))};
+    ray_t r = { hit.point, vec3_normalize(refract(ray->direction, hit.normal, 1.0))};
     refraction = cast_ray(&r, objects, nobj, depth + 1);
   }
 
-  out_color = add(out_color, surface);
+  out_color = vec3_add(out_color, surface);
 
-  out_color = add(
+  out_color = vec3_add(
     out_color, 
-    add(
-      mult_s(reflection, kr),
-      mult_s(refraction, kt)
+    vec3_add(
+      vec3_scalar_mult(reflection, kr),
+      vec3_scalar_mult(refraction, kt)
     ) 
   );
 

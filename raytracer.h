@@ -137,8 +137,6 @@ double random_range(double, double);
 
 vec3 point_at(const ray_t *ray, double t);
 
-vec3 mult_mv(mat4, vec3);
-mat4 mult_mm(mat4, mat4);
 
 vec3 calculate_surface_normal(vec3 v0, vec3 v1, vec3 v2);
 

@@ -115,7 +115,7 @@ void test_math()
               3, 2, 9, 0,
               0, 0, 0, 1}};
   vec3 ref_v = {47.0, 124.0, 68.0};
-  vec3 res_v = mult_mv(m3, v0);
+  vec3 res_v = mat4_vector_mult(m3, v0);
   TEST_CHECK(memcmp(&ref_v, &res_v, sizeof(vec3)) == 0);
 }
 
@@ -131,7 +131,7 @@ void  test_normal()
   {
     vec3 a = {2,3,4};
     vec3 b = {5,6,7};
-    vec3 c = cross(a,b);
+    vec3 c = vec3_cross(a,b);
     TEST_CHECK(compare_vector(c, (vec3){-3, 6, -3}));
   }
   
