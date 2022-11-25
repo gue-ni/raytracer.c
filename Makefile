@@ -49,7 +49,7 @@ memcheck: $(PROG)
 
 perfcheck: CFLAGS += -pg
 perfcheck: $(PROG)
-	./$(PROG) -w 320 -h 180 -s 64 -o "bin/gprof.png"
+	./bin/$(PROG) -w 320 -h 180 -s 64 -o "bin/gprof.png"
 	gprof $(PROG) gmon.out > gprof.log 2>&1
 
 clean:
