@@ -40,10 +40,10 @@ run: all
 	./bin/$(PROG) -w 320 -h 180 -s 128 -o "result.png"
 
 render: $(PROG)
-	@mkdir -p results/$(TIMESTAMP)
+	@mkdir -p results/$(DATE)
 	echo "Rendering $(WIDTH)x$(HEIGHT) with $(SAMPLES) samples"
 	./bin/$(PROG) -w $(WIDTH) -h $(HEIGHT) -s $(SAMPLES) \
-		-o "results/$(TIMESTAMP)/image-$(WIDTH)x$(HEIGHT)-s$(SAMPLES)-$(DATE)-$(COMMITHASH).png"
+		-o "results/$(DATE)/image-$(WIDTH)x$(HEIGHT)-s$(SAMPLES)-$(TIMESTAMP)-$(COMMITHASH).png"
 
 memcheck: $(PROG)
 	valgrind --leak-check=full \
