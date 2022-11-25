@@ -143,9 +143,11 @@ vec3 calculate_surface_normal(vec3 v0, vec3 v1, vec3 v2);
 bool intersect_sphere(const ray_t *ray, vec3 center, double radius, hit_t *hit);
 bool intersect_triangle(const ray_t *ray, vertex_t vertex0, vertex_t vertex1, vertex_t vertex2, hit_t *hit);
 
+#if 0
 mat4 scale(vec3);
 mat4 rotate(vec3);
 mat4 translate(vec3);
+#endif
 
 void print_v(const char* msg, const vec3 v);
 void print_m(const mat4 m);

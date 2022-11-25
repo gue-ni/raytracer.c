@@ -260,12 +260,13 @@ vec3 point_at(const ray_t *ray, double t) { return vec3_add(ray->origin, vec3_sc
 
 vec3 clamp(const vec3 v) { return (vec3){CLAMP(v.x), CLAMP(v.y), CLAMP(v.z)}; }
 
-mat4 translate(vec3 v)
+#if 0
+mat4 translate(vec3 v, mat4* m)
 {
-  mat4 m = {{1, 0, 0, v.x,
+  mat4 m = {1, 0, 0, v.x,
              0, 1, 0, v.y,
              0, 0, 1, v.z,
-             0, 0, 0, 1}};
+             0, 0, 0, 1};
   return m;
 }
 
@@ -328,6 +329,7 @@ mat4 scale(const vec3 v)
 
   return sm;
 }
+#endif
 
 void print_v(const char *msg, const vec3 v)
 {
@@ -340,7 +342,7 @@ void print_m(const mat4 m)
   {
     for (uint j = 0; j < 4; j++)
     {
-      printf(" %6.1f, ", m.m[i * 4 + j]);
+      printf(" %6.1f, ", m[i * 4 + j]);
     }
     printf("\n");
   }
