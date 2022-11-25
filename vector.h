@@ -46,6 +46,9 @@ inline vec3 vec3_cross(vec3 a, vec3 b)
   a.x * b.y - a.y * b.x, }; 
 }
 
+inline int vec3_equal(vec3 a, vec3 b)
+{ return a.x == b.x && a.y == b.y && a.z == b.z; }
+
 inline vec3 vec3_normalize(vec3 v)
 {
   double m = vec3_length(v);

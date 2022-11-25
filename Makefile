@@ -9,7 +9,7 @@ HEADERS = $(wildcard *.h)
 DATE    = $(shell date "+%Y-%m-%d")
 
 PROG    = raytracer_tmp
-TESTS   = test
+TESTS   = raytracer_test
 COL			= col
 
 $(PROG): obj/main.o obj/raytracer.o
@@ -25,13 +25,13 @@ obj/%.o: %.c
 	@mkdir -p bin/ obj/
 	$(CC) $(CFLAGS) -c -o $@ $<
 
-all: $(PROG)
+all: $(PROG) $(TESTS)
 
 coll: $(COL)
 	./bin/$(COL)
 
 test: $(TESTS)
-	./$(TESTS) | tee tests.log 2>&1
+	./bin/$(TESTS) | tee tests.log 2>&1
 
 run: all 
 	./bin/$(PROG) -w 320 -h 180 -s 128 -o "result.png"
