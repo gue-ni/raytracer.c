@@ -29,11 +29,11 @@
 #define CLAMP(x) (MAX(0, MIN(x, 1)))
 #define CLAMP_BETWEEN(x, min_v, max_v) (MAX(min_v, MIN(max_v, 1)))
 #define ABS(x) ((x < 0) ? (-x) : (x))
+#define VECTOR(x, y, z) ((vec3) {(x), (y), (z)})
 #define RGB(r, g, b) (VECTOR((r) / 255.0, (g) / 255.0, (b) / 255.0))
 #define EQ(a, b) (ABS((a) - (b)) < EPSILON)
 
 
-#define VECTOR(x, y, z) ((vec3) {(x), (y), (z)})
 #define RAY(o, d) ((ray_t) { .origin = o, .direction = d })
 
 #define RED       RGB(255, 0, 0)
