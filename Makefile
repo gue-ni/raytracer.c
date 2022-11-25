@@ -6,9 +6,15 @@ SRC     = $(wildcard *.c)
 OBJ     = $(patsubst %.c, bin/%.o, $(SRC))
 HEADERS = $(wildcard *.h)
 
-DATE    = $(shell date "+%Y-%m-%d")
+DATE    		= $(shell date "+%Y-%m-%d")
+TIMESTAMP 	=	$(shell date +%s)
+COMMITHASH	=	$(shell git log -1 --pretty=format:%h)
 
-PROG    = raytracer_tmp
+WIDTH 	= 640
+HEIGHT 	= 380
+SAMPLES = 32
+
+PROG    = raytracer
 TESTS   = raytracer_test
 COL			= col
 
@@ -27,9 +33,6 @@ obj/%.o: %.c
 
 all: $(PROG) $(TESTS)
 
-coll: $(COL)
-	./bin/$(COL)
-
 test: $(TESTS)
 	./bin/$(TESTS) | tee tests.log 2>&1
 
@@ -37,7 +40,10 @@ run: all
 	./bin/$(PROG) -w 320 -h 180 -s 128 -o "result.png"
 
 render: $(PROG)
-	./bin/$(PROG) -w 1920 -h 1080 -s 2048 -o "image-1920x1080-$(DATE).png"
+	@mkdir -p results/$(TIMESTAMP)
+	echo "Rendering $(WIDTH)x$(HEIGHT) with $(SAMPLES) samples"
+	./bin/$(PROG) -w $(WIDTH) -h $(HEIGHT) -s $(SAMPLES) \
+		-o "results/$(TIMESTAMP)/image-$(WIDTH)x$(HEIGHT)-s$(SAMPLES)-$(DATE)-$(COMMITHASH).png"
 
 memcheck: $(PROG)
 	valgrind --leak-check=full \

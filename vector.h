@@ -11,7 +11,6 @@ typedef double mat2[2*2];
 typedef double mat3[3*3];
 typedef double mat4[4*4];
 
-
 inline vec3 vec3_mult(vec3 a, vec3 b)
 { return (vec3){a.x * b.x, a.y * b.y, a.z * b.z}; }
 
