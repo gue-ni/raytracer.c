@@ -34,7 +34,7 @@
 #define EQ(a, b) (ABS((a) - (b)) < EPSILON)
 
 
-#define RAY(o, d) ((ray_t) { .origin = o, .direction = d })
+#define RAY(o, d) ((Ray) { .origin = o, .direction = d })
 
 #define RED       RGB(255, 0, 0)
 #define GREEN     RGB(0, 192, 48)
@@ -58,47 +58,47 @@
 /*==================[type definitions]======================================*/
 
 typedef uint32_t uint;
-typedef struct { vec3 pos; vec2 tex; } vertex_t;
-typedef struct { vec3 origin, direction; } ray_t;
+typedef struct { vec3 pos; vec2 tex; } Vertex;
+typedef struct { vec3 origin, direction; } Ray;
 
 typedef struct
 {
   uint flags;
   vec3 color, emission;
   double ka, ks, kd;
-} material_t;
+} Material;
 
 typedef struct
 {
   vec3 center;
   double radius;
-} sphere_t;
+} Sphere;
 
 typedef struct
 {
   size_t num_triangles;
-  vertex_t *vertices;
-} mesh_t;
+  Vertex *vertices;
+} Mesh;
 
 typedef union
 {
-  mesh_t *mesh;
-  sphere_t *sphere;
-} geometry_t;
+  Mesh *mesh;
+  Sphere *sphere;
+} Geometry;
 
 typedef enum
 {
   GEOMETRY_SPHERE,
   GEOMETRY_MESH,
-} geometry_type_t;
+} GeometryType;
 
 /*
 typedef struct
 {
-  geometry_type_t type;
-  material_t material;
-  geometry_t geometry;
-} object_t;
+  GeometryType type;
+  Material material;
+  Geometry geometry;
+} Object;
 */
 
 typedef struct 
@@ -108,7 +108,7 @@ typedef struct
   vec3 center;
   vec3 color;
   vec3 emission;
-} object_t;
+} Object;
 
 typedef struct
 {
@@ -116,32 +116,31 @@ typedef struct
   vec3 point;
   vec3 normal;
   uint object_id;
-} hit_t;
+} Hit;
 
 typedef struct
 {
   vec3 position, horizontal, vertical, lower_left_corner;
-} camera_t;
+} Camera;
 
 typedef struct
 {
   vec3 background;
   char *result, *obj;
   int width, height, samples;
-} options_t;
+} Options;
 
 /*==================[external function declarations]========================*/
 
 double random_double();
 double random_range(double, double);
 
-vec3 point_at(const ray_t *ray, double t);
-
+vec3 point_at(const Ray *ray, double t);
 
 vec3 calculate_surface_normal(vec3 v0, vec3 v1, vec3 v2);
 
-bool intersect_sphere(const ray_t *ray, vec3 center, double radius, hit_t *hit);
-bool intersect_triangle(const ray_t *ray, vertex_t vertex0, vertex_t vertex1, vertex_t vertex2, hit_t *hit);
+bool intersect_sphere(const Ray *ray, vec3 center, double radius, Hit *hit);
+bool intersect_triangle(const Ray *ray, Vertex vertex0, Vertex vertex1, Vertex vertex2, Hit *hit);
 
 #if 0
 mat4 scale(vec3);
@@ -152,11 +151,11 @@ mat4 translate(vec3);
 void print_v(const char* msg, const vec3 v);
 void print_m(const mat4 m);
 
-void init_camera(camera_t *camera, vec3 position, vec3 target, options_t *options);
+void init_camera(Camera *camera, vec3 position, vec3 target, Options *options);
 
-void render(uint8_t *framebuffer, object_t *objects, size_t n_objects, camera_t *camera, options_t *options);
+void render(uint8_t *framebuffer, Object *objects, size_t n_objects, Camera *camera, Options *options);
 
-bool load_obj(const char *filename, mesh_t *mesh);
+bool load_obj(const char *filename, Mesh *mesh);
 
 /*==================[external constants]====================================*/
 /*==================[external data]=========================================*/

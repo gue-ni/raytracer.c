@@ -21,7 +21,7 @@
 
 #define N_SPHERES (25)
 
-options_t options = {
+Options options = {
     .width = 320,
     .height = 180,
     .samples = 50,
@@ -33,8 +33,6 @@ uint8_t *framebuffer = NULL;
 
 extern long long ray_count;
 extern long long intersection_test_count;
-
-
 
 void write_image(int signal)
 {
@@ -58,13 +56,13 @@ void test_collision()
 {
 
 
-    object_t o_1 = {.radius = 3, .center = {0,0,0}};
-    object_t o_2 = {.radius = 3, .center = {6,0,0}};
+    Object o_1 = {.radius = 3, .center = {0,0,0}};
+    Object o_2 = {.radius = 3, .center = {6,0,0}};
 
     printf("collision = %d\n", collision(o_1.center, o_1.radius, o_2.center, o_2.radius));
 }
 
-void generate_random_spheres(object_t *spheres, int num_spheres, vec3 box_min, vec3 box_max)
+void generate_random_spheres(Object *spheres, int num_spheres, vec3 box_min, vec3 box_max)
 {
     const int max_iterations = 100000000;
 
@@ -93,7 +91,7 @@ void generate_random_spheres(object_t *spheres, int num_spheres, vec3 box_min, v
         bool coll = false;
         for (int i = 0; i < spheres_found; i++)
         {
-            object_t *sphere = &spheres[i];
+            Object *sphere = &spheres[i];
             coll = collision(sphere->center, sphere->radius, center, radius);
             if (coll)
                 break;
@@ -128,7 +126,7 @@ void generate_random_spheres(object_t *spheres, int num_spheres, vec3 box_min, v
 
             //center = (vec3){-8.053048, 13.375004, -5.639876};
 
-            *(spheres++) = (object_t) {
+            *(spheres++) = (Object) {
                 .center = center,
                 .radius = radius,
                 .flags = flags,
@@ -139,7 +137,7 @@ void generate_random_spheres(object_t *spheres, int num_spheres, vec3 box_min, v
     }
 }
 
-void apply_matrix(mesh_t* mesh, mat4 matrix)
+void apply_matrix(Mesh* mesh, mat4 matrix)
 {
     #pragma omp parallel for
     for (uint i = 0; i < mesh->num_triangles * 3; i++)
@@ -148,7 +146,7 @@ void apply_matrix(mesh_t* mesh, mat4 matrix)
     }
 }
 
-void parse_options(int argc, char **argv, options_t *options)
+void parse_options(int argc, char **argv, Options *options)
 {
     uint optind;
     for (optind = 1; optind < argc; optind++)
@@ -199,9 +197,9 @@ int main(int argc, char **argv)
     vec3 pos = {0, 0, 0};
     vec3 size = {1, 1, 1.5};
 
-    const mesh_t cube = {
+    const Mesh cube = {
         .num_triangles = 2,
-        .vertices = (vertex_t[]){
+        .vertices = (Vertex[]){
             {{ -0.5f, +0.5f, -0.5f },{ 0.0f, 1.0f }},
             {{ +0.5f, +0.5f, -0.5f },{ 1.0f, 1.0f }},
             {{ +0.5f, +0.5f, +0.5f },{ 1.0f, 0.0f }},
@@ -259,8 +257,8 @@ int main(int argc, char **argv)
     uint lighting = M_DEFAULT;
 
 #if 1
-    object_t scene[] = {
-#if 1
+    Object scene[] = {
+#if 1 /* walls */
         { // floor
             .color = wall_color, 
             .emission = BLACK,
@@ -400,13 +398,9 @@ int main(int argc, char **argv)
             SPHERE(2, y, 12, 3)
         },
 #endif
-#if 0
-    { .center = { 13.724270, 11.059907, 11.930949 }, .radius = 2.852423, .color = WHITE, .emission = BLACK, .flags  = M_DEFAULT },
-    { .center = { 15.725292, 5.560808, 10.959894 }, .radius = 5.505558,  .color = WHITE, .emission = BLACK, .flags  = M_DEFAULT  },
-#endif
-    };
+};
 #else
-    object_t scene[N_SPHERES];
+    Object scene[N_SPHERES];
 #endif
 
 
@@ -431,7 +425,7 @@ int main(int argc, char **argv)
     memset(framebuffer, 0x0,buff_len);
     signal(SIGINT, &write_image);
 
-    camera_t camera;
+    Camera camera;
     init_camera(&camera, VECTOR(0.0, 0, 50), VECTOR(0, 0, 0), &options);
 
     clock_t tic = clock();
