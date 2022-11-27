@@ -137,7 +137,7 @@ void generate_random_spheres(Object *spheres, int num_spheres, vec3 box_min, vec
     }
 }
 
-void apply_matrix(Mesh* mesh, mat4 matrix)
+void apply_matrix(TriangleMesh* mesh, mat4 matrix)
 {
     #pragma omp parallel for
     for (uint i = 0; i < mesh->num_triangles * 3; i++)
@@ -197,7 +197,7 @@ int main(int argc, char **argv)
     vec3 pos = {0, 0, 0};
     vec3 size = {1, 1, 1.5};
 
-    const Mesh cube = {
+    const TriangleMesh cube = {
         .num_triangles = 2,
         .vertices = (Vertex[]){
             {{ -0.5f, +0.5f, -0.5f },{ 0.0f, 1.0f }},

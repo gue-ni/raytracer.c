@@ -416,7 +416,7 @@ bool intersect(const Ray *ray, Object *objects, size_t n, Hit *hit)
     {
     case GEOMETRY_MESH:
     {
-      Mesh *mesh = objects[i].geometry.mesh;
+      TriangleMesh *mesh = objects[i].geometry.mesh;
       for (uint ti = 0; ti < mesh->num_triangles; ti++)
       {
         Vertex v0 = mesh->vertices[(ti * 3) + 0];

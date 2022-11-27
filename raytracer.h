@@ -78,11 +78,11 @@ typedef struct
 {
   size_t num_triangles;
   Vertex *vertices;
-} Mesh;
+} TriangleMesh;
 
 typedef union
 {
-  Mesh *mesh;
+  TriangleMesh *mesh;
   Sphere *sphere;
 } Geometry;
 
@@ -155,7 +155,7 @@ void init_camera(Camera *camera, vec3 position, vec3 target, Options *options);
 
 void render(uint8_t *framebuffer, Object *objects, size_t n_objects, Camera *camera, Options *options);
 
-bool load_obj(const char *filename, Mesh *mesh);
+bool load_obj(const char *filename, TriangleMesh *mesh);
 
 /*==================[external constants]====================================*/
 /*==================[external data]=========================================*/
