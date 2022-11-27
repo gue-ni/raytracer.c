@@ -18,3 +18,4 @@ raytracer
 raytracer_test
 raytracer_hd
 raytracer_tmp
+util.cpp
