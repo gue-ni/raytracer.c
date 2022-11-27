@@ -24,9 +24,6 @@ $(PROG): obj/main.o obj/raytracer.o
 $(TESTS): obj/test.o obj/raytracer.o
 	$(CC) $(CFLAGS) -o bin/$@ $^ $(LFLAGS)
 
-$(COL): obj/collision.o
-	$(CC) $(CFLAGS) -o bin/$@ $^ $(LFLAGS)
-
 obj/%.o: %.c
 	@mkdir -p bin/ obj/
 	$(CC) $(CFLAGS) -c -o $@ $<
@@ -41,10 +38,10 @@ run: all
 
 render: $(PROG)
 	@mkdir -p results/$(DATE)
-	echo "Rendering $(WIDTH)x$(HEIGHT) with $(SAMPLES) samples"
 	./bin/$(PROG) -w $(WIDTH) -h $(HEIGHT) -s $(SAMPLES) \
 		-o "results/$(DATE)/image-$(WIDTH)x$(HEIGHT)-s$(SAMPLES)-$(TIMESTAMP)-$(COMMITHASH).png"
 
+memcheck: CFLAGS += -DVALGRIND 
 memcheck: $(PROG)
 	valgrind --leak-check=full \
 		 --show-leak-kinds=all \

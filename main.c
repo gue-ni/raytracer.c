@@ -241,10 +241,6 @@ int main(int argc, char **argv)
         }
     };
 
-    //mat4 t = translate((vec3){0,-1,0});
-    //mat4 s = scale(VECTOR(16, 0.5, 16));
-    //apply_matrix(&cube, s);
-
     const double aspect_ratio = (double)options.width / (double)options.height;
     const double room_depth = 30;
     const double room_height = 20;
@@ -441,6 +437,9 @@ int main(int argc, char **argv)
     printf("checked %lld possible intersections\n", intersection_test_count);
     printf("rendering took %f seconds\n", time_taken);
     printf("writing result to '%s'...\n", options.result);
+
+#ifndef VALGRIND
     write_image(0);
+#endif
     return EXIT_SUCCESS;
 }
